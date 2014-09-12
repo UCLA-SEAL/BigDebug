@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.kafka:kafka_2.10:0.8.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/kafka_2.10-0.8.0.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/kafka_2.10-0.8.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/kafka_2.10-0.8.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

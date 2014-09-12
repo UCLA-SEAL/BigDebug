@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.scala-sbt:test-interface:1.0:test">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/test-interface-1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/test-interface-1.0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/test-interface-1.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

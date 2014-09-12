@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: junit:junit:4.10:test">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/junit-4.10.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/junit-4.10-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/junit-4.10-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

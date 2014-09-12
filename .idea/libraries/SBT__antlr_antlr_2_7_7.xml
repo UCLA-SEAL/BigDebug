@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="SBT: antlr:antlr:2.7.7">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/antlr-2.7.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/antlr-2.7.7-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

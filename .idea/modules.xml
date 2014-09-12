@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/assembly.iml" filepath="$PROJECT_DIR$/.idea_modules/assembly.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/bagel.iml" filepath="$PROJECT_DIR$/.idea_modules/bagel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/catalyst.iml" filepath="$PROJECT_DIR$/.idea_modules/catalyst.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/core.iml" filepath="$PROJECT_DIR$/.idea_modules/core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/examples.iml" filepath="$PROJECT_DIR$/.idea_modules/examples.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/graphx.iml" filepath="$PROJECT_DIR$/.idea_modules/graphx.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/hive.iml" filepath="$PROJECT_DIR$/.idea_modules/hive.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/mllib.iml" filepath="$PROJECT_DIR$/.idea_modules/mllib.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/oldDeps.iml" filepath="$PROJECT_DIR$/.idea_modules/oldDeps.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/repl.iml" filepath="$PROJECT_DIR$/.idea_modules/repl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/spark.iml" filepath="$PROJECT_DIR$/.idea_modules/spark.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/spark-build.iml" filepath="$PROJECT_DIR$/.idea_modules/spark-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/sql.iml" filepath="$PROJECT_DIR$/.idea_modules/sql.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-flume.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-flume.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-flume-sink.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-flume-sink.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-kafka.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-kafka.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-mqtt.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-mqtt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-twitter.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-twitter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/streaming-zeromq.iml" filepath="$PROJECT_DIR$/.idea_modules/streaming-zeromq.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea_modules/tools.iml" filepath="$PROJECT_DIR$/.idea_modules/tools.iml" />
+    </modules>
+  </component>
+</project>
+

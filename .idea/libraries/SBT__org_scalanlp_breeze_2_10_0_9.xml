@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.scalanlp:breeze_2.10:0.9">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/breeze_2.10-0.9.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/breeze_2.10-0.9-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/breeze_2.10-0.9-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

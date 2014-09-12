@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.antlr:antlr:3.4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/antlr-3.4.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/antlr-3.4-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/antlr-3.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

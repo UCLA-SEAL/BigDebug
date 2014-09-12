@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: commons-pool:commons-pool:1.5.4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/commons-pool-1.5.4.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/commons-pool-1.5.4-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/commons-pool-1.5.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

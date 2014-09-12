@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.hbase:hbase:0.94.6">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/hbase-0.94.6.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/hbase-0.94.6-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/hbase-0.94.6-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

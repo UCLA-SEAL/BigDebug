@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.jamon:jamon-runtime:2.3.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jamon-runtime-2.3.1.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/jamon-runtime-2.3.1-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/jamon-runtime-2.3.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

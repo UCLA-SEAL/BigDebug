@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="SBT: com.jolbox:bonecp:0.7.1.RELEASE">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/bonecp-0.7.1.RELEASE.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/bonecp-0.7.1.RELEASE.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/bonecp-0.7.1.RELEASE-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/bonecp-0.7.1.RELEASE-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

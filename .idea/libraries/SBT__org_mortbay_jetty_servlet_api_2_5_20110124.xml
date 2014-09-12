@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="SBT: org.mortbay.jetty:servlet-api:2.5-20110124">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/servlet-api-2.5-20110124.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/servlet-api-2.5-20110124-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/servlet-api-2.5-20110124-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.mina:mina-core:2.0.4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/mina-core-2.0.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/mina-core-2.0.4.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib_managed/docs/mina-core-2.0.4-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/srcs/mina-core-2.0.4-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
