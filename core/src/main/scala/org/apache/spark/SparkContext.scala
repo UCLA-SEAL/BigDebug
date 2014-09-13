@@ -1154,8 +1154,14 @@ class SparkContext(config: SparkConf) extends Logging {
         visited += rdd
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
-          waitingForVisit.push(dep.rdd)
-          deps += dep.tapDependency(rdd.tap())
+          dep match {
+            case shufDep: ShuffleDependency[_, _, _] =>
+              waitingForVisit.push(dep.rdd)
+              deps += dep.tapDependency(rdd.tap())
+            case narDep: NarrowDependency[_] =>
+              waitingForVisit.push(dep.rdd)
+              deps += dep
+          }
         }
         rdd.updateDependencies(deps.toList)
       }
