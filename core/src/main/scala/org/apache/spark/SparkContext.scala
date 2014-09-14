@@ -1170,7 +1170,7 @@ class SparkContext(config: SparkConf) extends Logging {
     while (!waitingForVisit.isEmpty) {
       visit(waitingForVisit.pop())
     }
-    new TapRDD[T](this, Seq(new OneToOneDependency[T](rdd)), "final")
+    new UntapShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)), "final")
   }
 
   /**

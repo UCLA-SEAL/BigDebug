@@ -17,6 +17,8 @@
 
 package org.apache.spark.rdd
 
+import java.util.concurrent.atomic.AtomicLong
+
 import scala.reflect.ClassTag
 
 import org.apache.spark.{Dependency, SparkContext, Partition, TaskContext}
@@ -24,13 +26,18 @@ import org.apache.spark.{Dependency, SparkContext, Partition, TaskContext}
 private[spark]
 class TapRDD[T: ClassTag](sc: SparkContext, deps: Seq[Dependency[_]], where: String) extends RDD[T](sc, deps) {
 
+  private val nextRecord = new AtomicLong(0)
+
+  private def newRecordId = nextRecord.getAndIncrement
+
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
   override def compute(split: Partition, context: TaskContext) =
     firstParent[T].iterator(split, context).map(tap)
 
-  def tap(record: T): T = {
+  def tap(record: T) = {
+    val id = newRecordId
     println("Tapping " + where + " " + record)
-    record
+    (record, id).asInstanceOf[T]
   }
 }

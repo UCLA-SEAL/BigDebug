@@ -101,11 +101,6 @@ class ShuffledRDD[K, V, C](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapRDD[(K, C)](this.context, newDeps, "pre-shuffle")
-    //new TapShuffledRDD[K, V, C](prev, part)
-    //  .setSerializer(serializer)
-    //  .setKeyOrdering(keyOrdering)
-    //  .setAggregator(aggregator)
-    //  .setMapSideCombine(mapSideCombine).asInstanceOf[RDD[(K, C)]]
+    new TapShuffleRDD[(K, C)](this.context, newDeps, "pre-shuffle")
   }
 }
