@@ -29,8 +29,4 @@ class MappedRDD[U: ClassTag, T: ClassTag](prev: RDD[T], f: T => U)
 
   override def compute(split: Partition, context: TaskContext) =
     firstParent[T].iterator(split, context).map(f)
-
-  override def tap(where: String = null) = {
-    super.tap("pre-map")
-  }
 }

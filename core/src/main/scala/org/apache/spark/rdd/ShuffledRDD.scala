@@ -96,11 +96,11 @@ class ShuffledRDD[K, V, C](
     prev = null
   }
 
-  override def tap(where: String = null) = {
+  override def tap() = {
     var newDeps = Seq.empty[Dependency[_]]
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapShuffleRDD[(K, C)](this.context, newDeps, "pre-shuffle")
+    new TapShuffleRDD[(K, C)](this.context, newDeps)
   }
 }

@@ -1378,7 +1378,7 @@ abstract class RDD[T: ClassTag](
     new JavaRDD(this)(elementClassTag)
   }
 
-  def tap(where: String = null) : RDD[T] = {
-    new TapRDD[T](sc, dependencies, where)
+  def tap() : RDD[T] = {
+    new TapRDD[T](sc, dependencies)
   }
 }

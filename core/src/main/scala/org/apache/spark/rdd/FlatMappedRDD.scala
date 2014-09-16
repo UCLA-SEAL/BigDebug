@@ -31,8 +31,4 @@ class FlatMappedRDD[U: ClassTag, T: ClassTag](
 
   override def compute(split: Partition, context: TaskContext) =
     firstParent[T].iterator(split, context).flatMap(f)
-
-  override def tap(where: String = null) = {
-    super.tap("pre-flatMap")
-  }
 }

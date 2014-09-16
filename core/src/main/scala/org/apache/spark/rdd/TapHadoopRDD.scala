@@ -14,23 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Added by Miao
 
 package org.apache.spark.rdd
 
-import org.apache.spark.{Dependency, SparkContext}
-
-import scala.reflect.ClassTag
+import org.apache.spark._
 
 private[spark]
-class TapShuffleRDD[T <: Product2[_, _] : ClassTag](
+class TapHadoopRDD[K, V](
     sc: SparkContext,
     deps: Seq[Dependency[_]])
-  extends TapRDD[T](sc, deps) {
+  extends TapRDD[(K, V)](sc, deps) {
 
-  override def tap(record: T) = {
-    val id = (firstParent[T].id, splitId, newRecordId)
-    recordInfo += ((id, Seq.empty))
-    println("Tapping " + " " + record + " with id " + id)
-    (record._1, (record._2, id)).asInstanceOf[T]
+  def this(@transient prev: HadoopRDD[_, _]) =
+    this(prev.context , List(new OneToOneDependency(prev)))
+
+  override def compute(split: Partition, context: TaskContext): Iterator[(K, V)] = {
+    splitId = split.index
+    firstParent[(K, V)].compute(split, context).map(tap)
+  }
+
+  override def tap(record: (K, V)) = {
+    //val offset = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].reader.getPos() - record._2.toString.size - 1
+    //val tuple2 = (firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].filePath, offset)
+    val id = (firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].id, splitId, newRecordId)
+    recordInfo += (id -> Seq.empty)//(tuple2))
+    println("captureRecordInfo: " + id)// + "->" + tuple2)
+    record
   }
 }

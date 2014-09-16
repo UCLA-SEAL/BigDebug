@@ -519,7 +519,7 @@ class SparkContext(config: SparkConf) extends Logging {
       ): RDD[(K, V)] = {
     // Add necessary security credentials to the JobConf before broadcasting it.
     SparkHadoopUtil.get.addCredentials(conf)
-    new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
+    new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions).hadoopTap()
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -546,7 +546,7 @@ class SparkContext(config: SparkConf) extends Logging {
       inputFormatClass,
       keyClass,
       valueClass,
-      minPartitions).setName(path)
+      minPartitions).setName(path).hadoopTap()
   }
 
   /**
@@ -1170,7 +1170,7 @@ class SparkContext(config: SparkConf) extends Logging {
     while (!waitingForVisit.isEmpty) {
       visit(waitingForVisit.pop())
     }
-    new UntapShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)), "final")
+    new UntapShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
   }
 
   /**

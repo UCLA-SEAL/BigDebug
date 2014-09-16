@@ -123,6 +123,38 @@ class HadoopRDD[K, V](
       minPartitions)
   }
 
+  var reader: RecordReader[K, V] = null  // Added by Miao
+
+  var filePath: String = null
+
+  var has_hadoopTapRDD = false  // Mark whether there's a tapRDD attached to this RDD, added by Miao
+
+  var hadoopTapRDD: TapHadoopRDD[K, V] = null  // Store the hadoopTapRDD, added by Miao
+
+  // Added by Miao
+  def hadoopTap(): TapHadoopRDD[K, V] = {  // Create a hadoopTapRDD for the current HadoopRDD
+    hadoopTapRDD = new TapHadoopRDD(this)
+    has_hadoopTapRDD = true
+    return hadoopTapRDD
+  }
+
+  // Modified by Miao
+  override private[spark]
+  def computeOrReadCheckpoint(split: Partition, context: TaskContext): Iterator[(K, V)] =
+  {
+    if (isCheckpointed) {
+      firstParent[(K, V)].iterator(split, context)
+    }
+    else {
+      if (has_hadoopTapRDD) {
+        hadoopTapRDD.compute(split, context)
+      }
+      else {
+        compute(split, context)
+      }
+    }
+  }
+
   protected val jobConfCacheKey = "rdd_%d_job_conf".format(id)
 
   protected val inputFormatCacheKey = "rdd_%d_input_format".format(id)
