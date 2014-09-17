@@ -22,7 +22,7 @@ import org.apache.spark.{Dependency, SparkContext}
 import scala.reflect.ClassTag
 
 private[spark]
-class TapShuffleRDD[T <: Product2[_, _] : ClassTag](
+class TapPreShuffleRDD[T <: Product2[_, _] : ClassTag](
     sc: SparkContext,
     deps: Seq[Dependency[_]])
   extends TapRDD[T](sc, deps) {

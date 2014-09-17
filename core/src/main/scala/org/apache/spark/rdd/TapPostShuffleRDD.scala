@@ -22,7 +22,7 @@ import org.apache.spark.{Dependency, SparkContext}
 import scala.reflect.ClassTag
 
 private[spark]
-class UntapShuffleRDD[ T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+class TapPostShuffleRDD[ T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends TapRDD[T](sc, deps) {
 
   override def tap(record: T) = {

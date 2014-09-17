@@ -101,6 +101,6 @@ class ShuffledRDD[K, V, C](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapShuffleRDD[(K, C)](this.context, newDeps)
+    new TapPreShuffleRDD[(K, C)](this.context, newDeps)
   }
 }
