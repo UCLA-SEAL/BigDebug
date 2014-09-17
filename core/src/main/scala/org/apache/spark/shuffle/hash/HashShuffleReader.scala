@@ -38,15 +38,14 @@ private[spark] class HashShuffleReader[K, C](
   override def read(): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
     val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
-    val trace = new AppendOnlyMap[K, List[_]]
+    val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
     val iter = untap(tappedIter, trace)
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
       } else {
-        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace)
-          .asInstanceOf[Iterator[Product2[K, C]]]
+        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace, context)
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -73,9 +72,10 @@ private[spark] class HashShuffleReader[K, C](
   /** Close this reader */
   override def stop(): Unit = ???
 
-  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, _]]], trace : AppendOnlyMap[K, List[_]]) = {
-    iter.map(r => {//{println("Untapping (" + r._1 + ", " + r._2._1 + ") with id " + r._2._2)
-      val update = (hadValue: Boolean, oldValue: List[_]) => {
+  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
+      trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
+    iter.map(r => {
+      val update = (hadValue: Boolean, oldValue: List[(Int, Int, Long)]) => {
         if (hadValue) r._2._2 :: oldValue else List(r._2._2)
       }
       trace.changeValue(r._1, update)
@@ -83,10 +83,12 @@ private[spark] class HashShuffleReader[K, C](
     })
   }
 
- def tap(iter: Iterator[Product2[K, C]], trace : AppendOnlyMap[K, List[_]]) = {
+ def tap(iter: Iterator[Product2[K, C]], trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
+     context : TaskContext) = {
    iter.map(r => {
      val id = trace(r._1)
-     (r._1, r._2, id)
+     context.currentRecordInfo = id.toSeq
+     (r._1, r._2)
    })
  }
 }

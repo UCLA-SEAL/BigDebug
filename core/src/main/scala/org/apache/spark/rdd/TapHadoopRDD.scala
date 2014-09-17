@@ -30,16 +30,21 @@ class TapHadoopRDD[K, V](
     this(prev.context , List(new OneToOneDependency(prev)))
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, V)] = {
+    if(tContext == null) {
+      tContext = context
+    }
     splitId = split.index
     firstParent[(K, V)].compute(split, context).map(tap)
   }
 
   override def tap(record: (K, V)) = {
-    //val offset = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].reader.getPos() - record._2.toString.size - 1
-    //val tuple2 = (firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].filePath, offset)
-    val id = (firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]].id, splitId, newRecordId)
-    recordInfo += (id -> Seq.empty)//(tuple2))
-    println("captureRecordInfo: " + id)// + "->" + tuple2)
+    val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
+    val offset = hadoopRDD.getReader.getPos() - record._2.toString.size - 1
+    val tuple2 = (hadoopRDD.getFilePath, offset)
+    val id = (hadoopRDD.id, splitId, newRecordId)
+    tContext.currentRecordInfo = Seq(id)
+    addRecordInfo(id, Seq(tuple2))
+    println("Tapping " + record + " with id " + id + " joins with " + tuple2)
     record
   }
 }

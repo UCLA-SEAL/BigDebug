@@ -17,7 +17,7 @@
 
 package org.apache.spark.rdd
 
-import org.apache.spark.{Dependency, Partition, SparkContext, TaskContext}
+import org.apache.spark.{Dependency, SparkContext}
 
 import scala.reflect.ClassTag
 
@@ -25,15 +25,11 @@ private[spark]
 class UntapShuffleRDD[ T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends TapRDD[T](sc, deps) {
 
-  override def compute(split: Partition, context: TaskContext) =
-    firstParent[T].iterator(split, context).map(untap)
-
-  def untap(record: T) = {
-    val tappedRecord = record.asInstanceOf[Product3[_, _, Seq[(Int, Int, Long)]]]
+  override def tap(record: T) = {
     val id = (firstParent[T].id, splitId, newRecordId)
-    recordInfo += ((id, tappedRecord._3))
-    println("Untapping (" + tappedRecord._1 + ", " + tappedRecord._2 + ") with id " +
-      id + " join with " + tappedRecord._3)
-    (tappedRecord._1, tappedRecord._2).asInstanceOf[T]
+    addRecordInfo(id, tContext.currentRecordInfo)
+    println("Tapping " + record + " with id " + id + " joins with " +
+      tContext.currentRecordInfo)
+    record
   }
 }

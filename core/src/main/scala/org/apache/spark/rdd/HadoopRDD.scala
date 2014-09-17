@@ -123,9 +123,9 @@ class HadoopRDD[K, V](
       minPartitions)
   }
 
-  var reader: RecordReader[K, V] = null  // Added by Miao
+  private var reader: RecordReader[K, V] = null  // Added by Miao
 
-  var filePath: String = null
+  private var filePath: String = null  // Added by Matteo
 
   var has_hadoopTapRDD = false  // Mark whether there's a tapRDD attached to this RDD, added by Miao
 
@@ -137,6 +137,16 @@ class HadoopRDD[K, V](
     has_hadoopTapRDD = true
     return hadoopTapRDD
   }
+
+  override def setName(_name: String): this.type = {
+    name = _name
+    filePath = _name
+    this
+  }
+
+  def getFilePath = filePath
+
+  def getReader = reader
 
   // Modified by Miao
   override private[spark]
@@ -222,7 +232,7 @@ class HadoopRDD[K, V](
 
       val split = theSplit.asInstanceOf[HadoopPartition]
       logInfo("Input split: " + split.inputSplit)
-      var reader: RecordReader[K, V] = null
+      //var reader: RecordReader[K, V] = null
       val jobConf = getJobConf()
       val inputFormat = getInputFormat(jobConf)
       HadoopRDD.addLocalConfiguration(new SimpleDateFormat("yyyyMMddHHmm").format(createTime),
