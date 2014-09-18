@@ -45,7 +45,9 @@ private[spark] class HashShuffleReader[K, C](
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
       } else {
-        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace, context) // Matteo - Added the tapping
+        tap(new InterruptibleIterator(context, 
+        dep.aggregator.get.combineValuesByKey(iter, context)), 
+        trace, context) // Matteo - Added the tapping
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
