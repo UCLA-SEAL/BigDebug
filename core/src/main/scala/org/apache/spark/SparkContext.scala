@@ -1170,7 +1170,9 @@ class SparkContext(config: SparkConf) extends Logging {
     while (!waitingForVisit.isEmpty) {
       visit(waitingForVisit.pop())
     }
-    new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
+    val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
+    rdd.setLineage(finalTap)
+    finalTap
   }
 
   /**

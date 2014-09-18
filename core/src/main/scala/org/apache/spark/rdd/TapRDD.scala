@@ -28,11 +28,11 @@ private[spark]
 class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
-  private val recordInfo = new HashMap[(Int, Int, Long), Seq[_]]()
+  //private val recordInfo = HashMap[(Int, Int, Long), Seq[_]]()
 
-  def addRecordInfo(key: (Int, Int, Long), value: Seq[_]) = recordInfo+= key -> value
+  def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = TapRDD.recordInfo+= key -> value
 
-  def getRecordInfos = recordInfo
+  def getRecordInfos = TapRDD.recordInfo
 
   protected var splitId: Int = 0
 
@@ -54,9 +54,14 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
 
   def tap(record: T) = {
     val id = (firstParent[T].id, splitId, newRecordId)
-    recordInfo += ((id, Seq.empty))
+    //recordInfo += ((id, Seq.empty))
     //tContext.currentRecordInfo = id
-    println("Tapping " + record + " with id " + id)
+    //println("Tapping " + record + " with id " + id)
     (record, id).asInstanceOf[T]
   }
+}
+
+private[spark] object TapRDD {
+
+  private val recordInfo = HashMap[Any, Seq[(_)]]()
 }

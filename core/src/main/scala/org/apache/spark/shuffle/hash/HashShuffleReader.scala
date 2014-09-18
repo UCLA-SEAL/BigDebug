@@ -39,13 +39,13 @@ private[spark] class HashShuffleReader[K, C](
     val ser = Serializer.getSerializer(dep.serializer)
     val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
     val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
-    val iter = untap(tappedIter, trace)
+    val iter = untap(tappedIter, trace) // Matteo - Added the untapping
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
       } else {
-        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace, context)
+        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace, context) // Matteo - Added the tapping
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -72,6 +72,7 @@ private[spark] class HashShuffleReader[K, C](
   /** Close this reader */
   override def stop(): Unit = ???
 
+  /** Added by Matteo */
   def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
       trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
     iter.map(r => {

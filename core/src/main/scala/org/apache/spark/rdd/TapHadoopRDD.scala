@@ -44,7 +44,7 @@ class TapHadoopRDD[K, V](
     val id = (hadoopRDD.id, splitId, newRecordId)
     tContext.currentRecordInfo = Seq(id)
     addRecordInfo(id, Seq(tuple2))
-    println("Tapping " + record + " with id " + id + " joins with " + tuple2)
+    //println("Tapping " + record + " with id " + id + " joins with " + tuple2)
     record
   }
 }

@@ -20,8 +20,8 @@ package org.apache.spark.rdd
 import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
-import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -130,6 +130,21 @@ abstract class RDD[T: ClassTag](
     name = _name
     this
   }
+
+  /** Added by Matteo */
+
+  private var tapRDD : TapPostShuffleRDD[_] = null
+
+  def setLineage(tap: TapPostShuffleRDD[_]) = tapRDD = tap
+
+  def getBackwardLineage(record: T) = {
+    if(tapRDD != null) {
+      tapRDD.getLineage(record).map(r => r.reverse)
+    } else {
+      Seq[List[(_)]]()
+    }
+  }
+
 
   /**
    * Set this RDD's storage level to persist its values across operations after the first time

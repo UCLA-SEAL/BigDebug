@@ -19,17 +19,54 @@ package org.apache.spark.rdd
 
 import org.apache.spark.{Dependency, SparkContext}
 
+import scala.collection.mutable.{HashMap, HashSet}
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPostShuffleRDD[ T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends TapRDD[T](sc, deps) {
+
+  def addResultInfo(key: T, value: (Int, Int, Long)) = TapPostShuffleRDD.resultInfo+= (key -> value)
+
+  def getLineage(record : Any) = {
+    val delta = HashSet[(Int, Int, Long)]().empty
+    val id = TapPostShuffleRDD.resultInfo.get(record)
+    delta += id.get
+    val result = Seq(List(id.get, record))
+    transitiveClosure(delta, result)
+  }
+
+  private def transitiveClosure(delta : HashSet[_], result : Seq[List[(_)]]) : Seq[List[(_)]] = {
+    val deltaPrime = HashSet[Any]()
+    var resultPrime = Seq[List[(_)]]()
+    delta.foreach(d => {
+      getRecordInfos.get(d).getOrElse(List[(Any)]()).foreach(id => {
+        deltaPrime += id
+        result.foreach(r => {
+          val tmp = r.head
+          if(tmp.equals(d)) {
+            resultPrime = resultPrime.:+(id :: r)
+          }
+        })
+      })
+    })
+    if(deltaPrime.nonEmpty) {
+      return transitiveClosure(deltaPrime, resultPrime)
+    }
+    result
+  }
 
   override def tap(record: T) = {
     val id = (firstParent[T].id, splitId, newRecordId)
     addRecordInfo(id, tContext.currentRecordInfo)
-    println("Tapping " + record + " with id " + id + " joins with " +
-      tContext.currentRecordInfo)
+    addResultInfo(record, id)
+    //println("Tapping " + record + " with id " + id + " joins with " +
+    //  tContext.currentRecordInfo)
     record
   }
+}
+
+private[spark] object TapPostShuffleRDD {
+
+  private val resultInfo = HashMap[Any, (Int, Int, Long)]()
 }
