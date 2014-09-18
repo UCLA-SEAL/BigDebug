@@ -17,8 +17,7 @@
 
 package org.apache.spark.examples
 
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.SparkContext._
 
 object SparkWordCount {
@@ -30,5 +29,6 @@ object SparkWordCount {
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
     counts.collect().foreach(println)
+    counts.getBackwardLineage(("submit", 1)).foreach(println)
   }
 }
