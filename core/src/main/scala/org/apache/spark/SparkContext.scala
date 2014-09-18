@@ -1106,7 +1106,8 @@ class SparkContext(config: SparkConf) extends Logging {
   /**
    * Run a job on all partitions in an RDD and return the results in an array.
    */
-  def runJob[T: ClassTag, U: ClassTag](rdd: RDD[T], func: (TaskContext, Iterator[T]) => U): Array[U] = {
+  def runJob[T: ClassTag, U: ClassTag](rdd: RDD[T], 
+    func: (TaskContext, Iterator[T]) => U): Array[U] = {
     val tappedRdd = tapJob(rdd)
     runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
   }
@@ -1128,7 +1129,8 @@ class SparkContext(config: SparkConf) extends Logging {
     resultHandler: (Int, U) => Unit)
   {
     val tappedRdd = tapJob(rdd)
-    runJob[T, U](tappedRdd, processPartition, 0 until tappedRdd.partitions.size, false, resultHandler)
+    runJob[T, U](tappedRdd, processPartition, 
+      0 until tappedRdd.partitions.size, false, resultHandler)
   }
 
   /**
