@@ -34,7 +34,7 @@ import org.apache.spark.util.collection.OpenHashMap
 import org.apache.spark.util.random.{BernoulliSampler, PoissonSampler, SamplingUtils}
 import org.apache.spark.util.{BoundedPriorityQueue, Utils}
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, HashSet}
 import scala.collection.{Map, mutable}
 import scala.reflect.{ClassTag, classTag}
 
@@ -141,7 +141,7 @@ abstract class RDD[T: ClassTag](
     if(tapRDD != null) {
       tapRDD.getLineage(key, false).map(r => r.reverse)
     } else {
-      Seq[List[(_)]]()
+      HashSet[List[(_)]]()
     }
   }
 
@@ -149,7 +149,7 @@ abstract class RDD[T: ClassTag](
     if(tapRDD != null) {
       tapRDD.getLineage(key, true).map(r => r.reverse)
     } else {
-      Seq[List[(_)]]()
+      HashSet[List[(_)]]()
     }
   }
 

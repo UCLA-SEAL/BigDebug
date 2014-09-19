@@ -19,6 +19,7 @@ package org.apache.spark.rdd
 
 import org.apache.spark.{Dependency, SparkContext}
 
+import scala.collection.mutable
 import scala.collection.mutable.{HashMap, HashSet}
 import scala.reflect.ClassTag
 
@@ -30,7 +31,7 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
 
   def getLineage(record : Any, isForward : Boolean = false) = {
     val delta = HashSet[(Int, Int, Long)]().empty
-    var result = Seq[List[(_)]]()
+    var result = mutable.HashSet[List[(_)]]()
     var joinTable : HashMap[Any, Seq[Any]] = null
     if(isForward) {
       if(!TapPostShuffleRDD.isForwardInit) {
@@ -43,22 +44,22 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
     val id = joinTable.get(record)
     id.get.foreach(r => {
       delta += r.asInstanceOf[(Int, Int, Long)]
-      result = result.:+(r :: (List(record)))
+      result +=(r :: (List(record)))
     })
     transitiveClosure(joinTable, delta, result)
   }
 
   private def transitiveClosure(joinTable : HashMap[Any, Seq[Any]],
       delta : HashSet[_],
-      result : Seq[List[(_)]]) : Seq[List[(_)]] = {
+      result : HashSet[List[(_)]]) : HashSet[List[(_)]] = {
     val deltaPrime = HashSet[Any]()
-    var resultPrime = Seq[List[(_)]]()
+    var resultPrime = HashSet[List[(_)]]()
     delta.foreach(d => {
       joinTable.get(d).getOrElse(List[(Any)]()).foreach(id => {
         deltaPrime += id
         result.foreach(r => {
           if(r.head.equals(d)) {
-            resultPrime = resultPrime.:+(id :: r)
+            resultPrime += (id :: r)
           }
         })
       })
