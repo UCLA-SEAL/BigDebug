@@ -28,30 +28,43 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
 
   def addResultInfo(key: T, value: (Int, Int, Long)) = TapPostShuffleRDD.resultInfo+= (key -> value)
 
-  def getLineage(record : Any) = {
+  def getLineage(record : Any, isForward : Boolean = false) = {
     val delta = HashSet[(Int, Int, Long)]().empty
-    val id = TapPostShuffleRDD.resultInfo.get(record)
-    delta += id.get
-    val result = Seq(List(id.get, record))
-    transitiveClosure(delta, result)
+    var result = Seq[List[(_)]]()
+    var joinTable : HashMap[Any, Seq[Any]] = null
+    if(isForward) {
+      if(!TapPostShuffleRDD.isForwardInit) {
+        TapPostShuffleRDD.initForward(getRecordInfos)
+      }
+      joinTable = TapPostShuffleRDD.forwardInfo
+    } else {
+      joinTable = getRecordInfos
+    }
+    val id = joinTable.get(record)
+    id.get.foreach(r => {
+      delta += r.asInstanceOf[(Int, Int, Long)]
+      result = result.:+(r :: (List(record)))
+    })
+    transitiveClosure(joinTable, delta, result)
   }
 
-  private def transitiveClosure(delta : HashSet[_], result : Seq[List[(_)]]) : Seq[List[(_)]] = {
+  private def transitiveClosure(joinTable : HashMap[Any, Seq[Any]],
+      delta : HashSet[_],
+      result : Seq[List[(_)]]) : Seq[List[(_)]] = {
     val deltaPrime = HashSet[Any]()
     var resultPrime = Seq[List[(_)]]()
     delta.foreach(d => {
-      getRecordInfos.get(d).getOrElse(List[(Any)]()).foreach(id => {
+      joinTable.get(d).getOrElse(List[(Any)]()).foreach(id => {
         deltaPrime += id
         result.foreach(r => {
-          val tmp = r.head
-          if(tmp.equals(d)) {
+          if(r.head.equals(d)) {
             resultPrime = resultPrime.:+(id :: r)
           }
         })
       })
     })
     if(deltaPrime.nonEmpty) {
-      return transitiveClosure(deltaPrime, resultPrime)
+      return transitiveClosure(joinTable, deltaPrime, resultPrime)
     }
     result
   }
@@ -59,14 +72,27 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
   override def tap(record: T) = {
     val id = (firstParent[T].id, splitId, newRecordId)
     addRecordInfo(id, tContext.currentRecordInfo)
-    addResultInfo(record, id)
+    //addRecordInfo(record, Seq(id))
     //println("Tapping " + record + " with id " + id + " joins with " +
     //  tContext.currentRecordInfo)
-    record
+    (record, id).asInstanceOf[T]
   }
 }
 
 private[spark] object TapPostShuffleRDD {
 
   private val resultInfo = HashMap[Any, (Int, Int, Long)]()
+  private var forwardInit : Boolean = false
+  private val forwardInfo = HashMap[Any, Seq[Any]]()
+
+  def isForwardInit = forwardInit
+
+  def initForward(recordInfo : HashMap[Any, Seq[(_)]]) = {
+    recordInfo.foreach(r => {
+      r._2.foreach(k => {
+        val value = forwardInfo.get(k)
+        forwardInfo += k -> value.getOrElse(List[Any]()).+:(r._1)
+      })
+    })
+  }
 }

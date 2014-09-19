@@ -46,7 +46,7 @@ private[spark] class HashShuffleManager(conf: SparkConf) extends ShuffleManager 
       endPartition: Int,
       context: TaskContext): ShuffleReader[K, C] = {
     new HashShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context, conf.getLineage)
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

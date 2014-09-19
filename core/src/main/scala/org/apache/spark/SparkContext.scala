@@ -174,6 +174,10 @@ class SparkContext(config: SparkConf) extends Logging {
     logInfo("Spark configuration:\n" + conf.toDebugString)
   }
 
+  // Added by Matteo
+
+  private def lineage = conf.getLineage
+
   // Set Spark driver host and port system properties
   conf.setIfMissing("spark.driver.host", Utils.localHostName())
   conf.setIfMissing("spark.driver.port", "0")
@@ -1108,8 +1112,7 @@ class SparkContext(config: SparkConf) extends Logging {
    */
   def runJob[T: ClassTag, U: ClassTag](rdd: RDD[T], 
     func: (TaskContext, Iterator[T]) => U): Array[U] = {
-    val tappedRdd = tapJob(rdd)
-    runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
+    runJob(rdd, func, 0 until rdd.partitions.size, false)
   }
 
   /**
@@ -1128,9 +1131,8 @@ class SparkContext(config: SparkConf) extends Logging {
     processPartition: (TaskContext, Iterator[T]) => U,
     resultHandler: (Int, U) => Unit)
   {
-    val tappedRdd = tapJob(rdd)
-    runJob[T, U](tappedRdd, processPartition, 
-      0 until tappedRdd.partitions.size, false, resultHandler)
+    runJob[T, U](rdd, processPartition,
+      0 until rdd.partitions.size, false, resultHandler)
   }
 
   /**
@@ -1142,11 +1144,13 @@ class SparkContext(config: SparkConf) extends Logging {
       resultHandler: (Int, U) => Unit)
   {
     val processFunc = (context: TaskContext, iter: Iterator[T]) => processPartition(iter)
-    val tappedRdd = tapJob(rdd)
-    runJob[T, U](tappedRdd, processFunc, 0 until tappedRdd.partitions.size, false, resultHandler)
+    runJob[T, U](rdd, processFunc, 0 until rdd.partitions.size, false, resultHandler)
   }
 
-  private def tapJob[T: ClassTag](rdd: RDD[T]) = {
+  private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
+    if(!lineage) {
+      return rdd
+    }
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
     // caused by recursively visiting

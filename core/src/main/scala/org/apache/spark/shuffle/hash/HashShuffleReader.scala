@@ -26,7 +26,8 @@ private[spark] class HashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
     startPartition: Int,
     endPartition: Int,
-    context: TaskContext)
+    context: TaskContext,
+    lineage: Boolean = false)
   extends ShuffleReader[K, C]
 {
   require(endPartition == startPartition + 1,
@@ -45,7 +46,9 @@ private[spark] class HashShuffleReader[K, C](
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
       } else {
-        tap(new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context)), trace, context) // Matteo - Added the tapping
+        tap(new InterruptibleIterator(context,
+          dep.aggregator.get.combineValuesByKey(iter, context)),
+          trace, context) // Matteo - Added the tapping
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -75,21 +78,29 @@ private[spark] class HashShuffleReader[K, C](
   /** Added by Matteo */
   def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
       trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
-    iter.map(r => {
-      val update = (hadValue: Boolean, oldValue: List[(Int, Int, Long)]) => {
-        if (hadValue) r._2._2 :: oldValue else List(r._2._2)
-      }
-      trace.changeValue(r._1, update)
-      (r._1, r._2._1).asInstanceOf[T]
-    })
+    if(lineage) {
+      iter.map(r => {
+        val update = (hadValue: Boolean, oldValue: List[(Int, Int, Long)]) => {
+          if (hadValue) r._2._2 :: oldValue else List(r._2._2)
+        }
+        trace.changeValue(r._1, update)
+        (r._1, r._2._1).asInstanceOf[T]
+      })
+    } else {
+      iter.asInstanceOf[Iterator[T]]
+    }
   }
 
  def tap(iter: Iterator[Product2[K, C]], trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
      context : TaskContext) = {
-   iter.map(r => {
-     val id = trace(r._1)
-     context.currentRecordInfo = id.toSeq
-     (r._1, r._2)
-   })
+   if(lineage) {
+     iter.map(r => {
+       val id = trace(r._1)
+       context.currentRecordInfo = id.toSeq
+       (r._1, r._2)
+     })
+   } else {
+     iter
+   }
  }
 }

@@ -49,7 +49,7 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       context: TaskContext): ShuffleReader[K, C] = {
     // We currently use the same block store shuffle fetcher as the hash-based shuffle.
     new HashShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context, conf.getLineage)
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

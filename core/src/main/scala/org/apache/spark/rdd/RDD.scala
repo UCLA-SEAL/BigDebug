@@ -137,14 +137,21 @@ abstract class RDD[T: ClassTag](
 
   def setLineage(tap: TapPostShuffleRDD[_]) = tapRDD = tap
 
-  def getBackwardLineage(record: T) = {
+  def getBackwardLineage(key: (Int, Int, Long)) = {
     if(tapRDD != null) {
-      tapRDD.getLineage(record).map(r => r.reverse)
+      tapRDD.getLineage(key, false).map(r => r.reverse)
     } else {
       Seq[List[(_)]]()
     }
   }
 
+  def getForwardLineage(key: (Int, Int, Long)) = {
+    if(tapRDD != null) {
+      tapRDD.getLineage(key, true).map(r => r.reverse)
+    } else {
+      Seq[List[(_)]]()
+    }
+  }
 
   /**
    * Set this RDD's storage level to persist its values across operations after the first time
