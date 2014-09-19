@@ -30,7 +30,7 @@ import org.apache.spark.shuffle.ShuffleHandle
 abstract class Dependency[T] extends Serializable {
   def rdd: RDD[T]
 
-  def tapDependency(tap: RDD[_] = null): Dependency[T]
+  def tapDependency(tap: RDD[_] = null): Dependency[T]   // Added by Matteo
 }
 
 
@@ -50,9 +50,9 @@ abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
 
   override def rdd: RDD[T] = _rdd
 
-  // Should be never called from here
-  override def tapDependency(tap: RDD[_] = null) : NarrowDependency[T] = {
-    this
+  /** Added by Matteo - Should never be called from here */
+  override def tapDependency(tap: RDD[_] = null): NarrowDependency[T] = {
+    throw new IllegalStateException("wrong tap")
   }
 }
 
@@ -87,6 +87,7 @@ class ShuffleDependency[K, V, C](
 
   _rdd.sparkContext.cleaner.foreach(_.registerShuffleForCleanup(this))
 
+  /** Added by Matteo */
   override def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
     _rdd = tap.asInstanceOf[RDD[Product2[K, V]]]
     this
@@ -102,7 +103,8 @@ class ShuffleDependency[K, V, C](
 class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
   override def getParents(partitionId: Int) = List(partitionId)
 
-  override def tapDependency(tap: RDD[_] = null) : OneToOneDependency[T] = {
+  /** Added by Matteo */
+  override def tapDependency(tap: RDD[_] = null) = {
     new OneToOneDependency[T](tap.asInstanceOf[TapRDD[T]])
   }
 }
@@ -126,9 +128,5 @@ class RangeDependency[T](rdd: RDD[T], inStart: Int, outStart: Int, length: Int)
     } else {
       Nil
     }
-  }
-
-  override def tapDependency(tap: RDD[_] = null) : RangeDependency[T] = {
-    new RangeDependency[T](rdd.tap(), inStart, outStart, length)
   }
 }

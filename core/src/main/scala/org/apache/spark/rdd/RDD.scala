@@ -99,6 +99,7 @@ abstract class RDD[T: ClassTag](
    */
   protected def getDependencies: Seq[Dependency[_]] = deps
 
+  /** Added by Matteo */
   final def updateDependencies(_deps: Seq[Dependency[_]]) = {
     deps = _deps
     dependencies_ = deps
@@ -131,8 +132,7 @@ abstract class RDD[T: ClassTag](
     this
   }
 
-  /** Added by Matteo */
-
+  /** Added by Matteo ######################################################## */
   private var tapRDD : TapPostShuffleRDD[_] = null
 
   def setLineage(tap: TapPostShuffleRDD[_]) = tapRDD = tap
@@ -152,6 +152,7 @@ abstract class RDD[T: ClassTag](
       HashSet[List[(_)]]()
     }
   }
+  /** ############################################################################### */
 
   /**
    * Set this RDD's storage level to persist its values across operations after the first time
@@ -1400,7 +1401,6 @@ abstract class RDD[T: ClassTag](
     new JavaRDD(this)(elementClassTag)
   }
 
-  def tap() : RDD[T] = {
-    new TapRDD[T](sc, dependencies)
-  }
+  /** Added by Matteo - Should never be called from here */
+  def tap(): RDD[T] = throw new IllegalStateException("wrong tap")
 }

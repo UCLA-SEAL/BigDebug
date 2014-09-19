@@ -96,6 +96,7 @@ class ShuffledRDD[K, V, C](
     prev = null
   }
 
+  /** Added by Matteo ######################################################################## */
   override def tap() = {
     var newDeps = Seq.empty[Dependency[_]]
     for(dep <- dependencies) {
@@ -103,4 +104,5 @@ class ShuffledRDD[K, V, C](
     }
     new TapPreShuffleRDD[(K, C)](this.context, newDeps)
   }
+  /** ########################################################################################## */
 }

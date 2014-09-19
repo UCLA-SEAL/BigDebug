@@ -25,10 +25,10 @@ import scala.reflect.ClassTag
 import org.apache.spark.{Dependency, SparkContext, Partition, TaskContext}
 
 private[spark]
-class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
-  //private val recordInfo = HashMap[(Int, Int, Long), Seq[_]]()
+  // private val recordInfo = HashMap[(Int, Int, Long), Seq[_]]()
 
   def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = TapRDD.recordInfo+= key -> value
 
@@ -52,13 +52,7 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  def tap(record: T) = {
-    val id = (firstParent[T].id, splitId, newRecordId)
-    //recordInfo += ((id, Seq.empty))
-    //tContext.currentRecordInfo = id
-    //println("Tapping " + record + " with id " + id)
-    (record, id).asInstanceOf[T]
-  }
+  def tap(record: T): T
 }
 
 private[spark] object TapRDD {

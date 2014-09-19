@@ -232,7 +232,7 @@ class HadoopRDD[K, V](
 
       val split = theSplit.asInstanceOf[HadoopPartition]
       logInfo("Input split: " + split.inputSplit)
-      //var reader: RecordReader[K, V] = null
+      // var reader: RecordReader[K, V] = null - Commented by Miao
       val jobConf = getJobConf()
       val inputFormat = getInputFormat(jobConf)
       HadoopRDD.addLocalConfiguration(new SimpleDateFormat("yyyyMMddHHmm").format(createTime),

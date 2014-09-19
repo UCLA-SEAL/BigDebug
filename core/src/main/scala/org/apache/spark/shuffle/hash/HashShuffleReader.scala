@@ -39,8 +39,10 @@ private[spark] class HashShuffleReader[K, C](
   override def read(): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
     val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
+    // Added by Matteo - Required to trace the ids of records
     val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
-    val iter = untap(tappedIter, trace) // Matteo - Added the untapping
+    // Added by Matteo - Untapping to not creating conflicts with the aggregation
+    val iter = untap(tappedIter, trace)
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
@@ -48,7 +50,7 @@ private[spark] class HashShuffleReader[K, C](
       } else {
         tap(new InterruptibleIterator(context,
           dep.aggregator.get.combineValuesByKey(iter, context)),
-          trace, context) // Matteo - Added the tapping
+          trace, context) // Matteo - Added the tapping back after aggregation
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -75,8 +77,9 @@ private[spark] class HashShuffleReader[K, C](
   /** Close this reader */
   override def stop(): Unit = ???
 
-  /** Added by Matteo */
-  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
+  /** Added by Matteo ######################################################################## */
+  def untap[T](
+      iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
       trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
     if(lineage) {
       iter.map(r => {
@@ -91,7 +94,9 @@ private[spark] class HashShuffleReader[K, C](
     }
   }
 
- def tap(iter: Iterator[Product2[K, C]], trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
+ def tap(
+     iter: Iterator[Product2[K, C]],
+     trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
      context : TaskContext) = {
    if(lineage) {
      iter.map(r => {
@@ -103,4 +108,5 @@ private[spark] class HashShuffleReader[K, C](
      iter
    }
  }
+ /** ########################################################################################## */
 }

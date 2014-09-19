@@ -375,8 +375,6 @@ class DAGScheduler(
                   missing += mapStage
                 }
               case narrowDep: NarrowDependency[_] =>
-                //val tap = narrowDep.rdd.createTapRDD()
-                //rdd.updateDependencies(List(new OneToOneDependency(tap)))
                 waitingForVisit.push(narrowDep.rdd)
             }
           }

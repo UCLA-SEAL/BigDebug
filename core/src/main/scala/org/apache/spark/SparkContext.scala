@@ -174,8 +174,7 @@ class SparkContext(config: SparkConf) extends Logging {
     logInfo("Spark configuration:\n" + conf.toDebugString)
   }
 
-  // Added by Matteo
-
+  /** Added by Matteo */
   private def lineage = conf.getLineage
 
   // Set Spark driver host and port system properties
@@ -1119,8 +1118,8 @@ class SparkContext(config: SparkConf) extends Logging {
    * Run a job on all partitions in an RDD and return the results in an array.
    */
   def runJob[T: ClassTag, U: ClassTag](rdd: RDD[T], func: Iterator[T] => U): Array[U] = {
-    val tappedRdd = tapJob(rdd)
-    runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
+    val tappedRdd = tapJob(rdd) // Added by Matteo
+    runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false) // Modified by Matteo
   }
 
   /**
@@ -1131,8 +1130,7 @@ class SparkContext(config: SparkConf) extends Logging {
     processPartition: (TaskContext, Iterator[T]) => U,
     resultHandler: (Int, U) => Unit)
   {
-    runJob[T, U](rdd, processPartition,
-      0 until rdd.partitions.size, false, resultHandler)
+    runJob[T, U](rdd, processPartition, 0 until rdd.partitions.size, false, resultHandler)
   }
 
   /**
@@ -1147,6 +1145,7 @@ class SparkContext(config: SparkConf) extends Logging {
     runJob[T, U](rdd, processFunc, 0 until rdd.partitions.size, false, resultHandler)
   }
 
+  /** Added by Matteo */
   private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
     if(!lineage) {
       return rdd
