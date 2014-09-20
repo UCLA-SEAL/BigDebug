@@ -1402,5 +1402,12 @@ abstract class RDD[T: ClassTag](
   }
 
   /** Added by Matteo - Should never be called from here */
-  def tap(): RDD[T] = throw new IllegalStateException("wrong tap")
+  def tap(): RDD[T] = {
+    // throw new IllegalStateException("wrong tap")
+    var newDeps = Seq.empty[Dependency[_]]
+    for(dep <- dependencies) {
+      newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
+    }
+    new TapPostShuffleRDD[T](this.context, newDeps)
+  }
 }

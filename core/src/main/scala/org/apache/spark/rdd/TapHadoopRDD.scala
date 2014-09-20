@@ -29,14 +29,6 @@ class TapHadoopRDD[K, V](
   def this(@transient prev: HadoopRDD[_, _]) =
     this(prev.context , List(new OneToOneDependency(prev)))
 
-  override def compute(split: Partition, context: TaskContext): Iterator[(K, V)] = {
-    if(tContext == null) {
-      tContext = context
-    }
-    splitId = split.index
-    firstParent[(K, V)].compute(split, context).map(tap)
-  }
-
   override def tap(record: (K, V)) = {
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
     val offset = hadoopRDD.getReader.getPos() - record._2.toString.size - 1

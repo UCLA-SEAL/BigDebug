@@ -522,7 +522,14 @@ class SparkContext(config: SparkConf) extends Logging {
       ): RDD[(K, V)] = {
     // Add necessary security credentials to the JobConf before broadcasting it.
     SparkHadoopUtil.get.addCredentials(conf)
-    new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions).hadoopTap()
+
+    /* Modified by Miao */
+    val rdd = new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
+    if(lineage) {
+      rdd.tap()
+    } else {
+      rdd
+    }
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -542,14 +549,21 @@ class SparkContext(config: SparkConf) extends Logging {
     // A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
     val confBroadcast = broadcast(new SerializableWritable(hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
-    new HadoopRDD(
+
+    /* Modified by Miao */
+    val rdd = new HadoopRDD(
       this,
       confBroadcast,
       Some(setInputPathsFunc),
       inputFormatClass,
       keyClass,
       valueClass,
-      minPartitions).setName(path).hadoopTap()
+      minPartitions).setName(path)
+    if(lineage) {
+      rdd.tap()
+    } else {
+      rdd
+    }
   }
 
   /**
@@ -1160,12 +1174,23 @@ class SparkContext(config: SparkConf) extends Logging {
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
           dep match {
-            case shufDep: ShuffleDependency[_, _, _] =>
+            case shufDep: ShuffleDependency[_, _, _] => {
               waitingForVisit.push(dep.rdd)
               deps += dep.tapDependency(rdd.tap())
-            case narDep: NarrowDependency[_] =>
+            }
+            case narDep: NarrowDependency[_] => {
               waitingForVisit.push(dep.rdd)
               deps += dep
+
+              // Intercept the end of the stage to add a post-shuffle tap
+              for (dep <- rdd.dependencies) {
+                dep match {
+                  case shufDep: ShuffleDependency[_, _, _] =>
+                    deps += dep.tapDependency(rdd.tap())
+                  case _ =>
+                }
+              }
+            }
           }
         }
         rdd.updateDependencies(deps.toList)

@@ -127,16 +127,8 @@ class HadoopRDD[K, V](
 
   private var filePath: String = null  // Added by Matteo
 
-  var has_hadoopTapRDD = false  // Mark whether there's a tapRDD attached to this RDD, added by Miao
-
-  var hadoopTapRDD: TapHadoopRDD[K, V] = null  // Store the hadoopTapRDD, added by Miao
-
   // Added by Miao
-  def hadoopTap(): TapHadoopRDD[K, V] = {  // Create a hadoopTapRDD for the current HadoopRDD
-    hadoopTapRDD = new TapHadoopRDD(this)
-    has_hadoopTapRDD = true
-    return hadoopTapRDD
-  }
+  override def tap(): TapHadoopRDD[K, V] = new TapHadoopRDD(this)
 
   override def setName(_name: String): this.type = {
     name = _name
@@ -156,12 +148,7 @@ class HadoopRDD[K, V](
       firstParent[(K, V)].iterator(split, context)
     }
     else {
-      if (has_hadoopTapRDD) {
-        hadoopTapRDD.compute(split, context)
-      }
-      else {
         compute(split, context)
-      }
     }
   }
 
