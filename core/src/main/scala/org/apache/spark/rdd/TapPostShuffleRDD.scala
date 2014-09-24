@@ -17,7 +17,7 @@
 
 package org.apache.spark.rdd
 
-import org.apache.spark.{Dependency, SparkContext}
+import org.apache.spark._
 
 import scala.collection.mutable
 import scala.collection.mutable.{HashMap, HashSet}
@@ -27,7 +27,7 @@ private[spark]
 class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends TapRDD[T](sc, deps) {
 
-  def addResultInfo(key: T, value: (Int, Int, Long)) = TapPostShuffleRDD.resultInfo+= (key -> value)
+  //def addResultInfo(key: T, value: (Int, Int, Long)) = resultInfo+= (key -> value)
 
   def getLineage(record : Any, isForward : Boolean = false) = {
     val delta = HashSet[(Int, Int, Long)]().empty
@@ -35,11 +35,11 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
     var joinTable : HashMap[Any, Seq[Any]] = null
     if(isForward) {
       if(!TapPostShuffleRDD.isForwardInit) {
-        TapPostShuffleRDD.initForward(getRecordInfos)
+        //TapPostShuffleRDD.initForward(getRecordInfos)
       }
       joinTable = TapPostShuffleRDD.forwardInfo
     } else {
-      joinTable = getRecordInfos
+      //joinTable = getRecordInfos
     }
     val id = joinTable.get(record)
     id.get.foreach(r => {
@@ -82,7 +82,7 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
 
 private[spark] object TapPostShuffleRDD {
 
-  private val resultInfo = HashMap[Any, (Int, Int, Long)]()
+  //private val resultInfo = HashMap[Any, (Int, Int, Long)]()
   private var forwardInit : Boolean = false
   private val forwardInfo = HashMap[Any, Seq[Any]]()
 

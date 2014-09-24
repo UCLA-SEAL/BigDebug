@@ -59,4 +59,14 @@ private[spark] trait ShuffleManager {
 
   /** Shut down this ShuffleManager. */
   def stop(): Unit
+
+  /** Added by Matteo */
+  private var lineage: Boolean = false
+
+  def setLineage(newLineage: Boolean) = {
+    lineage = newLineage
+    this
+  }
+
+  def getLineage() = lineage
 }

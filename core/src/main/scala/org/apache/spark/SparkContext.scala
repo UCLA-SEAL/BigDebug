@@ -175,7 +175,15 @@ class SparkContext(config: SparkConf) extends Logging {
   }
 
   /** Added by Matteo */
-  private def lineage = conf.getLineage
+
+  private var lineage: Option[Boolean] = None
+
+  def getLineage: Boolean = lineage match {
+    case Some(b) => b
+    case None => conf.getLineage
+  }
+
+  def setLineage(newLineage: Boolean) = lineage = Some(newLineage)
 
   // Set Spark driver host and port system properties
   conf.setIfMissing("spark.driver.host", Utils.localHostName())
@@ -525,7 +533,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
     /* Modified by Miao */
     val rdd = new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
-    if(lineage) {
+    if(getLineage) {
       rdd.tap()
     } else {
       rdd
@@ -559,8 +567,12 @@ class SparkContext(config: SparkConf) extends Logging {
       keyClass,
       valueClass,
       minPartitions).setName(path)
-    if(lineage) {
-      rdd.tap()
+    if(getLineage) {
+      val result = rdd.tap()
+      persistRDD(result)
+      // Register the RDD with the ContextCleaner for automatic GC-based cleanup
+      cleaner.foreach(_.registerRDDForCleanup(result))
+      result
     } else {
       rdd
     }
@@ -1161,7 +1173,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Added by Matteo */
   private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
-    if(!lineage) {
+    if(!getLineage) {
       return rdd
     }
     val visited = new HashSet[RDD[_]]
@@ -1201,7 +1213,7 @@ class SparkContext(config: SparkConf) extends Logging {
       visit(waitingForVisit.pop())
     }
     val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
-    rdd.setLineage(finalTap)
+    rdd.setTap(finalTap)
     finalTap
   }
 

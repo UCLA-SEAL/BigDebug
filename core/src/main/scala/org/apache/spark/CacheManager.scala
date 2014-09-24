@@ -17,11 +17,11 @@
 
 package org.apache.spark
 
+import org.apache.spark.rdd.{TapRDD, RDD}
+import org.apache.spark.storage._
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
-import org.apache.spark.rdd.RDD
-import org.apache.spark.storage._
 
 /**
  * Spark class responsible for passing RDDs partition contents to the BlockManager and making
@@ -31,6 +31,30 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
 
   /** Keys of RDD partitions that are being computed/loaded. */
   private val loading = new mutable.HashSet[RDDBlockId]
+
+  /** Added by Matteo. ############################################################### */
+
+  private var underMaterialization = new mutable.HashSet[(TapRDD[_], StorageLevel)]
+
+  def initMaterialization[T](rdd: TapRDD[T], partition: Partition, level: StorageLevel) = {
+    underMaterialization += ((rdd, level))
+  }
+
+  def materialize(
+      split: Int,
+      context: TaskContext,
+      effectiveStorageLevel: Option[StorageLevel] = None) = {
+    underMaterialization.foreach(table => {
+      val key = RDDBlockId(table._1.id, split)
+      val arr = table._1.getRecordInfos.toArray.asInstanceOf[Array[Any]]
+      val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
+      updatedBlocks ++=
+        blockManager.putArray(key, arr, table._2, tellMaster = true, effectiveStorageLevel)
+      val metrics = context.taskMetrics
+      val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
+      metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
+    })
+  }
 
   /** Gets or computes an RDD partition. Used by RDD.iterator() when an RDD is cached. */
   def getOrCompute[T](
@@ -182,5 +206,4 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
       }
     }
   }
-
 }
