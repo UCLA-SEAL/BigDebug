@@ -94,6 +94,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
         .setSerializer(serializer)
         .setAggregator(aggregator)
         .setMapSideCombine(mapSideCombine)
+        .setLineage(self.getLineage)
     }
   }
 

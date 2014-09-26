@@ -133,9 +133,9 @@ abstract class RDD[T: ClassTag](
   }
 
   /** Added by Matteo ######################################################## */
-  private var tapRDD : TapPostShuffleRDD[_] = null
+  var tapRDD : TapPostShuffleRDD[_] = null
 
-  def setLineage(tap: TapPostShuffleRDD[_]) = tapRDD = tap
+  def setTap(tap: TapPostShuffleRDD[_]) = tapRDD = tap
 
   def getBackwardLineage(key: (Int, Int, Long)) = {
     if(tapRDD != null) {
@@ -151,6 +151,18 @@ abstract class RDD[T: ClassTag](
     } else {
       HashSet[List[(_)]]()
     }
+  }
+
+  private var lineage: Option[Boolean] = None
+
+  def getLineage: Boolean = lineage match {
+    case Some(b) => b
+    case None => sc.getLineage
+  }
+
+  def setLineage(newLineage: Boolean) = {
+    lineage = Some(newLineage)
+    this
   }
   /** ############################################################################### */
 
@@ -1242,7 +1254,7 @@ abstract class RDD[T: ClassTag](
   // Other internal methods and fields
   // =======================================================================
 
-  private var storageLevel: StorageLevel = StorageLevel.NONE
+  protected var storageLevel: StorageLevel = StorageLevel.NONE
 
   /** User code that created this RDD (e.g. `textFile`, `parallelize`). */
   @transient private[spark] val creationSite = Utils.getCallSite
@@ -1409,5 +1421,10 @@ abstract class RDD[T: ClassTag](
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
     new TapPostShuffleRDD[T](this.context, newDeps)
+  }
+
+  def setStorageLevel = {
+    storageLevel = StorageLevel.MEMORY_ONLY
+    this
   }
 }

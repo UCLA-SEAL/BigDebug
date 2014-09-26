@@ -50,7 +50,7 @@ private[spark] class HashShuffleManager(conf: SparkConf) extends ShuffleManager 
       startPartition,
       endPartition,
       context,
-      conf.getLineage) // Added by Matteo
+      handle.asInstanceOf[BaseShuffleHandle[K, _, C]].dependency.rdd.context.getLineage) // Added by Matteo
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

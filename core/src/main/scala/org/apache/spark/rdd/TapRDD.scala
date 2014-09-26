@@ -19,20 +19,23 @@ package org.apache.spark.rdd
 
 import java.util.concurrent.atomic.AtomicLong
 
-import scala.collection.mutable.HashMap
-import scala.reflect.ClassTag
+import org.apache.spark._
+import org.apache.spark.storage.StorageLevel
 
-import org.apache.spark.{Dependency, SparkContext, Partition, TaskContext}
+import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
 
 private[spark]
 abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
-  // private val recordInfo = HashMap[(Int, Int, Long), Seq[_]]()
+  private val recordInfo = ArrayBuffer[(Any, Any)]()
 
-  def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = TapRDD.recordInfo+= key -> value
+  def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
+    value.foreach(v => recordInfo += key -> v)
+  }
 
-  def getRecordInfos = TapRDD.recordInfo
+  def getRecordInfos = recordInfo
 
   protected var splitId: Int = 0
 
@@ -49,6 +52,9 @@ abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
       tContext = context
     }
     splitId = split.index
+
+    SparkEnv.get.cacheManager.initMaterialization(this, split, StorageLevel.MEMORY_ONLY)
+
     firstParent[T].iterator(split, context).map(tap)
   }
 
@@ -57,5 +63,5 @@ abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
 
 private[spark] object TapRDD {
 
-  private val recordInfo = HashMap[Any, Seq[(_)]]()
+  //private val recordInfo = HashMap[Any, Seq[(_)]]()
 }
