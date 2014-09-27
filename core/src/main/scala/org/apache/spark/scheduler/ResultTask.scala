@@ -62,7 +62,10 @@ private[spark] class ResultTask[T, U](
       func(context, rdd.iterator(partition, context))
     } finally {
       context.markTaskCompleted()
-      SparkEnv.get.cacheManager.materialize(partition.index, context) // Added by Matteo
+      // Added by Matteo
+      if(SparkEnv.get.shuffleManager.getLineage) {
+        SparkEnv.get.cacheManager.materialize(partition.index, context)
+      }
     }
   }
 

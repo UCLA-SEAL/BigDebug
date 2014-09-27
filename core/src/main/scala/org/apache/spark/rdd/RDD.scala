@@ -132,40 +132,6 @@ abstract class RDD[T: ClassTag](
     this
   }
 
-  /** Added by Matteo ######################################################## */
-  var tapRDD : TapPostShuffleRDD[_] = null
-
-  def setTap(tap: TapPostShuffleRDD[_]) = tapRDD = tap
-
-  def getBackwardLineage(key: (Int, Int, Long)) = {
-    if(tapRDD != null) {
-      tapRDD.getLineage(key, false).map(r => r.reverse)
-    } else {
-      HashSet[List[(_)]]()
-    }
-  }
-
-  def getForwardLineage(key: (Int, Int, Long)) = {
-    if(tapRDD != null) {
-      tapRDD.getLineage(key, true).map(r => r.reverse)
-    } else {
-      HashSet[List[(_)]]()
-    }
-  }
-
-  private var lineage: Option[Boolean] = None
-
-  def getLineage: Boolean = lineage match {
-    case Some(b) => b
-    case None => sc.getLineage
-  }
-
-  def setLineage(newLineage: Boolean) = {
-    lineage = Some(newLineage)
-    this
-  }
-  /** ############################################################################### */
-
   /**
    * Set this RDD's storage level to persist its values across operations after the first time
    * it is computed. This can only be used to assign a new storage level if the RDD does not
@@ -1413,7 +1379,8 @@ abstract class RDD[T: ClassTag](
     new JavaRDD(this)(elementClassTag)
   }
 
-  /** Added by Matteo - Should never be called from here */
+  /** Added by Matteo ###################################################################### */
+
   def tap(): RDD[T] = {
     // throw new IllegalStateException("wrong tap")
     var newDeps = Seq.empty[Dependency[_]]
@@ -1427,4 +1394,40 @@ abstract class RDD[T: ClassTag](
     storageLevel = StorageLevel.MEMORY_ONLY
     this
   }
+
+  var tapRDD : Option[TapPostShuffleRDD[_]] = None
+
+  def setTap(tap: TapPostShuffleRDD[_]) = tapRDD = Some(tap)
+
+  def getTap() = tapRDD.get
+
+  def getBackwardLineage(key: (Int, Int, Long)) = {
+    if(tapRDD != null) {
+      //tapRDD.getLineage(key, false).map(r => r.reverse)
+    } else {
+      HashSet[List[(_)]]()
+    }
+  }
+
+  def getForwardLineage(key: (Int, Int, Long)) = {
+    if(tapRDD != null) {
+      //tapRDD.getLineage(key, true).map(r => r.reverse)
+    } else {
+      HashSet[List[(_)]]()
+    }
+  }
+
+  private var lineage: Option[Boolean] = None
+
+  def getLineage: Boolean = lineage match {
+    case Some(b) => b
+    case None => sc.getLineage
+  }
+
+  def setLineage(newLineage: Boolean) = {
+    lineage = Some(newLineage)
+    this
+  }
+
+  /** ###################################################################### */
 }

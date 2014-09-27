@@ -61,12 +61,15 @@ private[spark] trait ShuffleManager {
   def stop(): Unit
 
   /** Added by Matteo */
-  private var lineage: Boolean = false
+  private var lineage: Option[Boolean] = None
 
   def setLineage(newLineage: Boolean) = {
-    lineage = newLineage
+    lineage = Some(newLineage)
     this
   }
 
-  def getLineage() = lineage
+  def getLineage: Boolean = lineage match {
+    case Some(b) => b
+    case None => false
+  }
 }

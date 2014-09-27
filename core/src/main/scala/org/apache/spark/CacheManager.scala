@@ -54,7 +54,10 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
       val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
       metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
     })
+    underMaterialization.clear()
   }
+
+  /** ################################################################################### */
 
   /** Gets or computes an RDD partition. Used by RDD.iterator() when an RDD is cached. */
   def getOrCompute[T](

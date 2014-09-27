@@ -31,6 +31,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, Sequence
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.mesos.MesosNativeLibrary
+import org.apache.spark.Direction.Direction
 import org.apache.spark.annotation.{DeveloperApi, Experimental}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -173,17 +174,6 @@ class SparkContext(config: SparkConf) extends Logging {
   if (conf.getBoolean("spark.logConf", false)) {
     logInfo("Spark configuration:\n" + conf.toDebugString)
   }
-
-  /** Added by Matteo */
-
-  private var lineage: Option[Boolean] = None
-
-  def getLineage: Boolean = lineage match {
-    case Some(b) => b
-    case None => conf.getLineage
-  }
-
-  def setLineage(newLineage: Boolean) = lineage = Some(newLineage)
 
   // Set Spark driver host and port system properties
   conf.setIfMissing("spark.driver.host", Utils.localHostName())
@@ -1171,52 +1161,6 @@ class SparkContext(config: SparkConf) extends Logging {
     runJob[T, U](rdd, processFunc, 0 until rdd.partitions.size, false, resultHandler)
   }
 
-  /** Added by Matteo */
-  private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
-    if(!getLineage) {
-      return rdd
-    }
-    val visited = new HashSet[RDD[_]]
-    // We are manually maintaining a stack here to prevent StackOverflowError
-    // caused by recursively visiting
-    val waitingForVisit = new Stack[RDD[_]]
-    def visit(rdd: RDD[_]) {
-      if (!visited(rdd)) {
-        visited += rdd
-        val deps = new HashSet[Dependency[_]]
-        for (dep <- rdd.dependencies) {
-          dep match {
-            case shufDep: ShuffleDependency[_, _, _] => {
-              waitingForVisit.push(dep.rdd)
-              deps += dep.tapDependency(rdd.tap())
-            }
-            case narDep: NarrowDependency[_] => {
-              waitingForVisit.push(dep.rdd)
-              deps += dep
-
-              // Intercept the end of the stage to add a post-shuffle tap
-              for (dep <- rdd.dependencies) {
-                dep match {
-                  case shufDep: ShuffleDependency[_, _, _] =>
-                    deps += dep.tapDependency(rdd.tap())
-                  case _ =>
-                }
-              }
-            }
-          }
-        }
-        rdd.updateDependencies(deps.toList)
-      }
-    }
-    waitingForVisit.push(rdd)
-    while (!waitingForVisit.isEmpty) {
-      visit(waitingForVisit.pop())
-    }
-    val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
-    rdd.setTap(finalTap)
-    finalTap
-  }
-
   /**
    * :: DeveloperApi ::
    * Run a job that can return approximate results.
@@ -1366,6 +1310,147 @@ class SparkContext(config: SparkConf) extends Logging {
   private[spark] def cleanup(cleanupTime: Long) {
     persistentRdds.clearOldValues(cleanupTime)
   }
+
+  /** Added by Matteo ############################################################# */
+
+  private var lineage: Option[Boolean] = None
+
+  def getLineage: Boolean = lineage match {
+    case Some(b) => b
+    case None => conf.getLineage
+  }
+
+  def setLineage(newLineage: Boolean) = {
+    lineage = Some(newLineage)
+    env.shuffleManager.setLineage(newLineage)
+  }
+
+  def getBackwordLineage(rdd: RDD[_], recordId: (Int, Int, Int)) = {
+    joinLineage(rdd, recordId)
+  }
+
+  def getForwordLineage(rdd: RDD[_], recordId: (Int, Int, Int)) = {
+    joinLineage(rdd, recordId, Direction.FORWARD)
+  }
+
+  private def joinLineage(rdd: RDD[_], recordId: (Int, Int, Int), direction: Direction = Direction.BACKWORD) = {
+    var initialTap: RDD[_] = rdd.getTap()
+    val currentLineage = getLineage
+    setLineage(false)
+
+    val visited = new HashSet[RDD[_]]
+    // We are manually maintaining a stack here to prevent StackOverflowError
+    // caused by recursively visiting
+    val waitingForVisit = new Stack[RDD[_]]
+    var dependencies = new Stack[RDD[_]]
+
+    if(direction == Direction.FORWARD) {
+      initialTap = initialTap
+        .setStorageLevel
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+        .map(r => (r._2, r._1))
+    }
+
+    def visit(rdd: RDD[_]) {
+      if (!visited(rdd)) {
+        visited += rdd
+        rdd.dependencies
+          .filter(_.rdd.isInstanceOf[TapRDD[_]])
+          .foreach(d => dependencies.push(d.rdd.setStorageLevel))
+        for (dep <- rdd.dependencies) {
+          waitingForVisit.push(dep.rdd)
+        }
+      }
+    }
+    waitingForVisit.push(initialTap)
+    while (!waitingForVisit.isEmpty) {
+      visit(waitingForVisit.pop())
+    }
+
+    if(direction == Direction.BACKWORD) {
+      dependencies = dependencies.reverse
+    } else {
+      initialTap = dependencies.pop()
+    }
+
+    var preJoin = initialTap
+      .setStorageLevel
+      .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
+      .filter(_._1.equals(recordId))
+
+    if(direction == Direction.BACKWORD) {
+      preJoin = preJoin.map(r => (r._2, r._1))
+    }
+
+    dependencies.push(preJoin)
+    while(dependencies.size > 1) {
+      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
+
+      if(direction == Direction.FORWARD) {
+        dependencies.push(dependencies.pop()
+          .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+          .map(r => (r._2, r._1)))
+      }
+
+      val tap2 = new PairRDDFunctions(dependencies
+        .pop()
+        .setStorageLevel
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]])
+
+      dependencies.push(tap2.join(tap1)
+        .distinct
+        .map(r => (r._2._1, (r._1, r._2._2))))
+    }
+    setLineage(currentLineage)
+    dependencies.pop()
+  }
+
+  private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
+    if(!getLineage) {
+      return rdd
+    }
+    val visited = new HashSet[RDD[_]]
+    // We are manually maintaining a stack here to prevent StackOverflowError
+    // caused by recursively visiting
+    val waitingForVisit = new Stack[RDD[_]]
+    def visit(rdd: RDD[_]) {
+      if (!visited(rdd)) {
+        visited += rdd
+        val deps = new HashSet[Dependency[_]]
+        for (dep <- rdd.dependencies) {
+          dep match {
+            case shufDep: ShuffleDependency[_, _, _] => {
+              waitingForVisit.push(dep.rdd)
+              deps += dep.tapDependency(rdd.tap())
+            }
+            case narDep: NarrowDependency[_] => {
+              waitingForVisit.push(dep.rdd)
+              deps += dep
+
+              // Intercept the end of the stage to add a post-shuffle tap
+              for (dep <- rdd.dependencies) {
+                dep match {
+                  case shufDep: ShuffleDependency[_, _, _] =>
+                    deps += dep.tapDependency(rdd.tap())
+                  case _ =>
+                }
+              }
+            }
+          }
+        }
+        rdd.updateDependencies(deps.toList)
+      }
+    }
+    waitingForVisit.push(rdd)
+    while (!waitingForVisit.isEmpty) {
+      visit(waitingForVisit.pop())
+    }
+    val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
+    rdd.setTap(finalTap)
+    finalTap
+  }
+
+  /** ############################################################################ */
 }
 
 /**
@@ -1697,3 +1782,8 @@ private[spark] class WritableConverter[T](
     val writableClass: ClassTag[T] => Class[_ <: Writable],
     val convert: Writable => T)
   extends Serializable
+
+object Direction extends Enumeration {
+  type Direction = Value
+  val FORWARD, BACKWORD = Value
+}

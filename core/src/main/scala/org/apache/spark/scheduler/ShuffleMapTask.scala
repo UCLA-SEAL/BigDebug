@@ -66,7 +66,10 @@ private[spark] class ShuffleMapTask(
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
-      SparkEnv.get.cacheManager.materialize(partition.index, context) // Added by Matteo
+      // Added by Matteo
+      if(SparkEnv.get.shuffleManager.getLineage) {
+        SparkEnv.get.cacheManager.materialize(partition.index, context)
+      }
       return writer.stop(success = true).get
     } catch {
       case e: Exception =>

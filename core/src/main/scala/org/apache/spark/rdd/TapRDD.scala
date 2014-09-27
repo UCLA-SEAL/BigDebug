@@ -60,8 +60,3 @@ abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
 
   def tap(record: T): T
 }
-
-private[spark] object TapRDD {
-
-  //private val recordInfo = HashMap[Any, Seq[(_)]]()
-}
