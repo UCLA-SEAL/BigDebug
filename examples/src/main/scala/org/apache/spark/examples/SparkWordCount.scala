@@ -23,7 +23,8 @@ import org.apache.spark.SparkContext._
 object SparkWordCount {
   def main(args: Array[String]) {
     val logFile = "README.md" // Should be some file on your system
-    val conf = new SparkConf().setMaster("local[10]").setAppName("Simple Scala Application").setLineage(false)
+    val conf = new SparkConf().setMaster("local[10]")
+    .setAppName("Simple Scala Application").setLineage(false)
     val sc = new SparkContext(conf)
     val file = sc.textFile(logFile, 5)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
