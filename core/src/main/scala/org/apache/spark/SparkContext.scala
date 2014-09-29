@@ -1333,7 +1333,10 @@ class SparkContext(config: SparkConf) extends Logging {
     joinLineage(rdd, recordId, Direction.FORWARD)
   }
 
-  private def joinLineage(rdd: RDD[_], recordId: (Int, Int, Int), direction: Direction = Direction.BACKWORD) = {
+  private def joinLineage(
+      rdd: RDD[_],
+      recordId: (Int, Int, Int),
+      direction: Direction = Direction.BACKWORD) = {
     var initialTap: RDD[_] = rdd.getTap()
     val currentLineage = getLineage
     setLineage(false)
