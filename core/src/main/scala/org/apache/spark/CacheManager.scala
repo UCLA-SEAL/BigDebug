@@ -34,27 +34,36 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
 
   /** Added by Matteo. ############################################################### */
 
-  private var underMaterialization = new mutable.HashSet[(TapRDD[_], StorageLevel)]
+  private var underMaterialization = new mutable.HashSet[(TapRDD[_], Int, StorageLevel)]
 
   def initMaterialization[T](rdd: TapRDD[T], partition: Partition, level: StorageLevel) = {
-    underMaterialization += ((rdd, level))
+    underMaterialization += ((rdd, partition.index, level))
   }
 
   def materialize(
       split: Int,
       context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = None) = {
-    underMaterialization.foreach(table => {
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_ONLY)) = {
+    val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
+    underMaterialization.filter(r => r._2 == split).foreach(table => {
       val key = RDDBlockId(table._1.id, split)
       val arr = table._1.getRecordInfos.toArray.asInstanceOf[Array[Any]]
-      val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
-      updatedBlocks ++=
-        blockManager.putArray(key, arr, table._2, tellMaster = true, effectiveStorageLevel)
-      val metrics = context.taskMetrics
-      val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
-      metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
+      if(arr.nonEmpty) {
+        try {
+          updatedBlocks ++=
+            blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
+        } finally {
+          loading.synchronized {
+            loading.remove(key)
+            loading.notifyAll()
+          }
+          underMaterialization.remove(table)
+        }
+      }
     })
-    underMaterialization.clear()
+    val metrics = context.taskMetrics
+    val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
+    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
   }
 
   /** ################################################################################### */
