@@ -71,11 +71,11 @@ class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]]
   }
 
   override def tap(record: T) = {
-    val id = (firstParent[T].id, splitId, newRecordId)
-    addRecordInfo(id, tContext.currentRecordInfo)
+    val recordId = (id, splitId, newRecordId)
+    addRecordInfo(recordId, tContext.currentRecordInfo)
     // println("Tapping " + record + " with id " + id + " joins with " +
     //   tContext.currentRecordInfo)
-    (record, id).asInstanceOf[T]
+    (record, recordId).asInstanceOf[T]
   }
 }
 

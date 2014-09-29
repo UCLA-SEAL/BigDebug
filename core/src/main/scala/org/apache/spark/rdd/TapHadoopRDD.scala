@@ -38,9 +38,9 @@ class TapHadoopRDD[K, V](
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
     val offset = hadoopRDD.getReader.getPos() - record._2.toString.size - 1
     val tuple2 = (hadoopRDD.getFilePath, offset)
-    val id = (hadoopRDD.id, splitId, newRecordId)
-    tContext.currentRecordInfo = Seq(id)
-    addRecordInfo(id, Seq(tuple2))
+    val recordId = (id, splitId, newRecordId)
+    tContext.currentRecordInfo = Seq(recordId)
+    addRecordInfo(recordId, Seq(tuple2))
     //SparkEnv.get.cacheManager.materialize(this, (id, tuple2))
     // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
     record

@@ -1376,31 +1376,38 @@ class SparkContext(config: SparkConf) extends Logging {
       initialTap = dependencies.pop()
     }
 
+    while(initialTap.id != recordId._1) {
+      initialTap = dependencies.pop()
+    }
+
     var preJoin = initialTap
       .setStorageLevel
       .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
-      .filter(_._1.equals(recordId))
 
-    if(direction == Direction.BACKWORD) {
+    if (recordId._1 == preJoin.id) {
+      preJoin = preJoin.filter(_._1.equals(recordId))
+    }
+
+    if (direction == Direction.BACKWORD) {
       preJoin = preJoin.map(r => (r._2, r._1))
     }
 
     dependencies.push(preJoin)
-    while(dependencies.size > 1) {
+    while (dependencies.size > 1) {
       val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
 
-      if(direction == Direction.FORWARD) {
-        dependencies.push(dependencies.pop()
-          .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-          .map(r => (r._2, r._1)))
-      }
-
-      val tap2 = new PairRDDFunctions(dependencies
+      var tap2 = dependencies
         .pop()
         .setStorageLevel
-        .asInstanceOf[RDD[((Int, Int, Long), Any)]])
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
 
-      dependencies.push(tap2.join(tap1)
+      if (direction == Direction.FORWARD) {
+        tap2 = tap2
+          .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
+          .map(r => (r._2, r._1))
+      }
+
+      dependencies.push(new PairRDDFunctions(tap2).join(tap1)
         .distinct
         .map(r => (r._2._1, (r._1, r._2._2))))
     }

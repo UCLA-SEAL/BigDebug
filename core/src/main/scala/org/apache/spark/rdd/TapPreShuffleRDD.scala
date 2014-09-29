@@ -28,10 +28,10 @@ class TapPreShuffleRDD[T <: Product2[_, _] : ClassTag](
   extends TapRDD[T](sc, deps) {
 
   override def tap(record: T) = {
-    val id = (firstParent[T].id, splitId, newRecordId)
-    addRecordInfo(id, tContext.currentRecordInfo)
+    val recordId = (id, splitId, newRecordId)
+    addRecordInfo(recordId, tContext.currentRecordInfo)
     // println("Tapping " + record + " with id " + id + " joins with " +
     //   tContext.currentRecordInfo)
-    (record._1, (record._2, id)).asInstanceOf[T]
+    (record._1, (record._2, recordId)).asInstanceOf[T]
   }
 }

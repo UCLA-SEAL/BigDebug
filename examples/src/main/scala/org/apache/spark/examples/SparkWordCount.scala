@@ -35,6 +35,7 @@ object SparkWordCount {
 
     // Get the lineage
     sc.setLineage(false)
-    sc.getForwordLineage(counts, (0,1,17)).collect().foreach(println)
+    //sc.getBackwordLineage(counts, (6,0,6)).collect().foreach(println)
+    sc.getForwordLineage(counts, (6,0,6)).collect().foreach(println)
   }
 }

@@ -29,6 +29,8 @@ private[spark]
 abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
+  // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available
+  // memory is reached.
   private val recordInfo = ArrayBuffer[(Any, Any)]()
 
   def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
