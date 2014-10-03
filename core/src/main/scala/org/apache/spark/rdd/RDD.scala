@@ -34,7 +34,7 @@ import org.apache.spark.util.collection.OpenHashMap
 import org.apache.spark.util.random.{BernoulliSampler, PoissonSampler, SamplingUtils}
 import org.apache.spark.util.{BoundedPriorityQueue, Utils}
 
-import scala.collection.mutable.{ArrayBuffer, HashSet}
+import scala.collection.mutable.{ArrayBuffer, Stack}
 import scala.collection.{Map, mutable}
 import scala.reflect.{ClassTag, classTag}
 
@@ -1387,46 +1387,77 @@ abstract class RDD[T: ClassTag](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapPostShuffleRDD[T](this.context, newDeps)
+    tapRDD = Some(new TapPostShuffleRDD[T](this.context, newDeps))
+    tapRDD.get
   }
 
-  def setStorageLevel = {
+  def materialize = {
     storageLevel = StorageLevel.MEMORY_ONLY
     this
   }
 
-  var tapRDD : Option[TapPostShuffleRDD[_]] = None
+  var tapRDD : Option[TapRDD[T]] = None
 
-  def setTap(tap: TapPostShuffleRDD[_]) = tapRDD = Some(tap)
+  def setTap(tap: TapRDD[T]) = tapRDD = Some(tap)
 
   def getTap() = tapRDD.get
 
-  def getBackwardLineage(key: (Int, Int, Long)) = {
-    if(tapRDD != null) {
-      //tapRDD.getLineage(key, false).map(r => r.reverse)
-    } else {
-      HashSet[List[(_)]]()
-    }
-  }
+  private var captureLineage: Option[Boolean] = None
 
-  def getForwardLineage(key: (Int, Int, Long)) = {
-    if(tapRDD != null) {
-      //tapRDD.getLineage(key, true).map(r => r.reverse)
-    } else {
-      HashSet[List[(_)]]()
-    }
-  }
-
-  private var lineage: Option[Boolean] = None
-
-  def getLineage: Boolean = lineage match {
+  def isLineageActive: Boolean = captureLineage match {
     case Some(b) => b
-    case None => sc.getLineage
+    case None => sc.isLineageActive
   }
 
-  def setLineage(newLineage: Boolean) = {
-    lineage = Some(newLineage)
+  def setCaptureLineage(newLineage: Boolean) = {
+    captureLineage = Some(newLineage)
     this
+  }
+
+  def tc(): RDD[((Int, Int, Long), Any)] = {
+
+    val waitingForVisit = new Stack[RDD[_]]
+    var dependencies = new Stack[RDD[(Any, Any)]]()
+
+    def visit(rdd: RDD[_]) {
+      rdd.dependencies
+        .filter(_.rdd.isInstanceOf[TapRDD[_]])
+        .foreach(d => dependencies.push(d.rdd.asInstanceOf[RDD[(Any, Any)]]))
+      for (dep <- rdd.dependencies) {
+        waitingForVisit.push(dep.rdd)
+      }
+    }
+    waitingForVisit.push(this)
+    while (!waitingForVisit.isEmpty) {
+      visit(waitingForVisit.pop())
+    }
+
+    dependencies = dependencies.reverse.tail.push(
+      if(context.getLastLineageDirection == Direction.BACKWORD)
+        this
+          .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+          .map(r => (r._2, r._1))
+      else
+        this.asInstanceOf[RDD[(Any, Any)]])
+
+    while (dependencies.size > 1) {
+      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
+      tap1.collect().foreach(println)
+
+      var tap2 = dependencies
+        .pop()
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+
+      if(context.getLastLineageDirection == Direction.FORWARD) {
+        tap2 = tap2.map(r => (r._2, r._1)).asInstanceOf[RDD[((Int, Int, Long), Any)]]
+      }
+
+      tap2.collect().foreach(println)
+      dependencies.push(new PairRDDFunctions(tap2).join(tap1)
+        .distinct
+        .map(r => (r._2._1, (r._1, r._2._2))))
+    }
+    dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
   }
 
   /** ###################################################################### */

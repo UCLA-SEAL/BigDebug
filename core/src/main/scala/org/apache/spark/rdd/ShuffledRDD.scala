@@ -86,7 +86,7 @@ class ShuffledRDD[K, V, C](
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
-    SparkEnv.get.shuffleManager.setLineage(getLineage)
+    SparkEnv.get.shuffleManager.setCaptureLineage(isLineageActive)
     .getReader(dep.shuffleHandle, split.index, split.index + 1, context)
       .read()
       .asInstanceOf[Iterator[(K, C)]]
@@ -103,7 +103,8 @@ class ShuffledRDD[K, V, C](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapPreShuffleRDD[(K, C)](this.context, newDeps)
+    tapRDD = Some(new TapPreShuffleRDD[(K, C)](this.context, newDeps))
+    tapRDD.get
   }
   /** ########################################################################################## */
 }

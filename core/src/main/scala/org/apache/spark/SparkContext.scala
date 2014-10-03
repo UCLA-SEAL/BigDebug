@@ -523,7 +523,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
     /* Modified by Miao */
     val rdd = new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
-    if(getLineage) {
+    if(isLineageActive) {
       rdd.tap()
     } else {
       rdd
@@ -557,7 +557,7 @@ class SparkContext(config: SparkConf) extends Logging {
       keyClass,
       valueClass,
       minPartitions).setName(path)
-    if(getLineage) {
+    if(isLineageActive) {
       val result = rdd.tap()
       persistRDD(result)
       // Register the RDD with the ContextCleaner for automatic GC-based cleanup
@@ -1313,53 +1313,53 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Added by Matteo ############################################################# */
 
-  private var lineage: Option[Boolean] = None
+  private var captureLineage: Option[Boolean] = None
 
-  def getLineage: Boolean = lineage match {
+  private var lastLineageDirection: Option[Direction] = None
+
+  def isLineageActive: Boolean = captureLineage match {
     case Some(b) => b
-    case None => conf.getLineage
+    case None => conf.isLineageActive
   }
 
-  def setLineage(newLineage: Boolean) = {
-    lineage = Some(newLineage)
-    env.shuffleManager.setLineage(newLineage)
+  def setCaptureLineage(newLineage: Boolean) = {
+    captureLineage = Some(newLineage)
+    env.shuffleManager.setCaptureLineage(newLineage)
   }
 
-  def getBackwordLineage(rdd: RDD[_], recordId: (Int, Int, Int)) = {
-    joinLineage(rdd, recordId)
+  def getLastLineageDirection = lastLineageDirection.get
+
+  def setLastLineageDirection(newDirection: Direction) = lastLineageDirection = Some(newDirection)
+
+  def getBackwordLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
+    getLineage(rdd)
   }
 
-  def getForwordLineage(rdd: RDD[_], recordId: (Int, Int, Int)) = {
-    joinLineage(rdd, recordId, Direction.FORWARD)
+  def getForwordLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
+    getLineage(rdd, Direction.FORWARD)
   }
 
-  private def joinLineage(
+  def getLineage(
       rdd: RDD[_],
-      recordId: (Int, Int, Int),
-      direction: Direction = Direction.BACKWORD) = {
-    var initialTap: RDD[_] = rdd.getTap()
-    val currentLineage = getLineage
-    setLineage(false)
+      direction: Direction = Direction.BACKWORD): RDD[((Int, Int, Long), Any)] = {
+
+    setLastLineageDirection(direction)
+
+    var initialTap: RDD[_] = rdd.getTap().materialize
 
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
     // caused by recursively visiting
     val waitingForVisit = new Stack[RDD[_]]
-    var dependencies = new Stack[RDD[_]]
-
-    if(direction == Direction.FORWARD) {
-      initialTap = initialTap
-        .setStorageLevel
-        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-        .map(r => (r._2, r._1))
-    }
+    var dependencies = new Stack[RDD[_]]()
+    dependencies.push(initialTap)
 
     def visit(rdd: RDD[_]) {
       if (!visited(rdd)) {
         visited += rdd
         rdd.dependencies
           .filter(_.rdd.isInstanceOf[TapRDD[_]])
-          .foreach(d => dependencies.push(d.rdd.setStorageLevel))
+          .foreach(d => dependencies.push(d.rdd.materialize))
         for (dep <- rdd.dependencies) {
           waitingForVisit.push(dep.rdd)
         }
@@ -1370,53 +1370,21 @@ class SparkContext(config: SparkConf) extends Logging {
       visit(waitingForVisit.pop())
     }
 
-    if(direction == Direction.BACKWORD) {
+    if(direction == Direction.FORWARD) {
       dependencies = dependencies.reverse
-    } else {
+    }
+    initialTap = dependencies.pop()
+    initialTap.updateDependencies(Seq.empty)
+
+    while (dependencies.size > 0) {
+      dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
       initialTap = dependencies.pop()
     }
-
-    while(initialTap.id != recordId._1) {
-      initialTap = dependencies.pop()
-    }
-
-    var preJoin = initialTap
-      .setStorageLevel
-      .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
-
-    if (recordId._1 == preJoin.id) {
-      preJoin = preJoin.filter(_._1.equals(recordId))
-    }
-
-    if (direction == Direction.BACKWORD) {
-      preJoin = preJoin.map(r => (r._2, r._1))
-    }
-
-    dependencies.push(preJoin)
-    while (dependencies.size > 1) {
-      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
-
-      var tap2 = dependencies
-        .pop()
-        .setStorageLevel
-        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-
-      if (direction == Direction.FORWARD) {
-        tap2 = tap2
-          .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
-          .map(r => (r._2, r._1))
-      }
-
-      dependencies.push(new PairRDDFunctions(tap2).join(tap1)
-        .distinct
-        .map(r => (r._2._1, (r._1, r._2._2))))
-    }
-    setLineage(currentLineage)
-    dependencies.pop()
+    initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]]
   }
 
   private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
-    if(!getLineage) {
+    if(!isLineageActive) {
       return rdd
     }
     val visited = new HashSet[RDD[_]]

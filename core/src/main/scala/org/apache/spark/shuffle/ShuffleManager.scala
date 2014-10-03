@@ -60,16 +60,19 @@ private[spark] trait ShuffleManager {
   /** Shut down this ShuffleManager. */
   def stop(): Unit
 
-  /** Added by Matteo */
-  private var lineage: Option[Boolean] = None
+  /** Added by Matteo ######################################################################### */
 
-  def setLineage(newLineage: Boolean) = {
-    lineage = Some(newLineage)
+  private var captureLineage: Option[Boolean] = None
+
+  def setCaptureLineage(newLineage: Boolean) = {
+    captureLineage = Some(newLineage)
     this
   }
 
-  def getLineage: Boolean = lineage match {
+  def isLineageActive: Boolean = captureLineage match {
     case Some(b) => b
     case None => false
   }
+
+  /** #################################################################################### */
 }

@@ -55,12 +55,12 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging {
   }
 
   // Added by Matteo ########################################################################
-  def setLineage(lineage: Boolean) = {
-    set("spark.lineage", lineage.toString)
+  def setCaptureLineage(lineage: Boolean) = {
+    set("spark.capture.lineage", lineage.toString)
     this
   }
 
-  def getLineage = get("spark.lineage").equalsIgnoreCase("true")
+  def isLineageActive = get("spark.capture.lineage").equalsIgnoreCase("true")
   // ##########################################################################################
 
   /** Set a configuration variable. */

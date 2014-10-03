@@ -26,7 +26,7 @@ object SparkWordCount {
     val conf = new SparkConf()
       .setMaster("local[2]")
       .setAppName("Simple Scala Application")
-      .setLineage(true)
+      .setCaptureLineage(true)
     val sc = new SparkContext(conf)
     val file = sc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
@@ -34,8 +34,7 @@ object SparkWordCount {
     counts.collect().foreach(println)
 
     // Get the lineage
-    sc.setLineage(false)
-    //sc.getBackwordLineage(counts, (6,0,6)).collect().foreach(println)
-    sc.getForwordLineage(counts, (6,0,6)).collect().foreach(println)
+    sc.setCaptureLineage(false)
+    sc.getForwordLineage(counts).filter(r => r._1.equals(1,0,55)).tc().collect().foreach(println)
   }
 }

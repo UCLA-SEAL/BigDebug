@@ -67,7 +67,7 @@ private[spark] class ShuffleMapTask(
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
       // Added by Matteo
-      if(SparkEnv.get.shuffleManager.getLineage) {
+      if(SparkEnv.get.shuffleManager.isLineageActive) {
         SparkEnv.get.cacheManager.materialize(partition.index, context)
       }
       return writer.stop(success = true).get

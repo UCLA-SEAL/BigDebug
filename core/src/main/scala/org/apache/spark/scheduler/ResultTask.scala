@@ -63,7 +63,7 @@ private[spark] class ResultTask[T, U](
     } finally {
       context.markTaskCompleted()
       // Added by Matteo
-      if(SparkEnv.get.shuffleManager.getLineage) {
+      if(SparkEnv.get.shuffleManager.isLineageActive) {
         SparkEnv.get.cacheManager.materialize(partition.index, context)
       }
     }

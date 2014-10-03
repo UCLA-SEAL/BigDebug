@@ -53,7 +53,7 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       startPartition,
       endPartition,
       context,
-      getLineage) // Added by Matteo
+      isLineageActive) // Added by Matteo
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */
