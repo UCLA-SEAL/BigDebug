@@ -28,8 +28,8 @@ object SparkWordCount {
       .setAppName("Simple Scala Application")
       .setCaptureLineage(true)
     val sc = new SparkContext(conf)
-    val file = sc.textFilewithOffset(logFile, 2)
-    val pairs = file.map(pair => pair._2.toString).flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    val file = sc.textFile(logFile, 2)
+    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
     counts.collect().foreach(println)
 

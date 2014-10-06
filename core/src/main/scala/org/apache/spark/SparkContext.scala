@@ -1425,17 +1425,6 @@ class SparkContext(config: SparkConf) extends Logging {
     finalTap
   }
 
-  /**
-   * Read a text file from HDFS, a local file system (available on all nodes), or any
-   * Hadoop-supported file system URI, and return it as an RDD of Strings plus the offsets.
-   */
-  def textFilewithOffset(
-      path: String,
-      minPartitions: Int = defaultMinPartitions): RDD[(LongWritable, Text)] = {
-    hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
-      minPartitions).setName(path)
-  }
-
   /** ############################################################################ */
 }
 
