@@ -21,7 +21,7 @@ import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
+import org.apache.hadoop.io.{LongWritable, BytesWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -1414,7 +1414,7 @@ abstract class RDD[T: ClassTag](
     this
   }
 
-  def tc(): RDD[((Int, Int, Long), Any)] = {
+  def tc(): RDD[(Any, List[_], Any)] = {
 
     val waitingForVisit = new Stack[RDD[_]]
     var dependencies = new Stack[RDD[(Any, Any)]]()
@@ -1436,13 +1436,12 @@ abstract class RDD[T: ClassTag](
       if(context.getLastLineageDirection == Direction.BACKWORD)
         this
           .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-          .map(r => (r._2, r._1))
+          .map(r => (r._2, List(r._1)))
       else
-        this.asInstanceOf[RDD[(Any, Any)]])
+        this.asInstanceOf[RDD[(Any, Any)]].map(r => (r._1, List(r._2))))
 
     while (dependencies.size > 1) {
-      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
-      tap1.collect().foreach(println)
+      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), List[_])]]
 
       var tap2 = dependencies
         .pop()
@@ -1452,12 +1451,30 @@ abstract class RDD[T: ClassTag](
         tap2 = tap2.map(r => (r._2, r._1)).asInstanceOf[RDD[((Int, Int, Long), Any)]]
       }
 
-      tap2.collect().foreach(println)
       dependencies.push(new PairRDDFunctions(tap2).join(tap1)
         .distinct
-        .map(r => (r._2._1, (r._1, r._2._2))))
+        .map(r => (r._2._1, r._1 :: r._2._2)))
     }
-    dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), Any)]]
+    dependencies
+      .pop()
+      .asInstanceOf[RDD[((Int, Int, Long), List[_])]]
+      .map(r => (r._1, r._2.init, r._2.last))
+  }
+
+  def filterHadoopInput(lineage: RDD[(Any, List[_], Any)]) = {
+    getHadoopParent
+      .map(r=> (r._1.get(), r._2.toString))
+      .join(lineage.asInstanceOf[RDD[((String, Long), Any, Any)]]
+      .map(r => (r._1._2, r._3)))
+      .map(r => r._2._1)
+  }
+
+  private[spark] def getHadoopParent: HadoopRDD[LongWritable, Text] = {
+    if(firstParent.isInstanceOf[HadoopRDD[_, _]]) {
+      firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
+    } else {
+      firstParent.getHadoopParent
+    }
   }
 
   /** ###################################################################### */

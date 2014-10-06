@@ -559,9 +559,6 @@ class SparkContext(config: SparkConf) extends Logging {
       minPartitions).setName(path)
     if(isLineageActive) {
       val result = rdd.tap()
-      persistRDD(result)
-      // Register the RDD with the ContextCleaner for automatic GC-based cleanup
-      cleaner.foreach(_.registerRDDForCleanup(result))
       result
     } else {
       rdd
@@ -1374,7 +1371,7 @@ class SparkContext(config: SparkConf) extends Logging {
       dependencies = dependencies.reverse
     }
     initialTap = dependencies.pop()
-    initialTap.updateDependencies(Seq.empty)
+    //initialTap.updateDependencies(Seq.empty)
 
     while (dependencies.size > 0) {
       dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
@@ -1426,6 +1423,17 @@ class SparkContext(config: SparkConf) extends Logging {
     val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
     rdd.setTap(finalTap)
     finalTap
+  }
+
+  /**
+   * Read a text file from HDFS, a local file system (available on all nodes), or any
+   * Hadoop-supported file system URI, and return it as an RDD of Strings plus the offsets.
+   */
+  def textFilewithOffset(
+      path: String,
+      minPartitions: Int = defaultMinPartitions): RDD[(LongWritable, Text)] = {
+    hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
+      minPartitions).setName(path)
   }
 
   /** ############################################################################ */

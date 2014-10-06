@@ -28,13 +28,15 @@ object SparkWordCount {
       .setAppName("Simple Scala Application")
       .setCaptureLineage(true)
     val sc = new SparkContext(conf)
-    val file = sc.textFile(logFile, 2)
-    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    val file = sc.textFilewithOffset(logFile, 2)
+    val pairs = file.map(pair => pair._2.toString).flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
     counts.collect().foreach(println)
 
     // Get the lineage
     sc.setCaptureLineage(false)
-    sc.getForwordLineage(counts).filter(r => r._1.equals(1,0,55)).tc().collect().foreach(println)
+    val back = sc.getBackwordLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
+    back.collect().foreach(println)
+    file.filterHadoopInput(back).collect().foreach(println)
   }
 }
