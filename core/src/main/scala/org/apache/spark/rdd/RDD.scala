@@ -1381,14 +1381,20 @@ abstract class RDD[T: ClassTag](
 
   /** Added by Matteo ###################################################################### */
 
-  def tap(): RDD[T] = {
+  def tap(): TapRDD[T] = {
     // throw new IllegalStateException("wrong tap")
     var newDeps = Seq.empty[Dependency[_]]
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    tapRDD = Some(new TapPostShuffleRDD[T](this.context, newDeps))
-    tapRDD.get
+    new TapPostShuffleRDD[T](this.context, newDeps)
+  }
+
+  def tap(deps: Seq[Dependency[_]]): TapRDD[T] = {
+    val tap = new TapRDD[T](this.context, deps)
+    tap.checkpointData = checkpointData
+    checkpointData = None
+    tap
   }
 
   def materialize = {
@@ -1396,11 +1402,11 @@ abstract class RDD[T: ClassTag](
     this
   }
 
-  var tapRDD : Option[TapRDD[T]] = None
+  protected var tapRDD : Option[TapRDD[_]] = None
 
-  def setTap(tap: TapRDD[T]) = tapRDD = Some(tap)
+  def setTap(tap: TapRDD[_]) = tapRDD = Some(tap)
 
-  def getTap() = tapRDD.get
+  def getTap() = tapRDD
 
   private var captureLineage: Option[Boolean] = None
 
@@ -1432,7 +1438,11 @@ abstract class RDD[T: ClassTag](
       visit(waitingForVisit.pop())
     }
 
-    dependencies = dependencies.reverse.tail.push(
+    dependencies = dependencies.reverse
+    if(dependencies.head.isInstanceOf[TapPostShuffleRDD[_]]) {
+      dependencies = dependencies.tail
+    }
+    dependencies.push(
       if(context.getLastLineageDirection == Direction.BACKWORD)
         this
           .asInstanceOf[RDD[((Int, Int, Long), Any)]]

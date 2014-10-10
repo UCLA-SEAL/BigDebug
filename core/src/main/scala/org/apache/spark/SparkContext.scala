@@ -558,8 +558,7 @@ class SparkContext(config: SparkConf) extends Logging {
       valueClass,
       minPartitions).setName(path)
     if(isLineageActive) {
-      val result = rdd.tap()
-      result
+      rdd.tap()
     } else {
       rdd
     }
@@ -1342,7 +1341,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
     setLastLineageDirection(direction)
 
-    var initialTap: RDD[_] = rdd.getTap().materialize
+    var initialTap: RDD[_] = rdd.getTap().get.materialize
 
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
@@ -1371,7 +1370,6 @@ class SparkContext(config: SparkConf) extends Logging {
       dependencies = dependencies.reverse
     }
     initialTap = dependencies.pop()
-    //initialTap.updateDependencies(Seq.empty)
 
     while (dependencies.size > 0) {
       dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
@@ -1393,36 +1391,45 @@ class SparkContext(config: SparkConf) extends Logging {
         visited += rdd
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
+          // Intercept the end of the job to add the initial tap
+          if(dep.rdd.isCheckpointed && dep.rdd.getTap() == None) {
+            dep.rdd.dependencies.head.rdd.setTap(rdd.tap(dep.rdd.dependencies))
+            deps += dep.tapDependency(dep.rdd.dependencies.head.rdd.getTap().get)
+          }
+          // Intercept the end of the stage to add a post-shuffle tap
+          if(dep.rdd.dependencies.nonEmpty) {
+            dep.rdd.dependencies
+              .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
+              .filter(d => d.rdd.getTap() == None)
+              .foreach(d => deps += d.tapDependency(rdd.tap()))
+          }
           dep match {
             case shufDep: ShuffleDependency[_, _, _] => {
               waitingForVisit.push(dep.rdd)
-              deps += dep.tapDependency(rdd.tap())
+              dep.rdd.setTap(rdd.tap())
+              deps += dep.tapDependency(dep.rdd.getTap().get)
             }
             case narDep: NarrowDependency[_] => {
               waitingForVisit.push(dep.rdd)
-              deps += dep
-
-              // Intercept the end of the stage to add a post-shuffle tap
-              for (dep <- rdd.dependencies) {
-                dep match {
-                  case shufDep: ShuffleDependency[_, _, _] =>
-                    deps += dep.tapDependency(rdd.tap())
-                  case _ =>
-                }
-              }
             }
           }
         }
-        rdd.updateDependencies(deps.toList)
+        if(deps.nonEmpty) {
+          rdd.updateDependencies(deps.toList)
+        }
       }
     }
     waitingForVisit.push(rdd)
     while (!waitingForVisit.isEmpty) {
       visit(waitingForVisit.pop())
     }
-    val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
-    rdd.setTap(finalTap)
-    finalTap
+    if(rdd.getTap() == None) {
+      val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
+      rdd.setTap(finalTap)
+      finalTap
+    } else {
+      rdd
+    }
   }
 
   /** ############################################################################ */

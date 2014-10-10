@@ -48,17 +48,16 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
     underMaterialization.filter(r => r._2 == split).foreach(table => {
       val key = RDDBlockId(table._1.id, split)
       val arr = table._1.getRecordInfos.toArray.asInstanceOf[Array[Any]]
-      if(arr.nonEmpty) {
-        try {
-          updatedBlocks ++=
-            blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-        } finally {
-          loading.synchronized {
-            loading.remove(key)
-            loading.notifyAll()
-          }
-          underMaterialization.remove(table)
+
+      try {
+        updatedBlocks ++=
+          blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
+      } finally {
+        loading.synchronized {
+          loading.remove(key)
+          loading.notifyAll()
         }
+        underMaterialization.remove(table)
       }
     })
     val metrics = context.taskMetrics

@@ -24,19 +24,31 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val logFile = "README.md"
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      .setMaster("local[1]")
       .setAppName("Simple Scala Application")
       .setCaptureLineage(true)
     val sc = new SparkContext(conf)
+    sc.setCheckpointDir("./tmp/")
     val file = sc.textFile(logFile, 2)
-    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
-    val counts = pairs.reduceByKey(_ + _)
+    var pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    var counts = pairs.reduceByKey(_ + _)
     counts.collect().foreach(println)
 
     // Get the lineage
     sc.setCaptureLineage(false)
-    val back = sc.getBackwordLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
+    var back = sc.getBackwordLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
+    //back.collect().foreach(println)
+    val filter = file.filterHadoopInput(back)
+    filter.checkpoint()
+    filter.collect().foreach(println)
+    sc.setCaptureLineage(true)
+    pairs = filter.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    counts = pairs.reduceByKey(_ + _)
+    counts.collect().foreach(println)
+
+    // Get the lineage
+    sc.setCaptureLineage(false)
+    back = sc.getBackwordLineage(counts).tc()
     back.collect().foreach(println)
-    file.filterHadoopInput(back).collect().foreach(println)
   }
 }
