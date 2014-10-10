@@ -1443,12 +1443,13 @@ abstract class RDD[T: ClassTag](
       dependencies = dependencies.tail
     }
     dependencies.push(
-      if(context.getLastLineageDirection == Direction.BACKWORD)
+      if(context.getLastLineageDirection == Direction.BACKWORD) {
         this
           .asInstanceOf[RDD[((Int, Int, Long), Any)]]
           .map(r => (r._2, List(r._1)))
-      else
-        this.asInstanceOf[RDD[(Any, Any)]].map(r => (r._1, List(r._2))))
+      } else {
+        this.asInstanceOf[RDD[(Any, Any)]].map(r => (r._1, List(r._2)))
+      })
 
     while (dependencies.size > 1) {
       val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), List[_])]]

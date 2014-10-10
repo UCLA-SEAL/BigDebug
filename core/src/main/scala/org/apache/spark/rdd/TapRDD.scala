@@ -65,7 +65,9 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
   /**
    * Compute an RDD partition or read it from a checkpoint if the RDD is checkpointing.
    */
-  private[spark] override def computeOrReadCheckpoint(split: Partition, context: TaskContext): Iterator[T] =
+  private[spark] override def computeOrReadCheckpoint(
+    split: Partition,
+    context: TaskContext): Iterator[T] =
   {
     compute(split, context)
   }
