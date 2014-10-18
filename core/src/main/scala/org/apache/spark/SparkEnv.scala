@@ -224,7 +224,6 @@ object SparkEnv extends Logging {
     val shuffleMgrName = conf.get("spark.shuffle.manager", "sort")
     val shuffleMgrClass = shortShuffleMgrNames.getOrElse(shuffleMgrName.toLowerCase, shuffleMgrName)
     val shuffleManager = instantiateClass[ShuffleManager](shuffleMgrClass)
-      .setCaptureLineage(conf.isLineageActive) // Added by Matteo
 
     val shuffleMemoryManager = new ShuffleMemoryManager(conf)
 

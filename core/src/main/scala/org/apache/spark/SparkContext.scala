@@ -1309,19 +1309,18 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Added by Matteo ############################################################# */
 
-  private var captureLineage: Option[Boolean] = None
+  private var captureLineage: Broadcast[Boolean] = broadcast(false)
 
   private var lastLineageDirection: Option[Direction] = None
 
-  def isLineageActive: Boolean = captureLineage match {
-    case Some(b) => b
-    case None => conf.isLineageActive
-  }
+  def isLineageActive: Boolean = captureLineage.value
 
   def setCaptureLineage(newLineage: Boolean) = {
-    captureLineage = Some(newLineage)
-    env.shuffleManager.setCaptureLineage(newLineage)
+    captureLineage.unpersist(true)
+    captureLineage = broadcast(newLineage)
   }
+
+  def getCaptureLineage = captureLineage
 
   def getLastLineageDirection = lastLineageDirection.get
 
@@ -1353,6 +1352,7 @@ class SparkContext(config: SparkConf) extends Logging {
     def visit(rdd: RDD[_]) {
       if (!visited(rdd)) {
         visited += rdd
+        rdd.setCaptureLineage(isLineageActive)
         rdd.dependencies
           .filter(_.rdd.isInstanceOf[TapRDD[_]])
           .foreach(d => dependencies.push(d.rdd.materialize))
@@ -1426,6 +1426,7 @@ class SparkContext(config: SparkConf) extends Logging {
     if(rdd.getTap() == None) {
       val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
       rdd.setTap(finalTap)
+      rdd.setCaptureLineage(true)
       finalTap
     } else {
       rdd

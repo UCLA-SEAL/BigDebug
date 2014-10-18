@@ -33,6 +33,8 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
   // memory is reached.
   private val recordInfo = ArrayBuffer[(Any, Any)]()
 
+  setCaptureLineage(true)
+
   def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
     value.foreach(v => recordInfo += key -> v)
   }

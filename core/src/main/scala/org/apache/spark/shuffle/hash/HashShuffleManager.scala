@@ -44,14 +44,14 @@ private[spark] class HashShuffleManager(conf: SparkConf) extends ShuffleManager 
       handle: ShuffleHandle,
       startPartition: Int,
       endPartition: Int,
-      context: TaskContext): ShuffleReader[K, C] = {
+      context: TaskContext,
+      lineage: Boolean = false): ShuffleReader[K, C] = { // Added by Matteo
     new HashShuffleReader(
       handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
       startPartition,
       endPartition,
       context,
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]]
-      .dependency.rdd.context.isLineageActive) // Added by Matteo
+      lineage) // Added by Matteo
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

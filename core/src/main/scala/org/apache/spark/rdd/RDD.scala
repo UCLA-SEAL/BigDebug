@@ -21,7 +21,7 @@ import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.{LongWritable, BytesWritable, NullWritable, Text}
+import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -1408,17 +1408,11 @@ abstract class RDD[T: ClassTag](
 
   def getTap() = tapRDD
 
-  private var captureLineage: Option[Boolean] = None
+  private[spark] var captureLineage: Boolean = false
 
-  def isLineageActive: Boolean = captureLineage match {
-    case Some(b) => b
-    case None => sc.isLineageActive
-  }
+  def setCaptureLineage(newLineage :Boolean) = captureLineage = newLineage
 
-  def setCaptureLineage(newLineage: Boolean) = {
-    captureLineage = Some(newLineage)
-    this
-  }
+  def isLineageActive: Boolean = captureLineage
 
   def tc(): RDD[(Any, List[_], Any)] = {
 
