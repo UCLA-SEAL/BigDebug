@@ -24,15 +24,15 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val logFile = "README.md"
     val conf = new SparkConf()
-      .setMaster("local[2]")
+      //.setMaster("local[2]")
       //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
-      //.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      .setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
       .setAppName("Simple Scala Application")
       //.set("spark.executor.uri",
       //  "/home/clash/sparks/spark-lineage/spark-1.2.0-SNAPSHOT-bin-1.0.4.tgz")
     val sc = new SparkContext(conf)
-    sc.setCheckpointDir("./tmp/")
-    //sc.setCheckpointDir("/home/clash/tmp/spark")
+    //sc.setCheckpointDir("./tmp/")
+    sc.setCheckpointDir("hdfs://scai01.cs.ucla.edu:9000/clash/tmp/spark")
     sc.setCaptureLineage(true)
     val file = sc.textFile(logFile, 2)
     var pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
