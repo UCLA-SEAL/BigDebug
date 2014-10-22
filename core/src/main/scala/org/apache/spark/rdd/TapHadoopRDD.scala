@@ -31,10 +31,6 @@ class TapHadoopRDD[K, V](
   }
 
   override def tap(record: (K, V)) = {
-    //val a: Long = record._1.asInstanceOf[LongWritable].get
-    //val b: String = record._2.asInstanceOf[Text].toString
-    //val cloned = (a, b).asInstanceOf[(K, V)]
-
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
     val offset = hadoopRDD.getReader.getPos() - record._2.toString.size - 1
     val tuple2 = (hadoopRDD.getFilePath, offset)

@@ -26,12 +26,14 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
 private[spark]
-abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
   // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available
   // memory is reached.
   private val recordInfo = ArrayBuffer[(Any, Any)]()
+
+  setCaptureLineage(true)
 
   def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
     value.foreach(v => recordInfo += key -> v)
@@ -49,6 +51,8 @@ abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
 
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
+  private var offset: Long = 0
+
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
       tContext = context
@@ -60,5 +64,25 @@ abstract class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  def tap(record: T): T
+  /**
+   * Compute an RDD partition or read it from a checkpoint if the RDD is checkpointing.
+   */
+  private[spark] override def computeOrReadCheckpoint(
+    split: Partition,
+    context: TaskContext): Iterator[T] =
+  {
+    compute(split, context)
+  }
+
+  def tap(record: T): T = {
+    val checkpointRDD = firstParent[T].asInstanceOf[CheckpointRDD[T]]
+    val tuple3 = (checkpointRDD.checkpointPath, splitId, offset)
+    val recordId = (id, splitId, newRecordId)
+    tContext.currentRecordInfo = Seq(recordId)
+    addRecordInfo(recordId, Seq(tuple3))
+    offset += record.toString.size - 1
+    //SparkEnv.get.cacheManager.materialize(this, (id, tuple2))
+    // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
+    record
+  }
 }

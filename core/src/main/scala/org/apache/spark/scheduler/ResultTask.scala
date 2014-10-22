@@ -61,11 +61,11 @@ private[spark] class ResultTask[T, U](
     try {
       func(context, rdd.iterator(partition, context))
     } finally {
-      context.markTaskCompleted()
       // Added by Matteo
-      if(SparkEnv.get.shuffleManager.getLineage) {
+      if(rdd.isLineageActive) {
         SparkEnv.get.cacheManager.materialize(partition.index, context)
       }
+      context.markTaskCompleted()
     }
   }
 

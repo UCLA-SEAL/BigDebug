@@ -128,7 +128,10 @@ class HadoopRDD[K, V](
   private var filePath: String = null  // Added by Matteo
 
   // Added by Miao
-  override def tap(): TapHadoopRDD[K, V] = new TapHadoopRDD(this)
+  override def tap(): TapHadoopRDD[K, V] = {
+    tapRDD = Some(new TapHadoopRDD(this))
+    tapRDD.get.asInstanceOf[TapHadoopRDD[K, V]]
+  }
 
   override def setName(_name: String): this.type = {
     name = _name
@@ -140,7 +143,6 @@ class HadoopRDD[K, V](
 
   def getReader = reader
 
-  // Modified by Miao
   override private[spark]
   def computeOrReadCheckpoint(split: Partition, context: TaskContext): Iterator[(K, V)] =
   {

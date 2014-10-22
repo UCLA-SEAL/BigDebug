@@ -17,7 +17,7 @@
 
 package org.apache.spark.shuffle
 
-import org.apache.spark.{TaskContext, ShuffleDependency}
+import org.apache.spark.{ShuffleDependency, TaskContext}
 
 /**
  * Pluggable interface for shuffle systems. A ShuffleManager is created in SparkEnv on both the
@@ -47,7 +47,8 @@ private[spark] trait ShuffleManager {
       handle: ShuffleHandle,
       startPartition: Int,
       endPartition: Int,
-      context: TaskContext): ShuffleReader[K, C]
+      context: TaskContext,
+      lineage: Boolean = false): ShuffleReader[K, C] // Added by Matteo
 
   /**
     * Remove a shuffle's metadata from the ShuffleManager.
@@ -59,17 +60,4 @@ private[spark] trait ShuffleManager {
 
   /** Shut down this ShuffleManager. */
   def stop(): Unit
-
-  /** Added by Matteo */
-  private var lineage: Option[Boolean] = None
-
-  def setLineage(newLineage: Boolean) = {
-    lineage = Some(newLineage)
-    this
-  }
-
-  def getLineage: Boolean = lineage match {
-    case Some(b) => b
-    case None => false
-  }
 }
