@@ -32,7 +32,7 @@ class TapHadoopRDD[K, V](
 
   override def tap(record: (K, V)) = {
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
-    val offset = hadoopRDD.getReader.getPos() - record._2.toString.size - 1
+    val offset = hadoopRDD.getReader.getPos() - hadoopRDD.getReader.getProgress.toLong
     val tuple2 = (hadoopRDD.getFilePath, offset)
     val recordId = (id, splitId, newRecordId)
     tContext.currentRecordInfo = Seq(recordId)

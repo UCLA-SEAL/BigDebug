@@ -1470,7 +1470,7 @@ abstract class RDD[T: ClassTag](
     getHadoopParent
       .map(r=> (r._1.get(), r._2.toString))
       .join(lineage.asInstanceOf[RDD[((String, Long), Any, Any)]]
-      .map(r => (r._1._2, r._3)))
+      .map(r => (r._1._2, r._3)).distinct())
       .map(r => r._2._1)
   }
 
