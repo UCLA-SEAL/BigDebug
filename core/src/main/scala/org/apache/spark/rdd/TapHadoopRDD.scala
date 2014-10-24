@@ -37,7 +37,6 @@ class TapHadoopRDD[K, V](
     val recordId = (id, splitId, newRecordId)
     tContext.currentRecordInfo = Seq(recordId)
     addRecordInfo(recordId, Seq(tuple2))
-    //SparkEnv.get.cacheManager.materialize(this, (id, tuple2))
     // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
     record
   }

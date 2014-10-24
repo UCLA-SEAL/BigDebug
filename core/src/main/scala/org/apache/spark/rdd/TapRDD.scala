@@ -31,7 +31,7 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
 
   // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available
   // memory is reached.
-  private val recordInfo = ArrayBuffer[(Any, Any)]()
+  private val recordInfo = new ArrayBuffer[(Any, Any)]()
 
   setCaptureLineage(true)
 
@@ -81,7 +81,6 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     tContext.currentRecordInfo = Seq(recordId)
     addRecordInfo(recordId, Seq(tuple3))
     offset += record.toString.size - 1
-    //SparkEnv.get.cacheManager.materialize(this, (id, tuple2))
     // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
     record
   }

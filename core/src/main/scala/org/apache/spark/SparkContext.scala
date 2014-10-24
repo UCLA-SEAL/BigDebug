@@ -1309,18 +1309,15 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Added by Matteo ############################################################# */
 
-  private var captureLineage: Broadcast[Boolean] = broadcast(false)
+  private var captureLineage: Boolean = false
 
   private var lastLineageDirection: Option[Direction] = None
 
-  def isLineageActive: Boolean = captureLineage.value
+  def isLineageActive: Boolean = captureLineage
 
   def setCaptureLineage(newLineage: Boolean) = {
-    captureLineage.unpersist(true)
-    captureLineage = broadcast(newLineage)
+    captureLineage = newLineage
   }
-
-  def getCaptureLineage = captureLineage
 
   def getLastLineageDirection = lastLineageDirection.get
 
