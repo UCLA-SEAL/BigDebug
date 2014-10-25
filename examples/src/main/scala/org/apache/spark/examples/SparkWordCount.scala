@@ -41,7 +41,7 @@ object SparkWordCount {
 
     // Get the lineage
     sc.setCaptureLineage(false)
-    var back = sc.getBackwordLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
+    var back = sc.getBackwardLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
     back.collect().foreach(println)
     val filter = file.filterHadoopInput(back)
     filter.checkpoint()
@@ -53,7 +53,7 @@ object SparkWordCount {
 
     // Get the lineage
     sc.setCaptureLineage(false)
-    back = sc.getBackwordLineage(counts).tc()
+    back = sc.getBackwardLineage(counts).tc()
     back.collect().foreach(println)
   }
 }
