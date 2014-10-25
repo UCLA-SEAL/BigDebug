@@ -1437,7 +1437,7 @@ abstract class RDD[T: ClassTag](
       dependencies = dependencies.tail
     }
     dependencies.push(
-      if(context.getLastLineageDirection == Direction.BACKWORD) {
+      if(context.getLastLineageDirection == Direction.BACKWARD) {
         this
           .asInstanceOf[RDD[((Int, Int, Long), Any)]]
           .map(r => (r._2, List(r._1)))
