@@ -1323,7 +1323,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
   def setLastLineageDirection(newDirection: Direction) = lastLineageDirection = Some(newDirection)
 
-  def getBackwordLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
+  def getBackwardLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
     getLineage(rdd)
   }
 
@@ -1333,7 +1333,7 @@ class SparkContext(config: SparkConf) extends Logging {
 
   def getLineage(
       rdd: RDD[_],
-      direction: Direction = Direction.BACKWORD): RDD[((Int, Int, Long), Any)] = {
+      direction: Direction = Direction.BACKWARD): RDD[((Int, Int, Long), Any)] = {
 
     setLastLineageDirection(direction)
 
@@ -1765,5 +1765,5 @@ private[spark] class WritableConverter[T](
 
 object Direction extends Enumeration {
   type Direction = Value
-  val FORWARD, BACKWORD = Value
+  val FORWARD, BACKWARD = Value
 }
