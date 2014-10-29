@@ -1414,6 +1414,52 @@ abstract class RDD[T: ClassTag](
 
   def isLineageActive: Boolean = captureLineage
 
+  def prevLineage(): RDD[(Any, Any)] = {  // Added by Miao
+    
+    var dependencies = new Stack[RDD[(Any, Any)]]()
+
+    this.dependencies
+      .filter(_.rdd.isInstanceOf[TapRDD[_]])
+      .foreach(d => dependencies.push(d.rdd.asInstanceOf[RDD[(Any, Any)]]))
+
+    dependencies = dependencies.reverse
+    if(dependencies.head.isInstanceOf[TapPostShuffleRDD[_]]) {
+      dependencies = dependencies.tail
+    }
+    dependencies.push(
+      if(context.getLastLineageDirection == Direction.BACKWARD) {
+        this
+          .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+          .map(r => (r._2, List(r._1)))
+      } else {
+        this.asInstanceOf[RDD[(Any, Any)]].map(r => (r._1, List(r._2)))
+      })
+
+    while (dependencies.size > 1) {
+      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), List[_])]]
+
+      var tap2 = dependencies
+        .pop()
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+
+      if(context.getLastLineageDirection == Direction.FORWARD) {
+        tap2 = tap2.map(r => (r._2, r._1)).asInstanceOf[RDD[((Int, Int, Long), Any)]]
+      }
+
+      dependencies.push(new PairRDDFunctions(tap2).join(tap1)
+        .distinct
+        .map(r => (r._2._1, r._1 :: r._2._2)))
+    }
+    dependencies
+      .pop()
+      .asInstanceOf[RDD[((Int, Int, Long), List[_])]]
+      .map(r => (r._1, r._2.last))
+  }
+
+  /*def next(): RDD[(Any, Any)] = {  // Added by Miao
+    
+  }*/
+
   def tc(): RDD[(Any, List[_], Any)] = {
 
     val waitingForVisit = new Stack[RDD[_]]

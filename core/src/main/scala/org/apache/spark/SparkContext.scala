@@ -1327,7 +1327,7 @@ class SparkContext(config: SparkConf) extends Logging {
     getLineage(rdd)
   }
 
-  def getForwordLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
+  def getForwardLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
     getLineage(rdd, Direction.FORWARD)
   }
 
