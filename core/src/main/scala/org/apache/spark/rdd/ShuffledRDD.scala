@@ -88,7 +88,7 @@ class ShuffledRDD[K, V, C](
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
     SparkEnv.get.shuffleManager
     .getReader(dep.shuffleHandle, split.index, split.index + 1, context, isLineageActive)
-      .read()
+      .read(isPreShuffleCache)
       .asInstanceOf[Iterator[(K, C)]]
   }
 
@@ -103,7 +103,14 @@ class ShuffledRDD[K, V, C](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapPreShuffleRDD[(K, C)](this.context, newDeps)
+    new TapPreShuffleRDD[(K, C)](this.context, newDeps).setCached(this)
+  }
+
+  private[spark] var isPreShuffleCache: Boolean = false
+
+  def setIsPreShuffleCache(isPreShuffleCache: Boolean) = {
+    this.isPreShuffleCache = isPreShuffleCache
+    this
   }
   /** ########################################################################################## */
 }

@@ -26,7 +26,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
 private[spark]
-class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+class TapRDD[T : ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
   // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available

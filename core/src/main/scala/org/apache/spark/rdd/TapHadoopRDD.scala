@@ -18,6 +18,7 @@
 
 package org.apache.spark.rdd
 
+import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 
 private[spark]
@@ -32,12 +33,11 @@ class TapHadoopRDD[K, V](
 
   override def tap(record: (K, V)) = {
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
-    val offset = hadoopRDD.getReader.getPos() - hadoopRDD.getReader.getProgress.toLong
-    val tuple2 = (hadoopRDD.getFilePath, offset)
+    val tuple2 = (hadoopRDD.getFilePath, record._1.asInstanceOf[LongWritable].get)
     val recordId = (id, splitId, newRecordId)
     tContext.currentRecordInfo = Seq(recordId)
     addRecordInfo(recordId, Seq(tuple2))
-    // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
+     //println("Tapping " + record + " with id " + recordId + " joins with " + tuple2)
     record
   }
 }

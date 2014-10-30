@@ -36,9 +36,13 @@ private[spark] class HashShuffleReader[K, C](
   private val dep = handle.dependency
 
   /** Read the combined key-values for this reduce task */
-  override def read(): Iterator[Product2[K, C]] = {
+  override def read(isPreShuffleCache: Boolean = false): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
     val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
+    // Added by Matteo
+    if(isPreShuffleCache) {
+      return tappedIter
+    }
     // Added by Matteo - Required to trace the ids of records
     val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
     // Added by Matteo - Untapping to not creating conflicts with the aggregation

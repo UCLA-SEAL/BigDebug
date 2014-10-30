@@ -1311,33 +1311,83 @@ class SparkContext(config: SparkConf) extends Logging {
 
   private var captureLineage: Boolean = false
 
-  private var lastLineageDirection: Option[Direction] = None
+  private var currentLineagePosition: Option[RDD[_]] = None
+
+  private var lastLineagePosition: Option[RDD[_]] = None
+
+  def getCurrentLineagePosition = currentLineagePosition
+
+  def setCurrentLineagePosition(initialRDD: Option[RDD[_]]) = {
+    // We are starting from the middle, fill the stack with prev positions
+    if(lastLineagePosition.isDefined && lastLineagePosition.get != initialRDD.get) {
+      currentLineagePosition = lastLineagePosition
+      while(currentLineagePosition.get != initialRDD.get) {
+        prevLineagePosition.push(currentLineagePosition.get)
+        currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
+      }
+    }
+    currentLineagePosition = initialRDD
+  }
+
+  def setLastLineagePosition(finalRDD: Option[RDD[_]]) = lastLineagePosition = finalRDD
+
+  private[spark] var prevLineagePosition = new Stack[RDD[_]]()
+
+  private[spark] var lastOperation: Option[Direction] = None
 
   def isLineageActive: Boolean = captureLineage
 
   def setCaptureLineage(newLineage: Boolean) = {
+    if(newLineage == false && captureLineage == true) {
+      getLineage(lastLineagePosition.get)
+    }
     captureLineage = newLineage
   }
 
-  def getLastLineageDirection = lastLineageDirection.get
+  private[spark] val clientCache = new HashMap[Int, Array[_]]()
 
-  def setLastLineageDirection(newDirection: Direction) = lastLineageDirection = Some(newDirection)
+  def getFromClientCache(key: Int) = clientCache.get(key)
 
-  def getBackwardLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
-    getLineage(rdd)
+  def getBackward: Option[RDD[((Int, Int, Long), Any)]] = {
+    if(!lastOperation.isDefined) {
+      lastOperation = Some(Direction.BACKWARD)
+    }
+    // CurrentLineagePosition should be always set at this point
+    prevLineagePosition.push(currentLineagePosition.get)
+
+    if(currentLineagePosition.get.dependencies.size == 0 ||
+        currentLineagePosition.get.dependencies(0).rdd.isInstanceOf[HadoopRDD[_, _]]) {
+      throw new UnsupportedOperationException("unsopported operation")
+    }
+    currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
+
+    if(lastOperation.get == Direction.FORWARD) {
+      lastOperation = Some(Direction.BACKWARD)
+      None
+    } else {
+      Some(prevLineagePosition.head.asInstanceOf[RDD[((Int, Int, Long), Any)]])
+    }
   }
 
-  def getForwordLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
-    getLineage(rdd, Direction.FORWARD)
+  def getForward: RDD[((Int, Int, Long), (Int, Int, Long))] = {
+    if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
+      lastOperation = Some(Direction.FORWARD)
+    }
+    if(prevLineagePosition.isEmpty) {
+      throw new UnsupportedOperationException("unsopported operation")
+    }
+
+    currentLineagePosition = Some(prevLineagePosition.pop())
+
+    currentLineagePosition
+      .get
+      .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
+      .map(r => (r._2, r._1))
   }
 
-  def getLineage(
-      rdd: RDD[_],
-      direction: Direction = Direction.BACKWARD): RDD[((Int, Int, Long), Any)] = {
+  def getLineage(rdd: RDD[_]) = {
 
-    setLastLineageDirection(direction)
-
-    var initialTap: RDD[_] = rdd.getTap().get.materialize
+    var initialTap: RDD[_] = rdd.materialize
 
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
@@ -1363,16 +1413,15 @@ class SparkContext(config: SparkConf) extends Logging {
       visit(waitingForVisit.pop())
     }
 
-    if(direction == Direction.FORWARD) {
-      dependencies = dependencies.reverse
-    }
     initialTap = dependencies.pop()
 
     while (dependencies.size > 0) {
+      //catalog +=(dependencies.head.id -> dependencies.head.dependencies(0).rdd)
       dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
       initialTap = dependencies.pop()
     }
-    initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]]
+
+    currentLineagePosition = Some(initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]])
   }
 
   private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
