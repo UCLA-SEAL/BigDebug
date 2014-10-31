@@ -43,6 +43,8 @@ class ShowRDD(prev: RDD[((Int, Int, Long), String)])
     new LineageRDD(
       new PairRDDFunctions[(Int, Int, Long), String](prev)
         .join(prev.context.getCurrentLineagePosition.get.asInstanceOf[RDD[((Int, Int, Long), String)]])
-        .map(r => (r._1, r._2._1)))
+        .distinct()
+        .map(r => (r._1, r._2._1))
+    )
   }
 }

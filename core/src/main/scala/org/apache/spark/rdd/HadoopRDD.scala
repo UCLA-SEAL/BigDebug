@@ -129,8 +129,7 @@ class HadoopRDD[K, V](
 
   // Added by Miao
   override def tap(): TapHadoopRDD[K, V] = {
-    tapRDD = Some(new TapHadoopRDD(this))
-    tapRDD.get.asInstanceOf[TapHadoopRDD[K, V]]
+    new TapHadoopRDD(this).asInstanceOf[TapHadoopRDD[K, V]]
   }
 
   override def setName(_name: String): this.type = {

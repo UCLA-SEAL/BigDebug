@@ -17,6 +17,8 @@
 
 package org.apache.spark.shuffle.hash
 
+import java.util.concurrent.atomic.AtomicLong
+
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.{BaseShuffleHandle, ShuffleReader}
 import org.apache.spark.util.collection.{AppendOnlyMap, ExternalSorter}
@@ -27,7 +29,7 @@ private[spark] class HashShuffleReader[K, C](
     startPartition: Int,
     endPartition: Int,
     context: TaskContext,
-    lineage: Boolean = false)
+    var lineage: Boolean = false)
   extends ShuffleReader[K, C]
 {
   require(endPartition == startPartition + 1,
@@ -36,12 +38,14 @@ private[spark] class HashShuffleReader[K, C](
   private val dep = handle.dependency
 
   /** Read the combined key-values for this reduce task */
-  override def read(isPreShuffleCache: Boolean = false): Iterator[Product2[K, C]] = {
+  override def read(isCache: Int = 0, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
     val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
     // Added by Matteo
-    if(isPreShuffleCache) {
+    if(isCache == 1) {
       return tappedIter
+    } else if(isCache == 2){
+      lineage = true
     }
     // Added by Matteo - Required to trace the ids of records
     val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
@@ -54,7 +58,7 @@ private[spark] class HashShuffleReader[K, C](
       } else {
         tap(new InterruptibleIterator(context,
           dep.aggregator.get.combineValuesByKey(iter, context)),
-          trace, context) // Matteo - Added the tapping back after aggregation
+          trace, context, startPartition, shuffleId) // Matteo - Added the tapping back after aggregation
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -101,16 +105,23 @@ private[spark] class HashShuffleReader[K, C](
  def tap(
      iter: Iterator[Product2[K, C]],
      trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
-     context : TaskContext) = {
+     context : TaskContext,
+     splitId: Int,
+     shuffleId: Int) = {
    if(lineage) {
      iter.map(r => {
        val id = trace(r._1)
        context.currentRecordInfo = id.toSeq
-       (r._1, r._2)
+       context.postShuffleRecordInfo = (shuffleId, splitId, newRecordId)
+       ((r._1, r._2), (shuffleId, splitId, newRecordId)).asInstanceOf[Product2[K, C]]
      })
    } else {
      iter
    }
  }
+
+  protected var nextRecord: AtomicLong = new AtomicLong(0)
+
+  protected def newRecordId = nextRecord.getAndIncrement
  /** ########################################################################################## */
 }

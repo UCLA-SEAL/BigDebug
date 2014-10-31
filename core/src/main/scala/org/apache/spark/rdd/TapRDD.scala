@@ -53,6 +53,15 @@ class TapRDD[T : ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dep
 
   private var offset: Long = 0
 
+  private[spark] var cached: ShuffledRDD[_, _, _] = null
+
+  def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
+     throw new UnsupportedOperationException("TapRDDs cannot have a cache")
+  }
+
+  def getCached: ShuffledRDD[_, _, _] =
+    throw new UnsupportedOperationException("TapRDDs cannot have a cache")
+
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
       tContext = context

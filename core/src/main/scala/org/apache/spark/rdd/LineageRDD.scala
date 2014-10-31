@@ -84,30 +84,22 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
             .map(r => (r._2._2, (r._1, r._2._1).toString()))
             ).map(r => (r._1, r._2._2)).distinct()
         )
+      } else if(position.get.isInstanceOf[TapPostShuffleRDD[_]]) {
+        result = new ShowRDD (
+          new PairRDDFunctions[(Int, Int, Long), Any](prev)
+            .join(position.get.asInstanceOf[TapPostShuffleRDD[_]]
+            .getCached.setCaptureLineage(false)
+            .asInstanceOf[RDD[((Any, Any), (Int, Int, Long))]]
+            .map(r => (r._2, (r._1._1, r._1._2).toString()))
+            ).map(r => (r._1, r._2._2)).distinct()
+        )
       } else {
-        val fromCache = prev.context.getFromClientCache(position.get.id)
-        if(fromCache.isDefined) {
-          result = new ShowRDD (
-            new PairRDDFunctions[(Int, Int, Long), Any](prev)
-            .join(
-              prev.context.parallelize(
-                fromCache.get, prev.partitions.size
-              )
-              .asInstanceOf[RDD[(Any, (Int, Int, Long))]]
-              .map(r => (r._2, r._1.toString))
-            )
-            .distinct
-            .map(r => (r._2._1, r._2._2))
-            .asInstanceOf[RDD[((Int, Int, Long), String)]])
-        } else {
-          // TODO post caching
-          throw new UnsupportedOperationException("unsupported operation")
-        }
+          throw new UnsupportedOperationException("what cache are you talking about?")
       }
       result.collect.foreach(println)
       result
     } else {
-      throw new UnsupportedOperationException("unsupported operation")
+      throw new UnsupportedOperationException("what position are you talking about?")
     }
   }
 }

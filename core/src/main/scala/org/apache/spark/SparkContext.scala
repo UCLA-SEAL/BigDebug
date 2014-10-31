@@ -1344,10 +1344,6 @@ class SparkContext(config: SparkConf) extends Logging {
     captureLineage = newLineage
   }
 
-  private[spark] val clientCache = new HashMap[Int, Array[_]]()
-
-  def getFromClientCache(key: Int) = clientCache.get(key)
-
   def getBackward: Option[RDD[((Int, Int, Long), Any)]] = {
     if(!lastOperation.isDefined) {
       lastOperation = Some(Direction.BACKWARD)
@@ -1473,7 +1469,7 @@ class SparkContext(config: SparkConf) extends Logging {
       val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
       rdd.setTap(finalTap)
       rdd.setCaptureLineage(true)
-      finalTap
+      finalTap.setCached(rdd.asInstanceOf[ShuffledRDD[_, _, _]])
     } else {
       rdd
     }

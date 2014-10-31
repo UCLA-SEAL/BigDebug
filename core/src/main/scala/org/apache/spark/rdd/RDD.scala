@@ -21,7 +21,7 @@ import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
+import org.apache.hadoop.io.{LongWritable, BytesWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -280,15 +280,50 @@ abstract class RDD[T: ClassTag](
    */
   def filter(f: T => Boolean): RDD[T] = {
     /* Added by Matteo **************************************************************************/
-    if(this.getTap().isDefined && context.getFromClientCache(this.getTap().get.id).isDefined) {
-      val rdd = context.parallelize(
-        context.getFromClientCache(this.getTap().get.id)
-        .get
-        .filter(r => f(r.asInstanceOf[(T, (Int, Int, Long))]._1)), this.partitions.size
-      ).asInstanceOf[RDD[(T, (Int, Int, Long))]]
-      val result = new ShowRDD(rdd.map(r => (r._2, r._1.toString))).asInstanceOf[RDD[T]]
+    if(this.getTap().isDefined) {
+      context.setCurrentLineagePosition(this.getTap())
+      var result: ShowRDD = null
+      if(this.getTap().get.isInstanceOf[TapPreShuffleRDD[_]]) {
+        val tmp = this.getTap().get.asInstanceOf[TapPreShuffleRDD[_]]
+          .getCached.setCaptureLineage(false)
+          .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
+        tmp.setTap()
+        result = new ShowRDD (
+          tmp
+            .map(r => ((r._1, r._2._1), r._2._2)).asInstanceOf[RDD[(T, (Int, Int, Long))]]
+            .filter(r => f(r._1))
+            .map(r => (r._2, r._1.toString()))
+        )
+        tmp.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
+      } else if(this.getTap().get.isInstanceOf[TapPostShuffleRDD[_]]) {
+        val tmp = this.getTap().get.asInstanceOf[TapPostShuffleRDD[_]]
+          .getCached.setCaptureLineage(false)
+          .asInstanceOf[RDD[(T, (Int, Int, Long))]]
+        tmp.setTap()
+        result = new ShowRDD (
+            tmp
+            .filter(r => f(r._1))
+            .map(r => (r._2, r._1.toString()))
+        )
+        tmp.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
+      } else {
+        throw new UnsupportedOperationException
+      }
       result.setTap(this.getTap().get)
-      return result
+      return result.asInstanceOf[RDD[T]]
+    } else if (this.dependencies(0).rdd.isInstanceOf[TapHadoopRDD[_, _]]) {
+      var result: ShowRDD = null
+      context.setCurrentLineagePosition(Some(this.dependencies(0).rdd.asInstanceOf[TapHadoopRDD[_, _]]))
+      result = new ShowRDD(this.dependencies(0).rdd.asInstanceOf[TapHadoopRDD[_, _]]
+        .firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
+        .map(r=> (r._1.get(), r._2.toString)).asInstanceOf[RDD[(Long, T)]]
+        .filter(r => f(r._2))
+        .join(this.dependencies(0).rdd.asInstanceOf[RDD[((Int, Int, Long), (String, Long))]]
+        .map(r => (r._2._2, r._1)))
+        .distinct()
+        .map(r => (r._2._2, r._2._1)).asInstanceOf[RDD[((Int, Int, Long), String)]])
+      result.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
+      return result.asInstanceOf[RDD[T]]
     }
     /********************************************************************************************/
     new FilteredRDD(this, sc.clean(f))
@@ -785,15 +820,13 @@ abstract class RDD[T: ClassTag](
    */
   def collect(): Array[T] = {
     val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray)
-    val arr = Array.concat(results: _*)
 
     // Added by Matteo
-    if(isLineageActive) {
-      context.clientCache += this.getTap().get.id -> arr
+    if(context.isLineageActive) {
       context.setLastLineagePosition(this.getTap())
-      return arr.map(r => r.asInstanceOf[(T, (Int, Int, Long))]._1).array
     }
-    arr
+
+    Array.concat(results: _*)
   }
 
   /**
@@ -1426,36 +1459,26 @@ abstract class RDD[T: ClassTag](
 
   protected var tapRDD : Option[TapRDD[_]] = None
 
-  def setTap(tap: TapRDD[_]) = tapRDD = Some(tap)
+  def setTap(tap: TapRDD[_] = null) = {
+    if(tap == null) {
+      tapRDD = None
+    } else {
+      tapRDD = Some(tap)
+    }
+  }
 
   def getTap() = tapRDD
 
   private[spark] var captureLineage: Boolean = false
 
-  def setCaptureLineage(newLineage :Boolean) = captureLineage = newLineage
+  def setCaptureLineage(newLineage :Boolean) = {
+    captureLineage = newLineage
+    this
+  }
 
   def isLineageActive: Boolean = captureLineage
 
-  //def tc(): RDD[(Any, List[_], Any)] = ???
-
-
-  /*def filterAndGetLineage(f: String => Boolean): LineageRDD = {
-    // Be careful, this can be called from a not TapPostShuffleRDD. Need to add a check
-    if(getTap().isDefined) {
-      sc.setCurrentLineagePosition(getTap())
-      val result = this.getTap().get
-        .asInstanceOf[TapRDD[(Any, (Int, Int, Long))]]
-        .filter(r => f(r._1.toString))
-        .map(r => (r._2, r._1)).cache()
-      result.collect()
-
-      sc.getLineage(this)
-
-      new LineageRDD(result)
-    } else {
-      throw new UnsupportedOperationException("no lineage support for this RDD")
-    }
-  }*/
+  def tc(): RDD[(Any, List[_], Any)] = ???
 
   def getLineage(): LineageRDD = {
     // Be careful, this can be called from a not TapPostShuffleRDD. Need to add a check

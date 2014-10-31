@@ -25,11 +25,19 @@ private[spark]
 class TapPostShuffleRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
     extends TapRDD[T](sc, deps) {
 
+  override def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
+    cached = shuffle
+    this
+  }
+
+  override def getCached = cached.setIsPostShuffleCache(true)
+
   override def tap(record: T) = {
-    val recordId = (id, splitId, newRecordId)
+    val recordId = record.asInstanceOf[Product2[T, (Int, Int, Long)]]._2
     addRecordInfo(recordId, tContext.currentRecordInfo)
     // println("Tapping " + record + " with id " + id + " joins with " +
     //   tContext.currentRecordInfo)
-    (record, recordId).asInstanceOf[T]
+    //(record, recordId).asInstanceOf[T]
+    record.asInstanceOf[Product2[T, (Int, Int, Long)]]._1
   }
 }
