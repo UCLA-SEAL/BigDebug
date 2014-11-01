@@ -18,7 +18,8 @@
 package org.apache.spark.rdd
 
 import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.{Partition, TaskContext}
+import org.apache.spark.Direction.Direction
+import org.apache.spark.{Direction, Partition, TaskContext}
 
 private[spark]
 class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
@@ -64,6 +65,37 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
     }
   }
 
+  private[spark] def go(times: Int, direction: Direction = Direction.FORWARD): LineageRDD = {
+    var result = this
+    var counter = 0
+    try {
+      while(counter < times) {
+        if(direction == Direction.BACKWARD) {
+          result = result.goBack
+        } else {
+          result = result.goNext
+        }
+        counter = counter + 1
+      }
+    } catch {
+      case e: UnsupportedOperationException =>
+    } finally {
+      if(result == this) {
+        throw new UnsupportedOperationException
+      }
+    }
+    // Never reach this but otherwise will not compile
+    result
+  }
+
+  def goBack(times: Int = 1) = go(times, Direction.BACKWARD)
+
+  def goNext(times: Int = 1) = go(times)
+
+  def goBackAll() = go(Int.MaxValue, Direction.BACKWARD)
+
+  def goNextAll() = go(Int.MaxValue)
+
   def show(): ShowRDD = {
     val position = prev.context.getCurrentLineagePosition
     if(position.isDefined) {
@@ -81,8 +113,8 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
             .join(position.get.asInstanceOf[TapPreShuffleRDD[_]]
               .getCached
               .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
-            .map(r => (r._2._2, (r._1, r._2._1).toString()))
-            ).map(r => (r._1, r._2._2)).distinct()
+            .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._3).toString()))
+            ).map(r => (r._1, r._2._2))//.distinct()
         )
       } else if(position.get.isInstanceOf[TapPostShuffleRDD[_]]) {
         result = new ShowRDD (
@@ -90,8 +122,8 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
             .join(position.get.asInstanceOf[TapPostShuffleRDD[_]]
             .getCached.setCaptureLineage(false)
             .asInstanceOf[RDD[((Any, Any), (Int, Int, Long))]]
-            .map(r => (r._2, (r._1._1, r._1._2).toString()))
-            ).map(r => (r._1, r._2._2)).distinct()
+            .map(r => (r._2, ((r._1._1, r._1._2), r._2._3).toString()))
+            ).map(r => (r._1, r._2._2))//.distinct()
         )
       } else {
           throw new UnsupportedOperationException("what cache are you talking about?")

@@ -43,12 +43,14 @@ object SparkWordCount {
     //var filter = file.filter(r => r.contains("Spark")).getLineage()
     lineage.collect.foreach(println)
     lineage.show
-    lineage = lineage.goBack
+    lineage = lineage.goBack()
+    lineage.show
     var show = lineage.show().filter(r => r.equals("(programs,1)"))
     show.collect.foreach(println)
-    lineage = show.getLineage.goNext
+    lineage = show.getLineage.goNext()
     lineage.show
-    lineage = file.getLineage()
+    lineage = lineage.goBackAll()
+    lineage.show
     //var forw = filter.forward()
     //forw.show.foreach(println)
     /*
