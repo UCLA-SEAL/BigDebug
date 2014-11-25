@@ -30,10 +30,10 @@ object BuildCommons {
 
   private val buildLocation = file(".").getAbsoluteFile.getParentFile
 
-  val allProjects@Seq(bagel, catalyst, core, graphx, hive, hiveThriftServer, mllib, repl,
+  val allProjects@Seq(bagel, catalyst, core, graphx, hive, hiveThriftServer, lineage, mllib, repl,
   sql, streaming, streamingFlumeSink, streamingFlume, streamingKafka, streamingMqtt,
   streamingTwitter, streamingZeromq) =
-    Seq("bagel", "catalyst", "core", "graphx", "hive", "hive-thriftserver", "mllib", "repl",
+    Seq("bagel", "catalyst", "core", "graphx", "hive", "hive-thriftserver", "lineage", "mllib", "repl",
       "sql", "streaming", "streaming-flume-sink", "streaming-flume", "streaming-kafka",
       "streaming-mqtt", "streaming-twitter", "streaming-zeromq").map(ProjectRef(buildLocation, _))
 
@@ -194,7 +194,7 @@ object OldDeps {
     retrievePattern := "[type]s/[artifact](-[revision])(-[classifier]).[ext]",
     libraryDependencies := Seq("spark-streaming-mqtt", "spark-streaming-zeromq",
       "spark-streaming-flume", "spark-streaming-kafka", "spark-streaming-twitter",
-      "spark-streaming", "spark-mllib", "spark-bagel", "spark-graphx",
+      "spark-streaming", "spark-mllib", "spark-bagel", "spark-graphx", "spark-lineage",
       "spark-core").map(versionArtifact(_).get intransitive())
   )
 }
@@ -292,7 +292,7 @@ object Unidoc {
     unidocProjectFilter in(ScalaUnidoc, unidoc) :=
       inAnyProject -- inProjects(OldDeps.project, repl, examples, tools, catalyst, streamingFlumeSink, yarn, yarnAlpha),
     unidocProjectFilter in(JavaUnidoc, unidoc) :=
-      inAnyProject -- inProjects(OldDeps.project, repl, bagel, graphx, examples, tools, catalyst, streamingFlumeSink, yarn, yarnAlpha),
+      inAnyProject -- inProjects(OldDeps.project, repl, bagel, graphx, lineage, examples, tools, catalyst, streamingFlumeSink, yarn, yarnAlpha),
 
     // Skip class names containing $ and some internal packages in Javadocs
     unidocAllSources in (JavaUnidoc, unidoc) := {

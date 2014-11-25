@@ -15,45 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.spark.examples
+package org.apache.spark.examples.lineage
 
 import org.apache.spark.SparkContext._
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.lineage._
 
 object SparkWordCount {
   def main(args: Array[String]) {
     val logFile = "README.md"
     val conf = new SparkConf()
-      //.setMaster("local[2]")
-      //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
-      .setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      .setMaster("local[2]")
       .setAppName("Simple Scala Application")
-      //.set("spark.executor.uri",
-      //  "/home/clash/sparks/spark-lineage/spark-1.2.0-SNAPSHOT-bin-1.0.4.tgz")
     val sc = new SparkContext(conf)
-    //sc.setCheckpointDir("./tmp/")
-    sc.setCheckpointDir("hdfs://scai01.cs.ucla.edu:9000/clash/tmp/spark")
-    sc.setCaptureLineage(true)
-    val file = sc.textFile(logFile, 2)
+    sc.setCheckpointDir("./tmp/")
+
+    // Set the lineage context
+    val lc = new LineageContext(sc)
+    lc.setCaptureLineage(true)
+
+    val file = lc.textFile(logFile, 6)
     var pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     var counts = pairs.reduceByKey(_ + _)
-    counts.collect().foreach(println)
+    counts.collect()
 
     // Get the lineage
-    sc.setCaptureLineage(false)
-    var back = sc.getBackwardLineage(counts).filter(r => r._1.equals(7,1,60)).tc()
-    back.collect().foreach(println)
-    val filter = file.filterHadoopInput(back)
-    filter.checkpoint()
-    filter.collect().foreach(println)
-    sc.setCaptureLineage(true)
-    pairs = filter.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
-    counts = pairs.reduceByKey(_ + _)
-    counts.collect().foreach(println)
-
-    // Get the lineage
-    sc.setCaptureLineage(false)
-    back = sc.getBackwardLineage(counts).tc()
-    back.collect().foreach(println)
+    lc.setCaptureLineage(false)
+    var lineage = lc.getLineage(counts)
   }
 }

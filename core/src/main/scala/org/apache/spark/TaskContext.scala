@@ -45,6 +45,8 @@ class TaskContext(
 
   @transient var currentRecordInfo : Seq[(Int, Int, Long)] = Seq((0, 0, 0L))
 
+  @transient var postShuffleRecordInfo : (Int, Int, Long) = (0, 0, 0L)
+
   @deprecated("use partitionId", "0.8.1")
   def splitId = partitionId
 

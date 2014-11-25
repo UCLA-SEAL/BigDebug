@@ -469,7 +469,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
    */
   def join[W](other: RDD[(K, W)], partitioner: Partitioner): RDD[(K, (V, W))] = {
     this.cogroup(other, partitioner).flatMapValues( pair =>
-      for (v <- pair._1; w <- pair._2) yield (v, w)
+      for (v <- pair._1; w <- pair._2) yield {println((v, w));(v, w)}
     )
   }
 

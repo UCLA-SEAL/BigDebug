@@ -26,7 +26,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
 private[spark]
-class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
+class TapRDD[T : ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
 
   // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available
@@ -52,6 +52,15 @@ class TapRDD[T : ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
   private var offset: Long = 0
+
+  private[spark] var cached: ShuffledRDD[_, _, _] = null
+
+  def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
+     throw new UnsupportedOperationException("TapRDDs cannot have a cache")
+  }
+
+  def getCached: ShuffledRDD[_, _, _] =
+    throw new UnsupportedOperationException("TapRDDs cannot have a cache")
 
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {

@@ -21,7 +21,7 @@ import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.{BytesWritable, LongWritable, NullWritable, Text}
+import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -34,7 +34,7 @@ import org.apache.spark.util.collection.OpenHashMap
 import org.apache.spark.util.random.{BernoulliSampler, PoissonSampler, SamplingUtils}
 import org.apache.spark.util.{BoundedPriorityQueue, Utils}
 
-import scala.collection.mutable.{ArrayBuffer, Stack}
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{Map, mutable}
 import scala.reflect.{ClassTag, classTag}
 
@@ -278,7 +278,9 @@ abstract class RDD[T: ClassTag](
   /**
    * Return a new RDD containing only the elements that satisfy a predicate.
    */
-  def filter(f: T => Boolean): RDD[T] = new FilteredRDD(this, sc.clean(f))
+  def filter(f: T => Boolean): RDD[T] = {
+    new FilteredRDD(this, sc.clean(f))
+  }
 
   /**
    * Return a new RDD containing the distinct elements in this RDD.
@@ -771,6 +773,12 @@ abstract class RDD[T: ClassTag](
    */
   def collect(): Array[T] = {
     val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray)
+
+    // Added by Matteo
+    if(context.isLineageActive) {
+      context.setLastLineagePosition(this.getTap())
+    }
+
     Array.concat(results: _*)
   }
 
@@ -1404,91 +1412,25 @@ abstract class RDD[T: ClassTag](
 
   protected var tapRDD : Option[TapRDD[_]] = None
 
-  def setTap(tap: TapRDD[_]) = tapRDD = Some(tap)
+  def setTap(tap: TapRDD[_] = null) = {
+    if(tap == null) {
+      tapRDD = None
+    } else {
+      tapRDD = Some(tap)
+    }
+  }
 
   def getTap() = tapRDD
 
   private[spark] var captureLineage: Boolean = false
 
-  def setCaptureLineage(newLineage :Boolean) = captureLineage = newLineage
+  def setCaptureLineage(newLineage :Boolean) = {
+    captureLineage = newLineage
+    this
+  }
 
   def isLineageActive: Boolean = captureLineage
 
-  /*def prevLineage(): RDD[(Any, Any)] = {  // Added by Miao
-    
-  }*/
-
-  /*def next(): RDD[(Any, Any)] = {  // Added by Miao
-    
-  }*/
-
-  def tc(): RDD[(Any, List[_], Any)] = {
-
-    val waitingForVisit = new Stack[RDD[_]]
-    var dependencies = new Stack[RDD[(Any, Any)]]()
-
-    def visit(rdd: RDD[_]) {
-      rdd.dependencies
-        .filter(_.rdd.isInstanceOf[TapRDD[_]])
-        .foreach(d => dependencies.push(d.rdd.asInstanceOf[RDD[(Any, Any)]]))
-      for (dep <- rdd.dependencies) {
-        waitingForVisit.push(dep.rdd)
-      }
-    }
-    waitingForVisit.push(this)
-    while (!waitingForVisit.isEmpty) {
-      visit(waitingForVisit.pop())
-    }
-
-    dependencies = dependencies.reverse
-    if(dependencies.head.isInstanceOf[TapPostShuffleRDD[_]]) {
-      dependencies = dependencies.tail
-    }
-    dependencies.push(
-      if(context.getLastLineageDirection == Direction.BACKWARD) {
-        this
-          .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-          .map(r => (r._2, List(r._1)))
-      } else {
-        this.asInstanceOf[RDD[(Any, Any)]].map(r => (r._1, List(r._2)))
-      })
-
-    while (dependencies.size > 1) {
-      val tap1 = dependencies.pop().asInstanceOf[RDD[((Int, Int, Long), List[_])]]
-
-      var tap2 = dependencies
-        .pop()
-        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
-
-      if(context.getLastLineageDirection == Direction.FORWARD) {
-        tap2 = tap2.map(r => (r._2, r._1)).asInstanceOf[RDD[((Int, Int, Long), Any)]]
-      }
-
-      dependencies.push(new PairRDDFunctions(tap2).join(tap1)
-        .distinct
-        .map(r => (r._2._1, r._1 :: r._2._2)))
-    }
-    dependencies
-      .pop()
-      .asInstanceOf[RDD[((Int, Int, Long), List[_])]]
-      .map(r => (r._1, r._2.init, r._2.last))
-  }
-
-  def filterHadoopInput(lineage: RDD[(Any, List[_], Any)]) = {
-    getHadoopParent
-      .map(r=> (r._1.get(), r._2.toString))
-      .join(lineage.asInstanceOf[RDD[((String, Long), Any, Any)]]
-      .map(r => (r._1._2, r._3)).distinct())
-      .map(r => r._2._1)
-  }
-
-  private[spark] def getHadoopParent: HadoopRDD[LongWritable, Text] = {
-    if(firstParent.isInstanceOf[HadoopRDD[_, _]]) {
-      firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
-    } else {
-      firstParent.getHadoopParent
-    }
-  }
-
+  def tc(): RDD[(Any, List[_], Any)] = ???
   /** ###################################################################### */
 }

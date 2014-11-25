@@ -31,7 +31,6 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, Sequence
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.mesos.MesosNativeLibrary
-import org.apache.spark.Direction.Direction
 import org.apache.spark.annotation.{DeveloperApi, Experimental}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -62,7 +61,6 @@ import scala.reflect.{ClassTag, classTag}
  */
 
 class SparkContext(config: SparkConf) extends Logging {
-
   // This is used only by YARN for now, but should be relevant to other cluster types (Mesos,
   // etc) too. This is typically generated from InputFormatInfo.computePreferredLocations. It
   // contains a map from hostname to a list of input format splits on the host.
@@ -521,13 +519,7 @@ class SparkContext(config: SparkConf) extends Logging {
     // Add necessary security credentials to the JobConf before broadcasting it.
     SparkHadoopUtil.get.addCredentials(conf)
 
-    /* Modified by Miao */
-    val rdd = new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
-    if(isLineageActive) {
-      rdd.tap()
-    } else {
-      rdd
-    }
+    new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -548,20 +540,13 @@ class SparkContext(config: SparkConf) extends Logging {
     val confBroadcast = broadcast(new SerializableWritable(hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
 
-    /* Modified by Miao */
-    val rdd = new HadoopRDD(
-      this,
+    new HadoopRDD(this,
       confBroadcast,
       Some(setInputPathsFunc),
       inputFormatClass,
       keyClass,
       valueClass,
       minPartitions).setName(path)
-    if(isLineageActive) {
-      rdd.tap()
-    } else {
-      rdd
-    }
   }
 
   /**
@@ -1084,7 +1069,7 @@ class SparkContext(config: SparkConf) extends Logging {
     val start = System.nanoTime
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, allowLocal,
       resultHandler, localProperties.get)
-    logInfo(
+    logWarning(
       "Job finished: " + callSite.shortForm + ", took " + (System.nanoTime - start) / 1e9 + " s")
     rdd.doCheckpoint()
   }
@@ -1309,71 +1294,17 @@ class SparkContext(config: SparkConf) extends Logging {
 
   /** Added by Matteo ############################################################# */
 
+  def getLasLineagePostion: Option[RDD[_]] = lastLineagePosition
+
   private var captureLineage: Boolean = false
 
-  private var lastLineageDirection: Option[Direction] = None
+  private var lastLineagePosition: Option[RDD[_]] = None
+
+  def setLastLineagePosition(finalRDD: Option[RDD[_]]) = lastLineagePosition = finalRDD
 
   def isLineageActive: Boolean = captureLineage
 
-  def setCaptureLineage(newLineage: Boolean) = {
-    captureLineage = newLineage
-  }
-
-  def getLastLineageDirection = lastLineageDirection.get
-
-  def setLastLineageDirection(newDirection: Direction) = lastLineageDirection = Some(newDirection)
-
-  def getBackwardLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
-    getLineage(rdd)
-  }
-
-  def getForwardLineage(rdd: RDD[_]): RDD[((Int, Int, Long), Any)] = {
-    getLineage(rdd, Direction.FORWARD)
-  }
-
-  def getLineage(
-      rdd: RDD[_],
-      direction: Direction = Direction.BACKWARD): RDD[((Int, Int, Long), Any)] = {
-
-    setLastLineageDirection(direction)
-
-    var initialTap: RDD[_] = rdd.getTap().get.materialize
-
-    val visited = new HashSet[RDD[_]]
-    // We are manually maintaining a stack here to prevent StackOverflowError
-    // caused by recursively visiting
-    val waitingForVisit = new Stack[RDD[_]]
-    var dependencies = new Stack[RDD[_]]()
-    dependencies.push(initialTap)
-
-    def visit(rdd: RDD[_]) {
-      if (!visited(rdd)) {
-        visited += rdd
-        rdd.setCaptureLineage(isLineageActive)
-        rdd.dependencies
-          .filter(_.rdd.isInstanceOf[TapRDD[_]])
-          .foreach(d => dependencies.push(d.rdd.materialize))
-        for (dep <- rdd.dependencies) {
-          waitingForVisit.push(dep.rdd)
-        }
-      }
-    }
-    waitingForVisit.push(initialTap)
-    while (!waitingForVisit.isEmpty) {
-      visit(waitingForVisit.pop())
-    }
-
-    if(direction == Direction.FORWARD) {
-      dependencies = dependencies.reverse
-    }
-    initialTap = dependencies.pop()
-
-    while (dependencies.size > 0) {
-      dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
-      initialTap = dependencies.pop()
-    }
-    initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]]
-  }
+  def setCaptureLineage(newLineage: Boolean) = captureLineage = newLineage
 
   private def tapJob[T: ClassTag](rdd: RDD[T]) : RDD[T] = {
     if(!isLineageActive) {
@@ -1424,7 +1355,7 @@ class SparkContext(config: SparkConf) extends Logging {
       val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
       rdd.setTap(finalTap)
       rdd.setCaptureLineage(true)
-      finalTap
+      finalTap.setCached(rdd.asInstanceOf[ShuffledRDD[_, _, _]])
     } else {
       rdd
     }
@@ -1762,8 +1693,3 @@ private[spark] class WritableConverter[T](
     val writableClass: ClassTag[T] => Class[_ <: Writable],
     val convert: Writable => T)
   extends Serializable
-
-object Direction extends Enumeration {
-  type Direction = Value
-  val FORWARD, BACKWARD = Value
-}

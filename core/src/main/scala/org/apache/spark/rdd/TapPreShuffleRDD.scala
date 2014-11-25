@@ -27,11 +27,18 @@ class TapPreShuffleRDD[T <: Product2[_, _] : ClassTag](
     deps: Seq[Dependency[_]])
   extends TapRDD[T](sc, deps) {
 
+  override def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
+    cached = shuffle
+    this
+  }
+
+  override def getCached = cached.setIsPreShuffleCache(true)
+
   override def tap(record: T) = {
     val recordId = (id, splitId, newRecordId)
     addRecordInfo(recordId, tContext.currentRecordInfo)
-    // println("Tapping " + record + " with id " + id + " joins with " +
-    //   tContext.currentRecordInfo)
+     //println("Tapping " + record + " with id " + recordId + " joins with " +
+     //  tContext.currentRecordInfo)
     (record._1, (record._2, recordId)).asInstanceOf[T]
   }
 }
