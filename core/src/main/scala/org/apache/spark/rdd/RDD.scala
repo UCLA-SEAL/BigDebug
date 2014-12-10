@@ -1488,5 +1488,26 @@ abstract class RDD[T: ClassTag](
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
   }
+
+  private[spark] def leftJoin(prev: RDD[((Int, Int, Long), Any)], next: RDD[((Int, Int, Long), Any)]) = {
+    prev.zipPartitions(next) {
+      (buildIter, streamIter) =>
+        val hashSet = new java.util.HashSet[(Int, Int, Long)]()
+        var rowKey: (Int, Int, Long) = null
+
+        // Create a Hash set of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()._1
+          val keyExists = hashSet.contains(rowKey)
+          if (!keyExists) {
+            hashSet.add(rowKey)
+          }
+        }
+
+        streamIter.filter(current => {
+          hashSet.contains(current._1)
+        })
+    }
+  }
   /** ###################################################################### */
 }

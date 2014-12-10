@@ -19,7 +19,8 @@ package org.apache.spark.rdd
 
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark.Direction.Direction
-import org.apache.spark.{Direction, Partition, TaskContext}
+import org.apache.spark._
+import org.apache.spark.util.collection.CompactBuffer
 
 private[spark]
 class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
@@ -32,35 +33,47 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
 
   override def collect(): Array[(Int, Int, Long)] = {
     val results = prev.context.runJob(
-      prev.map(r => r._1).distinct(), (iter: Iterator[(Int, Int, Long)]) => iter.toArray
+      prev.map(r => r._1), (iter: Iterator[(Int, Int, Long)]) => iter.toArray.distinct
     )
     Array.concat(results: _*)
   }
 
   override def filter(f: ((Int, Int, Long)) => Boolean): LineageRDD = {
-    new LineageRDD(firstParent[((Int, Int, Long), Any)].filter(r => f(r._1)))
+    new LineageRDD(firstParent[((Int, Int, Long), Any)].filter(r => f(r._1)).cache())
   }
 
   def goNext(): LineageRDD = {
+    val next = prev.context.getForward
+    var shuffled: RDD[((Int, Int, Long), Any)] = prev
+    if(next.isInstanceOf[TapPreShuffleRDD[_]]) {
+      val part = new LocalityAwarePartitioner(next.partitions.size)
+      shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
+    }
     new LineageRDD(
-      new PairRDDFunctions[(Int, Int, Long), Any](prev)
-      .join(prev.context.getForward)
-      .distinct()
-      .map(r => (r._2._2, r._1)))
+      leftJoin(shuffled, next)
+        .map(r => (r._2, r._1))
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]]
+        .cache()
+    )
   }
 
   def goBack(): LineageRDD = {
     val next = prev.context.getBackward
     if (next.isDefined) {
+      var shuffled: RDD[((Int, Int, Long), Any)] = prev
+      if(next.get.isInstanceOf[TapPreShuffleRDD[_]]) {
+        val part = new LocalityAwarePartitioner(next.get.partitions.size)
+        shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
+      }
+
       new LineageRDD(
-        new PairRDDFunctions[(Int, Int, Long), (Int, Int, Long)](
-          next.get.asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]])
-        .join(prev)
-        .distinct()
-        .map(r => (r._2._1, r._1)))
+      leftJoin(shuffled, next.get)
+        .map(r => (r._2, r._1))
+        .asInstanceOf[RDD[((Int, Int, Long), Any)]])
+        .cache()
     } else {
       new LineageRDD(
-        prev.asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]].map(r => (r._2, r._1))
+        prev.asInstanceOf[RDD[(Any, (Int, Int, Long))]].map(r => (r._2, r._1)).cache()
       )
     }
   }
@@ -101,29 +114,60 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
     if(position.isDefined) {
       var result: ShowRDD = null
       if (position.get.isInstanceOf[TapHadoopRDD[_, _]]) {
-        result = new ShowRDD (new PairRDDFunctions[Long, (Int, Int, Long)](
-        new PairRDDFunctions[(Int, Int, Long), Any](prev)
-          .join(position.get.asInstanceOf[RDD[((Int, Int, Long), (String, Long))]])
-          .map(r => (r._2._2._2, r._1)).distinct())
-          .join(position.get.firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
-            .map(r=> (r._1.get(), r._2.toString))).map(r => (r._2._1, r._2._2)))
+        result = new ShowRDD (prev.zipPartitions(position.get.asInstanceOf[RDD[((Int, Int, Long), (String, Long))]],
+          position.get.firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
+            .map(r=> (r._1.get(), r._2.toString))) {
+          (buildIter, streamIter1, streamIter2) =>
+            val hashSet = new java.util.HashSet[(Int, Int, Long)]()
+            val hashMap = new java.util.HashMap[Long, CompactBuffer[(Int, Int, Long)]]()
+            var rowKey: (Int, Int, Long) = null
+
+            // Create a Hash set of buildKeys
+            while (buildIter.hasNext) {
+              rowKey = buildIter.next()._1
+              val keyExists = hashSet.contains(rowKey)
+              if (!keyExists) {
+                hashSet.add(rowKey)
+              }
+            }
+
+            while(streamIter1.hasNext) {
+              val current = streamIter1.next()
+              if(hashSet.contains(current._1)) {
+                var values = hashMap.get(current._2)
+                if(values == null) {
+                  values = new CompactBuffer[(Int, Int, Long)]()
+                }
+                values += current._1
+                hashMap.put(current._2._2, values)
+              }
+            }
+            streamIter2.flatMap(current => {
+              val values = if(hashMap.get(current._1) != null) {
+                hashMap.get(current._1)
+              } else {
+                new CompactBuffer[(Int, Int, Long)]()
+              }
+              values.map(record => (record, current._2))
+            })
+        }.cache())
       } else if(position.get.isInstanceOf[TapPreShuffleRDD[_]]) {
         result = new ShowRDD (
-          new PairRDDFunctions[(Int, Int, Long), Any](prev)
-            .join(position.get.asInstanceOf[TapPreShuffleRDD[_]]
-              .getCached
-              .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
-            .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._3).toString()))
-            ).map(r => (r._1, r._2._2))//.distinct()
+          leftJoin(prev, position.get.asInstanceOf[TapPreShuffleRDD[_]]
+            .getCached
+            .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
+            .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._3).toString())))
+          .asInstanceOf[RDD[((Int, Int, Long), String)]]
+          .cache()
         )
       } else if(position.get.isInstanceOf[TapPostShuffleRDD[_]]) {
         result = new ShowRDD (
-          new PairRDDFunctions[(Int, Int, Long), Any](prev)
-            .join(position.get.asInstanceOf[TapPostShuffleRDD[_]]
+          leftJoin(prev, position.get.asInstanceOf[TapPostShuffleRDD[_]]
             .getCached.setCaptureLineage(false)
             .asInstanceOf[RDD[((Any, Any), (Int, Int, Long))]]
-            .map(r => (r._2, ((r._1._1, r._1._2), r._2._3).toString()))
-            ).map(r => (r._1, r._2._2))//.distinct()
+            .map(r => (r._2, ((r._1._1, r._1._2), r._2._3).toString())))
+          .asInstanceOf[RDD[((Int, Int, Long), String)]]
+          .cache()
         )
       } else {
           throw new UnsupportedOperationException("what cache are you talking about?")

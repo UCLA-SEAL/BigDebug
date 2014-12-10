@@ -1084,7 +1084,7 @@ class SparkContext(config: SparkConf) extends Logging {
     val start = System.nanoTime
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, allowLocal,
       resultHandler, localProperties.get)
-    logInfo(
+    logWarning(
       "Job finished: " + callSite.shortForm + ", took " + (System.nanoTime - start) / 1e9 + " s")
     rdd.doCheckpoint()
   }
@@ -1365,7 +1365,7 @@ class SparkContext(config: SparkConf) extends Logging {
     }
   }
 
-  def getForward: RDD[((Int, Int, Long), (Int, Int, Long))] = {
+  def getForward: RDD[((Int, Int, Long), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -1409,12 +1409,12 @@ class SparkContext(config: SparkConf) extends Logging {
       visit(waitingForVisit.pop())
     }
 
-    initialTap = dependencies.pop()
+    initialTap = dependencies.pop().cache()
 
     while (dependencies.size > 0) {
       //catalog +=(dependencies.head.id -> dependencies.head.dependencies(0).rdd)
       dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
-      initialTap = dependencies.pop()
+      initialTap = dependencies.pop().cache()
     }
 
     currentLineagePosition = Some(initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]])

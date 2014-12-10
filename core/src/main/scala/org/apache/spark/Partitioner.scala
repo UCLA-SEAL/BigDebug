@@ -19,15 +19,15 @@ package org.apache.spark
 
 import java.io.{IOException, ObjectInputStream, ObjectOutputStream}
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.reflect.{ClassTag, classTag}
-import scala.util.hashing.byteswap32
-
 import org.apache.spark.rdd.{PartitionPruningRDD, RDD}
 import org.apache.spark.serializer.JavaSerializer
+import org.apache.spark.util.random.SamplingUtils
 import org.apache.spark.util.{CollectionsUtils, Utils}
-import org.apache.spark.util.random.{XORShiftRandom, SamplingUtils}
+
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
+import scala.util.hashing.byteswap32
 
 /**
  * An object that defines how the elements in a key-value pair RDD are partitioned by key.
@@ -75,7 +75,7 @@ object Partitioner {
  * so attempting to partition an RDD[Array[_]] or RDD[(Array[_], _)] using a HashPartitioner will
  * produce an unexpected or incorrect result.
  */
-class HashPartitioner(partitions: Int) extends Partitioner {
+class HashPartitioner(partitions: Int, factor: Int = 1) extends Partitioner {
   def numPartitions = partitions
 
   def getPartition(key: Any): Int = key match {
@@ -91,6 +91,20 @@ class HashPartitioner(partitions: Int) extends Partitioner {
   }
 
   override def hashCode: Int = numPartitions
+}
+
+// Added by Matteo
+class LocalityAwarePartitioner(partitions: Int) extends Partitioner {
+  def numPartitions = partitions
+
+  def getPartition(key: Any): Int = key.asInstanceOf[(Int, Int, Long)]._2
+
+  override def equals(other: Any): Boolean = other match {
+    case h: LocalityAwarePartitioner =>
+      h.numPartitions == numPartitions
+    case _ =>
+      false
+  }
 }
 
 /**

@@ -17,7 +17,7 @@
 
 package org.apache.spark.rdd
 
-import org.apache.spark.{Partition, TaskContext}
+import org.apache.spark.{LocalityAwarePartitioner, Partition, TaskContext}
 
 private[spark]
 class ShowRDD(prev: RDD[((Int, Int, Long), String)])
@@ -30,21 +30,26 @@ class ShowRDD(prev: RDD[((Int, Int, Long), String)])
 
   override def collect(): Array[String] = {
     val results = prev.context.runJob(
-      prev.map(r => r._2).distinct(), (iter: Iterator[String]) => iter.toArray
+      prev.map(r => r._2), (iter: Iterator[String]) => iter.toArray.distinct
     )
     Array.concat(results: _*)
   }
 
   override def filter(f: String => Boolean): ShowRDD = {
-    new ShowRDD(firstParent[((Int, Int, Long), String)].filter(r => f(r._2)))
+    new ShowRDD(firstParent[((Int, Int, Long), String)].filter(r => f(r._2)).cache())
   }
 
   override def getLineage(): LineageRDD = {
+    var shuffled: RDD[((Int, Int, Long), Any)] = prev.asInstanceOf[RDD[((Int, Int, Long), Any)]]
+    if(prev.context.getCurrentLineagePosition.get.isInstanceOf[TapPreShuffleRDD[_]]) {
+      val part = new LocalityAwarePartitioner(prev.context.getCurrentLineagePosition.get.partitions.size)
+      shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
+    }
     new LineageRDD(
-      new PairRDDFunctions[(Int, Int, Long), String](prev)
-        .join(prev.context.getCurrentLineagePosition.get.asInstanceOf[RDD[((Int, Int, Long), String)]])
-        .distinct()
-        .map(r => (r._1, r._2._1))
+      leftJoin(
+        shuffled,
+        prev.context.getCurrentLineagePosition.get.asInstanceOf[RDD[((Int, Int, Long), Any)]]
+      ).cache()
     )
   }
 }
