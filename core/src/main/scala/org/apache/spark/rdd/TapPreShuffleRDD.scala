@@ -22,23 +22,15 @@ import org.apache.spark.{Dependency, SparkContext}
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPreShuffleRDD[T <: Product2[_, _] : ClassTag](
-    sc: SparkContext,
-    deps: Seq[Dependency[_]])
+class TapPreShuffleRDD[T <: Product2[_, _]: ClassTag](sc: SparkContext, deps: Seq[Dependency[_]])
   extends TapRDD[T](sc, deps) {
 
-  override def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
-    cached = shuffle
-    this
-  }
-
-  override def getCached = cached.setIsPreShuffleCache(true)
+  override def getCachedData = shuffledData.setIsPreShuffleCache(true)
 
   override def tap(record: T) = {
     val recordId = (id, splitId, newRecordId)
+
     addRecordInfo(recordId, tContext.currentRecordInfo)
-     //println("Tapping " + record + " with id " + recordId + " joins with " +
-     //  tContext.currentRecordInfo)
     (record._1, (record._2, recordId)).asInstanceOf[T]
   }
 }

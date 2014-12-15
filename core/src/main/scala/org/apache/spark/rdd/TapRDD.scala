@@ -26,41 +26,34 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
 private[spark]
-class TapRDD[T : ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dependency[_]])
+class TapRDD[T: ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dependency[_]])
     extends RDD[T](sc, deps) {
-
-  // TODO make recordInfo grow in memory and spill to disk if a certain percentage of available
-  // memory is reached.
-  private val recordInfo = new ArrayBuffer[(Any, Any)]()
 
   setCaptureLineage(true)
 
-  def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
+  // TODO make recordInfo grow in memory and spill to disk if needed
+  private[spark] val recordInfo = new ArrayBuffer[(Any, Any)]()
+
+  private[spark] var splitId: Int = 0
+
+  private[spark] var tContext: TaskContext = null
+
+  private[spark] var nextRecord: AtomicLong = new AtomicLong(0)
+
+  private[spark] def newRecordId = nextRecord.getAndIncrement
+
+  private[spark] var shuffledData: ShuffledRDD[_, _, _] = null
+
+  private[spark] def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
     value.foreach(v => recordInfo += key -> v)
   }
 
-  def getRecordInfos = recordInfo
-
-  protected var splitId: Int = 0
-
-  protected var tContext: TaskContext = null
-
-  protected var nextRecord: AtomicLong = new AtomicLong(0)
-
-  protected def newRecordId = nextRecord.getAndIncrement
-
-  override def getPartitions: Array[Partition] = firstParent[T].partitions
-
-  private var offset: Long = 0
-
-  private[spark] var cached: ShuffledRDD[_, _, _] = null
-
-  def setCached(shuffle: ShuffledRDD[_, _, _]): TapRDD[T] = {
-     throw new UnsupportedOperationException("TapRDDs cannot have a cache")
-  }
-
-  def getCached: ShuffledRDD[_, _, _] =
-    throw new UnsupportedOperationException("TapRDDs cannot have a cache")
+  /**
+   * Compute an RDD partition or read it from a checkpoint if the RDD was checkpointed.
+   */
+  private[spark] override def computeOrReadCheckpoint(
+     split: Partition,
+     context: TaskContext): Iterator[T] = compute(split, context)
 
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
@@ -73,24 +66,21 @@ class TapRDD[T : ClassTag](@transient sc: SparkContext, @transient deps: Seq[Dep
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  /**
-   * Compute an RDD partition or read it from a checkpoint if the RDD is checkpointing.
-   */
-  private[spark] override def computeOrReadCheckpoint(
-    split: Partition,
-    context: TaskContext): Iterator[T] =
-  {
-    compute(split, context)
+  override def getPartitions: Array[Partition] = firstParent[T].partitions
+
+  def getRecordInfos = recordInfo
+
+  def setCached(cache: ShuffledRDD[_, _, _]): TapRDD[T] = {
+    shuffledData = cache
+    this
   }
 
+  def getCachedData = shuffledData.setIsPostShuffleCache(true)
+
   def tap(record: T): T = {
-    val checkpointRDD = firstParent[T].asInstanceOf[CheckpointRDD[T]]
-    val tuple3 = (checkpointRDD.checkpointPath, splitId, offset)
     val recordId = (id, splitId, newRecordId)
-    tContext.currentRecordInfo = Seq(recordId)
-    addRecordInfo(recordId, Seq(tuple3))
-    offset += record.toString.size - 1
-    // println("Tapping " + record + " with id " + id + " joins with " + tuple2)
+
+    addRecordInfo(recordId, tContext.currentRecordInfo)
     record
   }
 }

@@ -285,7 +285,7 @@ abstract class RDD[T: ClassTag](
       var result: ShowRDD = null
       if(this.getTap().get.isInstanceOf[TapPreShuffleRDD[_]]) {
         val tmp = this.getTap().get.asInstanceOf[TapPreShuffleRDD[_]]
-          .getCached.setCaptureLineage(false)
+          .getCachedData.setCaptureLineage(false)
           .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
         tmp.setTap()
         result = new ShowRDD (
@@ -297,7 +297,7 @@ abstract class RDD[T: ClassTag](
         tmp.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
       } else if(this.getTap().get.isInstanceOf[TapPostShuffleRDD[_]]) {
         val tmp = this.getTap().get.asInstanceOf[TapPostShuffleRDD[_]]
-          .getCached.setCaptureLineage(false)
+          .getCachedData.setCaptureLineage(false)
           .asInstanceOf[RDD[(T, (Int, Int, Long))]]
         tmp.setTap()
         result = new ShowRDD (
@@ -1436,13 +1436,15 @@ abstract class RDD[T: ClassTag](
 
   /** Added by Matteo ###################################################################### */
 
-  def tap(): TapRDD[T] = {
-    // throw new IllegalStateException("wrong tap")
-    var newDeps = Seq.empty[Dependency[_]]
-    for(dep <- dependencies) {
-      newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
-    }
-    new TapPostShuffleRDD[T](this.context, newDeps)
+  def tapRight(): TapRDD[T] = {
+    val tap = new TapRDD[T](this.context,  Seq(new OneToOneDependency(this)))
+    setTap(tap)
+    setCaptureLineage(true)
+    tap
+  }
+
+  def tapLeft(): TapRDD[T] = {
+    tapRight()
   }
 
   def tap(deps: Seq[Dependency[_]]): TapRDD[T] = {
@@ -1489,7 +1491,7 @@ abstract class RDD[T: ClassTag](
     throw new UnsupportedOperationException("no lineage support for this RDD")
   }
 
-  private[spark] def leftJoin(prev: RDD[((Int, Int, Long), Any)], next: RDD[((Int, Int, Long), Any)]) = {
+  private[spark] def rightJoinLeft(prev: RDD[((Int, Int, Long), Any)], next: RDD[((Int, Int, Long), Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[(Int, Int, Long)]()
@@ -1504,6 +1506,28 @@ abstract class RDD[T: ClassTag](
           }
         }
 
+        streamIter.filter(current => {
+          hashSet.contains(current._1)
+        })
+    }
+  }
+
+  private[spark] def rightJoinRight(prev: RDD[((Int, Int, Long), (Int, Int, Long))], next: RDD[((Int, Int, Long), Any)]) = {
+    prev.zipPartitions(next) {
+      (buildIter, streamIter) =>
+        val hashSet = new java.util.HashSet[(Int, Int, Long)]()
+        var rowKey: (Int, Int, Long) = null
+
+        // Create a Hash set of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()._2
+          val keyExists = hashSet.contains(rowKey)
+          if (!keyExists) {
+            hashSet.add(rowKey)
+          }
+        }
+
+        //hashSet.toArray.foreach(r => println(r.toString))
         streamIter.filter(current => {
           hashSet.contains(current._1)
         })

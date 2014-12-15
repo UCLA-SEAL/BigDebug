@@ -524,7 +524,7 @@ class SparkContext(config: SparkConf) extends Logging {
     /* Modified by Miao */
     val rdd = new HadoopRDD(this, conf, inputFormatClass, keyClass, valueClass, minPartitions)
     if(isLineageActive) {
-      rdd.tap()
+      rdd.tapRight()
     } else {
       rdd
     }
@@ -558,7 +558,7 @@ class SparkContext(config: SparkConf) extends Logging {
       valueClass,
       minPartitions).setName(path)
     if(isLineageActive) {
-      rdd.tap()
+      rdd.tapRight()
     } else {
       rdd
     }
@@ -1344,17 +1344,19 @@ class SparkContext(config: SparkConf) extends Logging {
     captureLineage = newLineage
   }
 
-  def getBackward: Option[RDD[((Int, Int, Long), Any)]] = {
+  def getBackward = {
     if(!lastOperation.isDefined) {
       lastOperation = Some(Direction.BACKWARD)
     }
-    // CurrentLineagePosition should be always set at this point
-    prevLineagePosition.push(currentLineagePosition.get)
 
     if(currentLineagePosition.get.dependencies.size == 0 ||
         currentLineagePosition.get.dependencies(0).rdd.isInstanceOf[HadoopRDD[_, _]]) {
       throw new UnsupportedOperationException("unsopported operation")
     }
+
+    // CurrentLineagePosition should be always set at this point
+    prevLineagePosition.push(currentLineagePosition.get)
+
     currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
 
     if(lastOperation.get == Direction.FORWARD) {
@@ -1362,6 +1364,7 @@ class SparkContext(config: SparkConf) extends Logging {
       None
     } else {
       Some(prevLineagePosition.head.asInstanceOf[RDD[((Int, Int, Long), Any)]])
+      //currentLineagePosition
     }
   }
 
@@ -1438,21 +1441,28 @@ class SparkContext(config: SparkConf) extends Logging {
             dep.rdd.dependencies.head.rdd.setTap(rdd.tap(dep.rdd.dependencies))
             deps += dep.tapDependency(dep.rdd.dependencies.head.rdd.getTap().get)
           }
-          // Intercept the end of the stage to add a post-shuffle tap
-          if(dep.rdd.dependencies.nonEmpty) {
-            dep.rdd.dependencies
-              .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
-              .filter(d => d.rdd.getTap() == None)
-              .foreach(d => deps += d.tapDependency(rdd.tap()))
-          }
           dep match {
             case shufDep: ShuffleDependency[_, _, _] => {
               waitingForVisit.push(dep.rdd)
-              dep.rdd.setTap(rdd.tap())
+              dep.rdd.setTap(rdd.tapLeft())
               deps += dep.tapDependency(dep.rdd.getTap().get)
+              //val postTap = rdd.asInstanceOf[RDD[_]].tap()
+              //rdd.setTap(postTap)
+              //rdd.setCaptureLineage(true)
+              //postTap.setCached(rdd.asInstanceOf[ShuffledRDD[_, _, _]])
             }
             case narDep: NarrowDependency[_] => {
               waitingForVisit.push(dep.rdd)
+              // Intercept the end of the stage to add a post-shuffle tap
+              if(dep.rdd.dependencies.nonEmpty) {
+                dep.rdd.dependencies
+                  .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
+                  .filter(d => d.rdd.getTap() == None)
+                  .foreach(d => {
+                    val tap = dep.rdd.tapRight()
+                    deps += narDep.tapDependency(tap)
+                })
+              }
             }
           }
         }
@@ -1465,14 +1475,8 @@ class SparkContext(config: SparkConf) extends Logging {
     while (!waitingForVisit.isEmpty) {
       visit(waitingForVisit.pop())
     }
-    if(rdd.getTap() == None) {
-      val finalTap = new TapPostShuffleRDD[T](this, Seq(new OneToOneDependency[T](rdd)))
-      rdd.setTap(finalTap)
-      rdd.setCaptureLineage(true)
-      finalTap.setCached(rdd.asInstanceOf[ShuffledRDD[_, _, _]])
-    } else {
-      rdd
-    }
+
+    rdd.tapRight()
   }
 
   /** ############################################################################ */

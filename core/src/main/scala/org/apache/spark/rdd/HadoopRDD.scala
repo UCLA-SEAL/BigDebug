@@ -128,7 +128,7 @@ class HadoopRDD[K, V](
   private var filePath: String = null  // Added by Matteo
 
   // Added by Miao
-  override def tap(): TapHadoopRDD[K, V] = {
+  override def tapRight(): TapHadoopRDD[K, V] = {
     new TapHadoopRDD(this).asInstanceOf[TapHadoopRDD[K, V]]
   }
 

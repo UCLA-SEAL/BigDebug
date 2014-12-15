@@ -46,7 +46,7 @@ class ShowRDD(prev: RDD[((Int, Int, Long), String)])
       shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
     }
     new LineageRDD(
-      leftJoin(
+      rightJoinLeft(
         shuffled,
         prev.context.getCurrentLineagePosition.get.asInstanceOf[RDD[((Int, Int, Long), Any)]]
       ).cache()

@@ -22,9 +22,7 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 
 private[spark]
-class TapHadoopRDD[K, V](
-    sc: SparkContext,
-    deps: Seq[Dependency[_]])
+class TapHadoopRDD[K, V](sc: SparkContext, deps: Seq[Dependency[_]])
   extends TapRDD[(K, V)](sc, deps) {
 
   def this(@transient prev: HadoopRDD[_, _]) = {
@@ -35,9 +33,10 @@ class TapHadoopRDD[K, V](
     val hadoopRDD = firstParent[(K, V)].asInstanceOf[HadoopRDD[K, V]]
     val tuple2 = (hadoopRDD.getFilePath, record._1.asInstanceOf[LongWritable].get)
     val recordId = (id, splitId, newRecordId)
+
     tContext.currentRecordInfo = Seq(recordId)
     addRecordInfo(recordId, Seq(tuple2))
-     //println("Tapping " + record + " with id " + recordId + " joins with " + tuple2)
+
     record
   }
 }

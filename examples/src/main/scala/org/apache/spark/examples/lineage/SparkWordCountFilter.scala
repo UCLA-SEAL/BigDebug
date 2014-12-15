@@ -20,11 +20,11 @@ package org.apache.spark.examples.lineage
 import org.apache.spark.SparkContext._
 import org.apache.spark.{SparkConf, SparkContext}
 
-object SparkWordCount {
+object SparkWordCountFilter {
   def main(args: Array[String]) {
     val logFile = "README.md"
     val conf = new SparkConf()
-      .setMaster("local[3]")
+      .setMaster("local[2]")
       //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
       //.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
       .setAppName("Simple Scala Application")
@@ -35,20 +35,21 @@ object SparkWordCount {
     val file = sc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    counts.collect().foreach(println)
+    val filter = counts.filter(r => r._1.contains("ar"))//.reduce((r1, r2) => if(r1._2 > r2._2) r1 else r2)
+    filter.collect().foreach(println)
 
     // Get the lineage
     sc.setCaptureLineage(false)
     //var lineage = counts.getLineage
-    var lineage = counts.getLineage()
-    lineage = lineage.filter(r => r.equals(5,1,191))
+    var lineage = filter.getLineage()
+    lineage.collect.foreach(println)
+    //var show = lineage.show
+    //lineage = show.getLineage()
+    lineage = lineage.goBack()
     lineage.collect.foreach(println)
     var show = lineage.show
     lineage = show.getLineage()
-    lineage = lineage.goBack()
     lineage.collect.foreach(println)
-    show = lineage.show
-    lineage = show.getLineage()
     //var show = lineage.show().filter(r => r.equals("(programs,1)"))
     //show.collect.foreach(println)
     //lineage = show.getLineage.goNext()
@@ -57,11 +58,22 @@ object SparkWordCount {
     lineage.collect.foreach(println)
     show = lineage.show
     lineage = show.getLineage()
+    lineage.collect.foreach(println)
+    lineage = lineage.goBack()
+    lineage.collect.foreach(println)
+    show = lineage.show
+    lineage = show.getLineage()
+    lineage.collect.foreach(println)
     lineage = lineage.goNext()
     lineage.collect.foreach(println)
+    lineage = lineage.goNext()
+    lineage.collect.foreach(println)
+    //show = lineage.show
+    //lineage = show.getLineage()
     lineage = lineage.goNext()
     lineage.collect.foreach(println)
     show = lineage.show
     lineage = show.getLineage()
+    lineage.collect.foreach(println)
   }
 }

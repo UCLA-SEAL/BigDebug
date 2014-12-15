@@ -50,7 +50,7 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
       shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
     }
     new LineageRDD(
-      leftJoin(shuffled, next)
+      rightJoinLeft(shuffled, next)
         .map(r => (r._2, r._1))
         .asInstanceOf[RDD[((Int, Int, Long), Any)]]
         .cache()
@@ -60,16 +60,16 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
   def goBack(): LineageRDD = {
     val next = prev.context.getBackward
     if (next.isDefined) {
-      var shuffled: RDD[((Int, Int, Long), Any)] = prev
+        var shuffled: RDD[((Int, Int, Long), Any)] = prev
       if(next.get.isInstanceOf[TapPreShuffleRDD[_]]) {
         val part = new LocalityAwarePartitioner(next.get.partitions.size)
         shuffled = new ShuffledRDD[(Int, Int, Long), Any, Any](prev, part)
       }
 
       new LineageRDD(
-      leftJoin(shuffled, next.get)
-        .map(r => (r._2, r._1))
-        .asInstanceOf[RDD[((Int, Int, Long), Any)]])
+        rightJoinLeft(shuffled, next.get)
+          .map(r => (r._2, r._1))
+          .asInstanceOf[RDD[((Int, Int, Long), Any)]])
         .cache()
     } else {
       new LineageRDD(
@@ -153,8 +153,8 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
         }.cache())
       } else if(position.get.isInstanceOf[TapPreShuffleRDD[_]]) {
         result = new ShowRDD (
-          leftJoin(prev, position.get.asInstanceOf[TapPreShuffleRDD[_]]
-            .getCached
+          rightJoinLeft(prev.asInstanceOf[RDD[((Int, Int, Long), Any)]], position.get.asInstanceOf[TapPreShuffleRDD[_]]
+            .getCachedData
             .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
             .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._3).toString())))
           .asInstanceOf[RDD[((Int, Int, Long), String)]]
@@ -162,8 +162,8 @@ class LineageRDD(prev: RDD[((Int, Int, Long), Any)])
         )
       } else if(position.get.isInstanceOf[TapPostShuffleRDD[_]]) {
         result = new ShowRDD (
-          leftJoin(prev, position.get.asInstanceOf[TapPostShuffleRDD[_]]
-            .getCached.setCaptureLineage(false)
+          rightJoinLeft(prev.asInstanceOf[RDD[((Int, Int, Long), Any)]], position.get.asInstanceOf[TapPostShuffleRDD[_]]
+            .getCachedData.setCaptureLineage(false)
             .asInstanceOf[RDD[((Any, Any), (Int, Int, Long))]]
             .map(r => (r._2, ((r._1._1, r._1._2), r._2._3).toString())))
           .asInstanceOf[RDD[((Int, Int, Long), String)]]

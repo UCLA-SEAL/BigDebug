@@ -98,7 +98,14 @@ class ShuffledRDD[K, V, C](
   }
 
   /** Added by Matteo ######################################################################## */
-  override def tap() = {
+  override def tapRight() = {
+    val tap = new TapPostShuffleRDD[(K, C)](sparkContext, Seq(new OneToOneDependency[(K, C)](this)))
+    setTap(tap)
+    setCaptureLineage(true)
+    tap.setCached(this)
+  }
+
+  override def tapLeft() = {
     var newDeps = Seq.empty[Dependency[_]]
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
@@ -110,13 +117,13 @@ class ShuffledRDD[K, V, C](
 
   private[spark] var isPostShuffleCache: Boolean = false
 
-  def setIsPreShuffleCache(isPreShuffleCache: Boolean) = {
+  def setIsPreShuffleCache(isPreShuffleCache: Boolean): RDD[_] = {
     this.isPreShuffleCache = isPreShuffleCache
     this.isPostShuffleCache = false
     this
   }
 
-  def setIsPostShuffleCache(isPostShuffleCache: Boolean) = {
+  def setIsPostShuffleCache(isPostShuffleCache: Boolean): RDD[_] = {
     this.isPostShuffleCache = isPostShuffleCache
     this.isPreShuffleCache = false
     this
