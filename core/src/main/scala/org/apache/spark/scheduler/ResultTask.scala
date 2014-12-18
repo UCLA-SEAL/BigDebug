@@ -17,9 +17,8 @@
 
 package org.apache.spark.scheduler
 
-import java.nio.ByteBuffer
-
 import java.io._
+import java.nio.ByteBuffer
 
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
@@ -61,10 +60,8 @@ private[spark] class ResultTask[T, U](
     try {
       func(context, rdd.iterator(partition, context))
     } finally {
-      // Added by Matteo
-      if(rdd.isLineageActive) {
-        SparkEnv.get.cacheManager.materialize(partition.index, context)
-      }
+      SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context) // Added by Matteo
+
       context.markTaskCompleted()
     }
   }

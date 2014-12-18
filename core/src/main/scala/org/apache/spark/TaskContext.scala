@@ -43,9 +43,8 @@ class TaskContext(
     private[spark] val taskMetrics: TaskMetrics = TaskMetrics.empty)
   extends Serializable {
 
-  @transient var currentRecordInfo : Seq[(Int, Int, Long)] = Seq((0, 0, 0L))
-
-  @transient var postShuffleRecordInfo : (Int, Int, Long) = (0, 0, 0L)
+  // Used to pipeline records through taps inside the same stage
+  @transient var currentRecordInfo: Seq[(Int, Int, Long)] = Seq((0, 0, 0L)) // Added by Matteo
 
   @deprecated("use partitionId", "0.8.1")
   def splitId = partitionId

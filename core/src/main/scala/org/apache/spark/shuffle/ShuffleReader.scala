@@ -22,7 +22,9 @@ package org.apache.spark.shuffle
  */
 private[spark] trait ShuffleReader[K, C] {
   /** Read the combined key-values for this reduce task */
-  // Modified by Matteo: 0 = no cache, 1 = pre-cache, 2 = post-cache
+  def read(): Iterator[Product2[K, C]]
+
+  // Added by Matteo: 0 = no cache, 1 = pre-cache, 2 = post-cache
   def read(isShuffleCache: Int = 0, shuffleId: Int = 0): Iterator[Product2[K, C]]
 
   /** Close this reader */

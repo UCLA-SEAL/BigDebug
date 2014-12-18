@@ -41,7 +41,7 @@ case class Aggregator[K, V, C] (
     combineValuesByKey(iter, null)
 
   def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]],
-                         context: TaskContext): Iterator[(K, C)] = {
+      context: TaskContext): Iterator[(K, C)] = {
     if (!externalSorting) {
       val combiners = new AppendOnlyMap[K,C]
       var kv: Product2[K, V] = null

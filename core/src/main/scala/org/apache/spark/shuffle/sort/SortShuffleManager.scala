@@ -47,14 +47,13 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       startPartition: Int,
       endPartition: Int,
       context: TaskContext,
-      lineage: Boolean = false): ShuffleReader[K, C] = { // Added by Matteo
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] = { // Added by Matteo
     // We currently use the same block store shuffle fetcher as the hash-based shuffle.
     new HashShuffleReader(
       handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
       startPartition,
       endPartition,
-      context,
-      lineage) // Added by Matteo
+      context)
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

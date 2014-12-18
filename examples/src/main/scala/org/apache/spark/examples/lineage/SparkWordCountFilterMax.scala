@@ -17,7 +17,8 @@
 
 package org.apache.spark.examples.lineage
 
-import org.apache.spark.SparkContext._
+import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.LineageContext
 import org.apache.spark.{SparkConf, SparkContext}
 
 object SparkWordCountFilterMax {
@@ -31,8 +32,9 @@ object SparkWordCountFilterMax {
     val sc = new SparkContext(conf)
     sc.setCheckpointDir("./tmp/")
     //sc.setCheckpointDir("hdfs://scai01.cs.ucla.edu:9000/clash/tmp/spark")
-    sc.setCaptureLineage(true)
-    val file = sc.textFile(logFile, 2)
+    var lc = new LineageContext(sc)
+    lc.setCaptureLineage(true)
+    val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
     val filter = counts.filter(r => r._1.contains("ar"))
@@ -40,7 +42,7 @@ object SparkWordCountFilterMax {
     max.collect.foreach(println)
 
     // Get the lineage
-    sc.setCaptureLineage(false)
+    lc.setCaptureLineage(false)
     //var lineage = counts.getLineage
     var lineage = max.getLineage()
     lineage.collect.foreach(println)

@@ -17,25 +17,13 @@
 
 package org.apache.spark.rdd
 
+import java.io.EOFException
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.io.EOFException
-
-import scala.collection.immutable.Map
-import scala.reflect.ClassTag
 
 import org.apache.hadoop.conf.{Configurable, Configuration}
-import org.apache.hadoop.mapred.FileSplit
-import org.apache.hadoop.mapred.InputFormat
-import org.apache.hadoop.mapred.InputSplit
-import org.apache.hadoop.mapred.JobConf
-import org.apache.hadoop.mapred.RecordReader
-import org.apache.hadoop.mapred.Reporter
-import org.apache.hadoop.mapred.JobID
-import org.apache.hadoop.mapred.TaskAttemptID
-import org.apache.hadoop.mapred.TaskID
+import org.apache.hadoop.mapred.{FileSplit, InputFormat, InputSplit, JobConf, JobID, RecordReader, Reporter, TaskAttemptID, TaskID}
 import org.apache.hadoop.util.ReflectionUtils
-
 import org.apache.spark._
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
@@ -43,6 +31,9 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.executor.{DataReadMethod, InputMetrics}
 import org.apache.spark.rdd.HadoopRDD.HadoopMapPartitionsWithSplitRDD
 import org.apache.spark.util.{NextIterator, Utils}
+
+import scala.collection.immutable.Map
+import scala.reflect.ClassTag
 
 
 /**
@@ -123,24 +114,7 @@ class HadoopRDD[K, V](
       minPartitions)
   }
 
-  private var reader: RecordReader[K, V] = null  // Added by Miao
-
-  private var filePath: String = null  // Added by Matteo
-
-  // Added by Miao
-  override def tapRight(): TapHadoopRDD[K, V] = {
-    new TapHadoopRDD(this).asInstanceOf[TapHadoopRDD[K, V]]
-  }
-
-  override def setName(_name: String): this.type = {
-    name = _name
-    filePath = _name
-    this
-  }
-
-  def getFilePath = filePath
-
-  def getReader = reader
+  private[spark] var reader: RecordReader[K, V] = null  // Added by Miao
 
   override private[spark]
   def computeOrReadCheckpoint(split: Partition, context: TaskContext): Iterator[(K, V)] =

@@ -87,8 +87,8 @@ class ShuffledRDD[K, V, C](
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
     SparkEnv.get.shuffleManager
-    .getReader(dep.shuffleHandle, split.index, split.index + 1, context, isLineageActive)
-      .read(if(isPreShuffleCache) 1 else if (isPostShuffleCache) 2 else 0, id)
+    .getReader(dep.shuffleHandle, split.index, split.index + 1, context)
+      .read()
       .asInstanceOf[Iterator[(K, C)]]
   }
 
@@ -96,37 +96,4 @@ class ShuffledRDD[K, V, C](
     super.clearDependencies()
     prev = null
   }
-
-  /** Added by Matteo ######################################################################## */
-  override def tapRight() = {
-    val tap = new TapPostShuffleRDD[(K, C)](sparkContext, Seq(new OneToOneDependency[(K, C)](this)))
-    setTap(tap)
-    setCaptureLineage(true)
-    tap.setCached(this)
-  }
-
-  override def tapLeft() = {
-    var newDeps = Seq.empty[Dependency[_]]
-    for(dep <- dependencies) {
-      newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
-    }
-    new TapPreShuffleRDD[(K, C)](this.context, newDeps).setCached(this)
-  }
-
-  private[spark] var isPreShuffleCache: Boolean = false
-
-  private[spark] var isPostShuffleCache: Boolean = false
-
-  def setIsPreShuffleCache(isPreShuffleCache: Boolean): RDD[_] = {
-    this.isPreShuffleCache = isPreShuffleCache
-    this.isPostShuffleCache = false
-    this
-  }
-
-  def setIsPostShuffleCache(isPostShuffleCache: Boolean): RDD[_] = {
-    this.isPostShuffleCache = isPostShuffleCache
-    this.isPreShuffleCache = false
-    this
-  }
-  /** ########################################################################################## */
 }

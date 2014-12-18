@@ -2,6 +2,9 @@
   <library name="SBT: org.apache.spark:spark-streaming_2.10:1.1.0">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/lib_managed/jars/spark-streaming_2.10-1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/spark-streaming_2.10-1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/spark-streaming_2.10-1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/spark-streaming_2.10-1.1.0.jar!/" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$PROJECT_DIR$/lib_managed/docs/spark-streaming_2.10-1.1.0-javadoc.jar!/" />

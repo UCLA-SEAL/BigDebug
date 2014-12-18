@@ -1,38 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module type="JAVA_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="scala" name="Scala">
-      <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="SBT: scala:2.10.4" />
-        <option name="compilerOptions" value="-feature -language:postfixOps -P:genjavadoc:out=$MODULE_DIR$/../graphx/target/java" />
-        <option name="deprecationWarnings" value="true" />
-        <option name="fsc" value="true" />
-        <option name="pluginPaths">
-          <array>
-            <option value="$MODULE_DIR$/../lib_managed/jars/genjavadoc-plugin_2.10.4-0.7.jar" />
-          </array>
-        </option>
-        <option name="uncheckedWarnings" value="true" />
-      </configuration>
-    </facet>
-  </component>
+<module external.linked.project.id="graphx" external.linked.project.path="$MODULE_DIR$/../graphx" external.root.project.path="$MODULE_DIR$/.." external.system.id="SBT" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="false">
     <output url="file://$MODULE_DIR$/../graphx/target/scala-2.10/classes" />
     <output-test url="file://$MODULE_DIR$/../graphx/target/scala-2.10/test-classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../graphx">
-      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/main/scala" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../graphx/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/main/resources" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/test/scala" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/main/scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/target/scala-2.10/src_managed/main" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../graphx/src/test/java" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/test/resources" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/test/scala" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/target/scala-2.10/src_managed/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/target/scala-2.10/resource_managed/main" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/src/test/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../graphx/target/scala-2.10/resource_managed/test" type="java-test-resource" />
       <excludeFolder url="file://$MODULE_DIR$/../graphx/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
     <orderEntry type="library" name="SBT: org.apache.hadoop:hadoop-client:1.0.4" level="project" />
     <orderEntry type="library" name="SBT: org.apache.hadoop:hadoop-core:1.0.4" level="project" />
     <orderEntry type="library" name="SBT: xmlenc:xmlenc:0.52" level="project" />
@@ -103,7 +89,6 @@
     <orderEntry type="library" name="SBT: com.thoughtworks.paranamer:paranamer:2.6" level="project" />
     <orderEntry type="library" name="SBT: org.scala-lang:scalap:2.10.0" level="project" />
     <orderEntry type="library" name="SBT: org.scala-lang:scala-compiler:2.10.0" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.scala-lang:scala-reflect:2.10.3:test" level="project" />
     <orderEntry type="library" name="SBT: org.scala-lang:scala-reflect:2.10.0" level="project" />
     <orderEntry type="library" name="SBT: com.fasterxml.jackson.core:jackson-databind:2.3.1" level="project" />
     <orderEntry type="library" name="SBT: com.fasterxml.jackson.core:jackson-annotations:2.3.0" level="project" />
@@ -123,14 +108,15 @@
     <orderEntry type="library" name="SBT: org.spark-project:pyrolite:2.0.1" level="project" />
     <orderEntry type="library" name="SBT: net.sf.py4j:py4j:0.8.2.1" level="project" />
     <orderEntry type="library" name="SBT: org.jblas:jblas:1.2.3" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.scalatest:scalatest_2.10:2.1.5:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.scalacheck:scalacheck_2.10:1.11.3:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.scala-sbt:test-interface:1.0:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: com.novocode:junit-interface:0.9:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: junit:junit-dep:4.8.2:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.hamcrest:hamcrest-core:1.1:test" level="project" />
-    <orderEntry type="library" scope="TEST" name="SBT: org.scala-tools.testing:test-interface:0.5:test" level="project" />
     <orderEntry type="module" module-name="core" exported="" />
+    <orderEntry type="library" scope="TEST" name="SBT: com.novocode:junit-interface:0.9" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: junit:junit-dep:4.8.2" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.hamcrest:hamcrest-core:1.1" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scala-lang:scala-reflect:2.10.3" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scala-sbt:test-interface:1.0" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scala-tools.testing:test-interface:0.5" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scalacheck:scalacheck_2.10:1.11.3" level="project" />
+    <orderEntry type="library" scope="TEST" name="SBT: org.scalatest:scalatest_2.10:2.1.5" level="project" />
+    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
   </component>
 </module>
-

@@ -21,7 +21,7 @@ import java.util.Random
 
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus
 import org.apache.hadoop.io.compress.CompressionCodec
-import org.apache.hadoop.io.{LongWritable, BytesWritable, NullWritable, Text}
+import org.apache.hadoop.io.{BytesWritable, NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
@@ -99,11 +99,16 @@ abstract class RDD[T: ClassTag](
    */
   protected def getDependencies: Seq[Dependency[_]] = deps
 
-  /** Added by Matteo */
+  /** Added by Matteo ########################################################################## */
+
   final def updateDependencies(_deps: Seq[Dependency[_]]) = {
     deps = _deps
     dependencies_ = deps
   }
+
+  def getRecordInfos: ArrayBuffer[(Any, Any)] =  null
+
+  /** ########################################################################################## */
 
   /**
    * Optionally overridden by subclasses to specify placement preferences.
@@ -279,53 +284,6 @@ abstract class RDD[T: ClassTag](
    * Return a new RDD containing only the elements that satisfy a predicate.
    */
   def filter(f: T => Boolean): RDD[T] = {
-    /* Added by Matteo **************************************************************************/
-    if(this.getTap().isDefined) {
-      context.setCurrentLineagePosition(this.getTap())
-      var result: ShowRDD = null
-      if(this.getTap().get.isInstanceOf[TapPreShuffleRDD[_]]) {
-        val tmp = this.getTap().get.asInstanceOf[TapPreShuffleRDD[_]]
-          .getCachedData.setCaptureLineage(false)
-          .asInstanceOf[RDD[(Any, (Any, (Int, Int, Long)))]]
-        tmp.setTap()
-        result = new ShowRDD (
-          tmp
-            .map(r => ((r._1, r._2._1), r._2._2)).asInstanceOf[RDD[(T, (Int, Int, Long))]]
-            .filter(r => f(r._1))
-            .map(r => (r._2, r._1.toString()))
-        )
-        tmp.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
-      } else if(this.getTap().get.isInstanceOf[TapPostShuffleRDD[_]]) {
-        val tmp = this.getTap().get.asInstanceOf[TapPostShuffleRDD[_]]
-          .getCachedData.setCaptureLineage(false)
-          .asInstanceOf[RDD[(T, (Int, Int, Long))]]
-        tmp.setTap()
-        result = new ShowRDD (
-            tmp
-            .filter(r => f(r._1))
-            .map(r => (r._2, r._1.toString()))
-        )
-        tmp.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
-      } else {
-        throw new UnsupportedOperationException
-      }
-      result.setTap(this.getTap().get)
-      return result.asInstanceOf[RDD[T]]
-    } else if (this.dependencies(0).rdd.isInstanceOf[TapHadoopRDD[_, _]]) {
-      var result: ShowRDD = null
-      context.setCurrentLineagePosition(Some(this.dependencies(0).rdd.asInstanceOf[TapHadoopRDD[_, _]]))
-      result = new ShowRDD(this.dependencies(0).rdd.asInstanceOf[TapHadoopRDD[_, _]]
-        .firstParent.asInstanceOf[HadoopRDD[LongWritable, Text]]
-        .map(r=> (r._1.get(), r._2.toString)).asInstanceOf[RDD[(Long, T)]]
-        .filter(r => f(r._2))
-        .join(this.dependencies(0).rdd.asInstanceOf[RDD[((Int, Int, Long), (String, Long))]]
-        .map(r => (r._2._2, r._1)))
-        .distinct()
-        .map(r => (r._2._2, r._2._1)).asInstanceOf[RDD[((Int, Int, Long), String)]])
-      result.setTap(context.getCurrentLineagePosition.get.asInstanceOf[TapRDD[_]])
-      return result.asInstanceOf[RDD[T]]
-    }
-    /********************************************************************************************/
     new FilteredRDD(this, sc.clean(f))
   }
 
@@ -820,11 +778,6 @@ abstract class RDD[T: ClassTag](
    */
   def collect(): Array[T] = {
     val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray)
-
-    // Added by Matteo
-    if(context.isLineageActive) {
-      context.setLastLineagePosition(this.getTap())
-    }
 
     Array.concat(results: _*)
   }
@@ -1433,105 +1386,4 @@ abstract class RDD[T: ClassTag](
   def toJavaRDD() : JavaRDD[T] = {
     new JavaRDD(this)(elementClassTag)
   }
-
-  /** Added by Matteo ###################################################################### */
-
-  def tapRight(): TapRDD[T] = {
-    val tap = new TapRDD[T](this.context,  Seq(new OneToOneDependency(this)))
-    setTap(tap)
-    setCaptureLineage(true)
-    tap
-  }
-
-  def tapLeft(): TapRDD[T] = {
-    tapRight()
-  }
-
-  def tap(deps: Seq[Dependency[_]]): TapRDD[T] = {
-    val tap = new TapRDD[T](this.context, deps)
-    tap.checkpointData = checkpointData
-    checkpointData = None
-    tap
-  }
-
-  def materialize = {
-    storageLevel = StorageLevel.MEMORY_ONLY
-    this
-  }
-
-  protected var tapRDD : Option[TapRDD[_]] = None
-
-  def setTap(tap: TapRDD[_] = null) = {
-    if(tap == null) {
-      tapRDD = None
-    } else {
-      tapRDD = Some(tap)
-    }
-  }
-
-  def getTap() = tapRDD
-
-  private[spark] var captureLineage: Boolean = false
-
-  def setCaptureLineage(newLineage :Boolean) = {
-    captureLineage = newLineage
-    this
-  }
-
-  def isLineageActive: Boolean = captureLineage
-
-  def tc(): RDD[(Any, List[_], Any)] = ???
-
-  def getLineage(): LineageRDD = {
-    // Be careful, this can be called from a not TapPostShuffleRDD. Need to add a check
-    if(getTap().isDefined) {
-      sc.setCurrentLineagePosition(getTap())
-      return new LineageRDD(getTap().get.asInstanceOf[RDD[((Int, Int, Long), Any)]])
-    }
-    throw new UnsupportedOperationException("no lineage support for this RDD")
-  }
-
-  private[spark] def rightJoinLeft(prev: RDD[((Int, Int, Long), Any)], next: RDD[((Int, Int, Long), Any)]) = {
-    prev.zipPartitions(next) {
-      (buildIter, streamIter) =>
-        val hashSet = new java.util.HashSet[(Int, Int, Long)]()
-        var rowKey: (Int, Int, Long) = null
-
-        // Create a Hash set of buildKeys
-        while (buildIter.hasNext) {
-          rowKey = buildIter.next()._1
-          val keyExists = hashSet.contains(rowKey)
-          if (!keyExists) {
-            hashSet.add(rowKey)
-          }
-        }
-
-        streamIter.filter(current => {
-          hashSet.contains(current._1)
-        })
-    }
-  }
-
-  private[spark] def rightJoinRight(prev: RDD[((Int, Int, Long), (Int, Int, Long))], next: RDD[((Int, Int, Long), Any)]) = {
-    prev.zipPartitions(next) {
-      (buildIter, streamIter) =>
-        val hashSet = new java.util.HashSet[(Int, Int, Long)]()
-        var rowKey: (Int, Int, Long) = null
-
-        // Create a Hash set of buildKeys
-        while (buildIter.hasNext) {
-          rowKey = buildIter.next()._2
-          val keyExists = hashSet.contains(rowKey)
-          if (!keyExists) {
-            hashSet.add(rowKey)
-          }
-        }
-
-        //hashSet.toArray.foreach(r => println(r.toString))
-        streamIter.filter(current => {
-          hashSet.contains(current._1)
-        })
-    }
-  }
-  /** ###################################################################### */
 }

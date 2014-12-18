@@ -18,6 +18,7 @@
 package org.apache.spark.shuffle.hash
 
 import org.apache.spark._
+import org.apache.spark.lineage.LHashShuffleReader
 import org.apache.spark.shuffle._
 
 /**
@@ -39,19 +40,29 @@ private[spark] class HashShuffleManager(conf: SparkConf) extends ShuffleManager 
   /**
    * Get a reader for a range of reduce partitions (startPartition to endPartition-1, inclusive).
    * Called on executors by reduce tasks.
+   * Modified by Matteo
    */
   override def getReader[K, C](
       handle: ShuffleHandle,
       startPartition: Int,
       endPartition: Int,
       context: TaskContext,
-      lineage: Boolean = false): ShuffleReader[K, C] = { // Added by Matteo
-    new HashShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
-      startPartition,
-      endPartition,
-      context,
-      lineage) // Added by Matteo
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] = {
+
+    if(lineage.isDefined) {
+      new LHashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+        startPartition,
+        endPartition,
+        context,
+        lineage.get)
+    } else {
+      new HashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+        startPartition,
+        endPartition,
+        context)
+    }
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

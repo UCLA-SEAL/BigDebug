@@ -20,6 +20,8 @@ package org.apache.spark
 import java.io.File
 import java.net.Socket
 
+import org.apache.spark.lineage.LCacheManager
+
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.Properties
@@ -56,7 +58,7 @@ class SparkEnv (
     val actorSystem: ActorSystem,
     val serializer: Serializer,
     val closureSerializer: Serializer,
-    val cacheManager: CacheManager,
+    var cacheManager: CacheManager,  // Modified by Matteo
     val mapOutputTracker: MapOutputTracker,
     val shuffleManager: ShuffleManager,
     val broadcastManager: BroadcastManager,
@@ -238,7 +240,8 @@ object SparkEnv extends Logging {
 
     val broadcastManager = new BroadcastManager(isDriver, conf, securityManager)
 
-    val cacheManager = new CacheManager(blockManager)
+    //TODO: Add an entry into sparkConf
+    val cacheManager = new LCacheManager(blockManager) // Modified by Matteo
 
     val httpFileServer =
       if (isDriver) {

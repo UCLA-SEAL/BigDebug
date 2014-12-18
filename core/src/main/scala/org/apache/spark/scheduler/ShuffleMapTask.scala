@@ -19,12 +19,12 @@ package org.apache.spark.scheduler
 
 import java.nio.ByteBuffer
 
-import scala.language.existentials
-
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
+
+import scala.language.existentials
 
 /**
 * A ShuffleMapTask divides the elements of an RDD into multiple buckets (based on a partitioner
@@ -66,10 +66,9 @@ private[spark] class ShuffleMapTask(
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
-      // Added by Matteo
-      if(rdd.isLineageActive) {
-        SparkEnv.get.cacheManager.materialize(partition.index, context)
-      }
+
+      SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context) // Added by Matteo
+
       return writer.stop(success = true).get
     } catch {
       case e: Exception =>

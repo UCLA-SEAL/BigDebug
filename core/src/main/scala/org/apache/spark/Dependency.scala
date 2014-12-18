@@ -18,7 +18,7 @@
 package org.apache.spark
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.rdd.{TapRDD, RDD}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleHandle
 
@@ -105,7 +105,7 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
 
   /** Added by Matteo */
   override def tapDependency(tap: RDD[_] = null) = {
-    new OneToOneDependency[T](tap.asInstanceOf[TapRDD[T]])
+    new OneToOneDependency[T](tap.asInstanceOf[RDD[T]])
   }
 }
 
