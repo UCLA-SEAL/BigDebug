@@ -59,6 +59,14 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
      split: Partition,
      context: TaskContext): Iterator[T] = compute(split, context)
 
+  override def ttag = classTag[T]
+
+  override def lineageContext: LineageContext = lc
+
+  override def getPartitions: Array[Partition] = firstParent[T].partitions
+
+  override def getRecordInfos = recordInfo
+
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
       tContext = context
@@ -70,20 +78,16 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  override def ttag = classTag[T]
-
-  override def lineageContext: LineageContext = lc
-
-  override def getPartitions: Array[Partition] = firstParent[T].partitions
-
-  override def getRecordInfos = recordInfo
+  override def filter(f: T => Boolean): Lineage[T] = {
+    new FilteredLRDD[T](this, sparkContext.clean(f))
+  }
 
   def setCached(cache: ShuffledLRDD[_, _, _]): TapLRDD[T] = {
     shuffledData = cache
     this
   }
 
-  def getCachedData = shuffledData.setIsPostShuffleCache(true)
+  def getCachedData = shuffledData.setIsPostShuffleCache()
 
   def tap(record: T): T = {
     recordId = (id, splitId, newRecordId)

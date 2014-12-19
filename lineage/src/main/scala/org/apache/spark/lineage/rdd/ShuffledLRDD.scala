@@ -45,7 +45,7 @@ class ShuffledLRDD[K, V, C](
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
     SparkEnv.get.shuffleManager
     .getReader(dep.shuffleHandle, split.index, split.index + 1, context, Some(isLineageActive))
-      .read(if(isPreShuffleCache) 1 else if (isPostShuffleCache) 2 else 0, id)
+      .read(isPreShuffleCache, id)
       .asInstanceOf[Iterator[(K, C)]]
   }
 
@@ -64,19 +64,16 @@ class ShuffledLRDD[K, V, C](
     new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this)
   }
 
-  private[spark] var isPreShuffleCache: Boolean = false
+  // None = no cache, true = pre, false = post
+  private[spark] var isPreShuffleCache: Option[Boolean] = None
 
-  private[spark] var isPostShuffleCache: Boolean = false
-
-  def setIsPreShuffleCache(isPreShuffleCache: Boolean): ShuffledLRDD[K, V, C] = {
-    this.isPreShuffleCache = isPreShuffleCache
-    this.isPostShuffleCache = false
+  def setIsPreShuffleCache(): ShuffledLRDD[K, V, C] = {
+    this.isPreShuffleCache = Some(true)
     this
   }
 
-  def setIsPostShuffleCache(isPostShuffleCache: Boolean): ShuffledLRDD[K, V, C] = {
-    this.isPostShuffleCache = isPostShuffleCache
-    this.isPreShuffleCache = false
+  def setIsPostShuffleCache(): ShuffledLRDD[K, V, C] = {
+    this.isPreShuffleCache = Some(false)
     this
   }
 }

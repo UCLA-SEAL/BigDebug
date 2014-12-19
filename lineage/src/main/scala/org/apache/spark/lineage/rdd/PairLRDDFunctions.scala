@@ -17,11 +17,11 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.{HashPartitioner, Aggregator, SparkException, Partitioner}
 import org.apache.spark.Partitioner._
 import org.apache.spark.lineage.Lineage
 import org.apache.spark.rdd.PairRDDFunctions
 import org.apache.spark.serializer.Serializer
+import org.apache.spark.{Aggregator, HashPartitioner, Partitioner, SparkException}
 
 import scala.reflect.ClassTag
 

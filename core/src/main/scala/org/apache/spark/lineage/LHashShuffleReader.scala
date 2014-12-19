@@ -19,11 +19,11 @@ package org.apache.spark.lineage
 
 import java.util.concurrent.atomic.AtomicLong
 
+import org.apache.spark.{InterruptibleIterator, TaskContext}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.BaseShuffleHandle
 import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReader}
-import org.apache.spark.util.collection.{AppendOnlyMap, ExternalSorter}
-import org.apache.spark.{InterruptibleIterator, TaskContext}
+import org.apache.spark.util.collection.{ExternalSorter, AppendOnlyMap}
 
 private[spark] class LHashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
@@ -31,7 +31,7 @@ private[spark] class LHashShuffleReader[K, C](
     endPartition: Int,
     context: TaskContext,
     var lineage: Boolean = false)
-  extends HashShuffleReader[K, C](handle, startPartition, endPartition, context)
+    extends HashShuffleReader[K, C](handle, startPartition, endPartition, context)
 {
   require(endPartition == startPartition + 1,
     "Hash shuffle currently only supports fetching one partition")
@@ -40,38 +40,34 @@ private[spark] class LHashShuffleReader[K, C](
 
   private var recordInfo: (Int, Int, Long) = (0, 0, 0L)
 
-  private  var nextRecord: AtomicLong = new AtomicLong(0)
+  private val nextRecord: AtomicLong = new AtomicLong(0)
 
   private def newRecordId = nextRecord.getAndIncrement
 
   /** Read the combined key-values for this reduce task */
-  override def read(isCache: Int = 0, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
-    val ser = Serializer.getSerializer(dep.serializer)
-    val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
+  override def read(isCache: Option[Boolean] = None, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
+      val ser = Serializer.getSerializer(dep.serializer)
+      val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
 
-    if(isCache == 1) {
-      return tappedIter
-    } else if(isCache == 2){
-      lineage = true
+    if(isCache.isDefined) {
+      if (isCache.get) {
+        return tappedIter
+      } else {
+        lineage = true
+      }
     }
 
     val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
 
-    val iter = untap(tappedIter, trace)
-
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
-      if (dep.mapSideCombine) {
-        new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
-      } else {
-        tap(new InterruptibleIterator(context,
-          dep.aggregator.get.combineValuesByKey(iter, context)),
-          trace, context, startPartition, shuffleId)
-      }
-    } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
-      throw new IllegalStateException("Aggregator is empty for map-side combine")
+      val iter = untap(tappedIter, trace)
+
+      tap(new InterruptibleIterator(context,
+        dep.aggregator.get.combineValuesByKey(iter, context)),
+        trace, context, startPartition, shuffleId)
     } else {
       // Convert the Product2s to pairs since this is what downstream RDDs currently expect
-      iter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
+      tappedIter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
     }
 
     // Sort the output if there is a sort ordering defined.
@@ -105,21 +101,21 @@ private[spark] class LHashShuffleReader[K, C](
     }
   }
 
- def tap(
-     iter: Iterator[Product2[K, C]],
-     trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
-     context : TaskContext,
-     splitId: Int,
-     shuffleId: Int) = {
-   if(lineage) {
-     iter.map(r => {
-       val id = trace(r._1)
-       context.currentRecordInfo = id.toSeq
-       var recordInfo = (shuffleId, splitId, newRecordId)
-       ((r._1, r._2), (shuffleId, splitId, newRecordId)).asInstanceOf[Product2[K, C]]
-     })
-   } else {
-     iter
-   }
- }
+  def tap(
+      iter: Iterator[Product2[K, C]],
+      trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
+      context : TaskContext,
+      splitId: Int,
+      shuffleId: Int) = {
+    if(lineage) {
+      iter.map(r => {
+        val id = trace(r._1)
+        context.currentRecordInfo = id.toSeq
+        var recordInfo = (shuffleId, splitId, newRecordId)
+        ((r._1, r._2), (shuffleId, splitId, newRecordId)).asInstanceOf[Product2[K, C]]
+      })
+    } else {
+      iter
+    }
+  }
 }

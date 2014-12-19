@@ -23,10 +23,11 @@ import org.apache.spark.lineage.LineageContext
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPostShuffleLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-    extends TapLRDD[T](lc, deps) {
-
-  override def getCachedData = shuffledData.setIsPostShuffleCache(true)
+class TapPostShuffleLRDD[T: ClassTag]
+  (@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
+  extends TapLRDD[T](lc, deps)
+{
+  override def getCachedData = shuffledData.setIsPostShuffleCache()
 
   override def tap(record: T) = {
     recordId = record.asInstanceOf[Product2[T, (Int, Int, Long)]]._2

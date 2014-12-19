@@ -23,11 +23,10 @@ import org.apache.spark.lineage.LineageContext
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[(K, V)](lc, deps) {
-
-  def this(@transient prev: HadoopLRDD[_, _]) = {
+  extends TapLRDD[(K, V)](lc, deps)
+{
+  def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
-  }
 
   private[spark] val filePath = firstParent[(K, V)].asInstanceOf[HadoopLRDD[K, V]].getFilePath
 

@@ -93,20 +93,6 @@ class HashPartitioner(partitions: Int, factor: Int = 1) extends Partitioner {
   override def hashCode: Int = numPartitions
 }
 
-// Added by Matteo
-class LocalityAwarePartitioner(partitions: Int) extends Partitioner {
-  def numPartitions = partitions
-
-  def getPartition(key: Any): Int = key.asInstanceOf[(Int, Int, Long)]._2
-
-  override def equals(other: Any): Boolean = other match {
-    case h: LocalityAwarePartitioner =>
-      h.numPartitions == numPartitions
-    case _ =>
-      false
-  }
-}
-
 /**
  * A [[org.apache.spark.Partitioner]] that partitions sortable records by range into roughly
  * equal ranges. The ranges are determined by sampling the content of the RDD passed in.

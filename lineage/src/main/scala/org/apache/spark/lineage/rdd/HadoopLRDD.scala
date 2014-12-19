@@ -90,7 +90,7 @@ class HadoopLRDD[K, V](
   private var filePath: String = null
 
   override def tapRight(): TapHadoopLRDD[K, V] = {
-    new TapHadoopLRDD(this).asInstanceOf[TapHadoopLRDD[K, V]]
+    new TapHadoopLRDD(this)
   }
 
   override def setName(_name: String): this.type = {

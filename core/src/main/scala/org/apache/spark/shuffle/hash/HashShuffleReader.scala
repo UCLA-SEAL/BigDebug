@@ -71,5 +71,5 @@ private[spark] class HashShuffleReader[K, C](
   override def stop(): Unit = ???
 
   // Added by Matteo, required for compatibility
-  override def read(isShuffleCache: Int, shuffleId: Int): Iterator[Product2[K, C]] = read()
+  override def read(isShuffleCache: Option[Boolean] = None, shuffleId: Int): Iterator[Product2[K, C]] = read()
 }

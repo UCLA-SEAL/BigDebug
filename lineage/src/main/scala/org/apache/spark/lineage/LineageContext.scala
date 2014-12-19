@@ -22,7 +22,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.lineage.Direction.Direction
-import org.apache.spark.lineage.rdd.{PairLRDDFunctions, HadoopLRDD, TapLRDD}
+import org.apache.spark.lineage.rdd.{HadoopLRDD, PairLRDDFunctions, TapLRDD}
 import org.apache.spark.rdd._
 
 import scala.collection.mutable.{HashSet, Stack}
@@ -149,7 +149,6 @@ class LineageContext(@transient val sparkContext: SparkContext)
     initialTap = dependencies.pop().cache()
 
     while (dependencies.size > 0) {
-      //catalog +=(dependencies.head.id -> dependencies.head.dependencies(0).rdd)
       dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
       initialTap = dependencies.pop().cache()
     }
@@ -170,30 +169,21 @@ class LineageContext(@transient val sparkContext: SparkContext)
         visited += rdd
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
-          // Intercept the end of the job to add the initial tap
-          if(dep.rdd.isCheckpointed && dep.rdd.getTap() == None) {
-            dep.rdd.dependencies.head.rdd.setTap(rdd.tap(dep.rdd.dependencies))
-            deps += dep.tapDependency(dep.rdd.dependencies.head.rdd.getTap().get)
-          }
           dep match {
             case shufDep: ShuffleDependency[_, _, _] => {
-              waitingForVisit.push(dep.rdd)
-              dep.rdd.setTap(rdd.tapLeft())
-              deps += dep.tapDependency(dep.rdd.getTap().get)
-              //val postTap = rdd.asInstanceOf[RDD[_]].tap()
-              //rdd.setTap(postTap)
-              //rdd.setCaptureLineage(true)
-              //postTap.setCached(rdd.asInstanceOf[ShuffledRDD[_, _, _]])
+              waitingForVisit.push(shufDep.rdd)
+              shufDep.rdd.setTap(rdd.tapLeft())
+              deps += shufDep.tapDependency(shufDep.rdd.getTap().get)
             }
-            case narDep: NarrowDependency[_] => {
-              waitingForVisit.push(dep.rdd)
+            case narDep: OneToOneDependency[_] => {
+              waitingForVisit.push(narDep.rdd)
               // Intercept the end of the stage to add a post-shuffle tap
-              if(dep.rdd.dependencies.nonEmpty) {
-                dep.rdd.dependencies
+              if(narDep.rdd.dependencies.nonEmpty) {
+                narDep.rdd.dependencies
                   .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
                   .filter(d => d.rdd.getTap() == None)
                   .foreach(d => {
-                  val tap = dep.rdd.tapRight()
+                  val tap = narDep.rdd.tapRight()
                   deps += narDep.tapDependency(tap)
                 })
               }
@@ -222,9 +212,10 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def getCurrentLineagePosition = currentLineagePosition
 
   def setCurrentLineagePosition(initialRDD: Option[Lineage[_]]) = {
-    // We are starting from the middle, fill the stack with prev positions
     if(lastLineagePosition.isDefined && lastLineagePosition.get != initialRDD.get) {
       currentLineagePosition = lastLineagePosition
+
+      // We are starting from the middle, fill the stack with prev positions
       while(currentLineagePosition.get != initialRDD.get) {
         prevLineagePosition.push(currentLineagePosition.get)
         currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
@@ -249,21 +240,17 @@ class LineageContext(@transient val sparkContext: SparkContext)
   }
 
   def getBackward = {
-    if(!lastOperation.isDefined) {
-      lastOperation = Some(Direction.BACKWARD)
-    }
-
+    // CurrentLineagePosition should be always set at this point
     if(currentLineagePosition.get.dependencies.size == 0 ||
       currentLineagePosition.get.dependencies(0).rdd.isInstanceOf[HadoopRDD[_, _]]) {
       throw new UnsupportedOperationException("unsopported operation")
     }
 
-    // CurrentLineagePosition should be always set at this point
     prevLineagePosition.push(currentLineagePosition.get)
 
     currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
 
-    if(lastOperation.get == Direction.FORWARD) {
+    if(!lastOperation.isDefined || lastOperation.get == Direction.FORWARD) {
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {

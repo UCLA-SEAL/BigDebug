@@ -101,7 +101,7 @@ abstract class RDD[T: ClassTag](
 
   /** Added by Matteo ########################################################################## */
 
-  final def updateDependencies(_deps: Seq[Dependency[_]]) = {
+  def updateDependencies(_deps: Seq[Dependency[_]]) = {
     deps = _deps
     dependencies_ = deps
   }

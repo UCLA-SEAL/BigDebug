@@ -17,16 +17,16 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.Lineage
+import org.apache.spark.lineage.{LocalityAwarePartitioner, Lineage}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{LocalityAwarePartitioner, Partition, TaskContext}
+import org.apache.spark.{Partition, TaskContext}
 
 import scala.reflect._
 
 private[spark]
 class ShowRDD(prev: Lineage[((Int, Int, Long), String)])
-  extends RDD[String](prev) with Lineage[String] {
-
+  extends RDD[String](prev) with Lineage[String]
+{
   override def ttag = classTag[String]
 
   override def lineageContext = prev.lineageContext
@@ -36,27 +36,28 @@ class ShowRDD(prev: Lineage[((Int, Int, Long), String)])
   override def compute(split: Partition, context: TaskContext) =
     firstParent[((Int, Int, Long), String)].iterator(split, context).map(r => r._2)
 
-  override def collect(): Array[String] = {
+  override def collect(): Array[String] =
+  {
     val results = prev.context.runJob(
       prev.map(r => r._2), (iter: Iterator[String]) => iter.toArray.distinct
     )
     Array.concat(results: _*)
   }
 
-  override def filter(f: String => Boolean): ShowRDD = {
+  override def filter(f: String => Boolean): ShowRDD =
     new ShowRDD(firstParent[((Int, Int, Long), String)].filter(r => f(r._2)).cache())
-  }
 
-  override def getLineage(): LineageRDD = {
-    var shuffled: Lineage[((Int, Int, Long), Any)] = prev.asInstanceOf[Lineage[((Int, Int, Long), Any)]]
+  override def getLineage(): LineageRDD =
+  {
+    var shuffled: Lineage[((Int, Int, Long), Any)] = prev
     if(prev.lineageContext.getCurrentLineagePosition.get.isInstanceOf[TapPreShuffleLRDD[_]]) {
       val part = new LocalityAwarePartitioner(prev.lineageContext.getCurrentLineagePosition.get.partitions.size)
       shuffled = new ShuffledLRDD[(Int, Int, Long), Any, Any](prev, part)
     }
     new LineageRDD(
-      rightJoinLeft(
+      rightJoin(
         shuffled,
-        prev.lineageContext.getCurrentLineagePosition.get.asInstanceOf[Lineage[((Int, Int, Long), Any)]]
+        prev.lineageContext.getCurrentLineagePosition.get
       ).cache()
     )
   }

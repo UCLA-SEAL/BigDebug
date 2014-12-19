@@ -23,10 +23,11 @@ import org.apache.spark.Dependency
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
+class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag]
+  (@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
   extends TapLRDD[T](lc, deps) {
 
-  override def getCachedData = shuffledData.setIsPreShuffleCache(true)
+  override def getCachedData = shuffledData.setIsPreShuffleCache()
 
   override def tap(record: T) = {
     recordId = (id, splitId, newRecordId)
