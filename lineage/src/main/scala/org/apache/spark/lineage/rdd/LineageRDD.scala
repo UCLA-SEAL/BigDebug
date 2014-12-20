@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
-import org.apache.spark.lineage.{LocalityAwarePartitioner, Direction, Lineage}
+import org.apache.spark.lineage.{LocalityAwarePartitioner, Direction}
 import org.apache.spark.rdd.RDD
 
 import scala.reflect._

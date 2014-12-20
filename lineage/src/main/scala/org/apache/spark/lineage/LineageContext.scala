@@ -22,7 +22,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.lineage.Direction.Direction
-import org.apache.spark.lineage.rdd.{HadoopLRDD, PairLRDDFunctions, TapLRDD}
+import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 
 import scala.collection.mutable.{HashSet, Stack}
@@ -108,6 +108,17 @@ class LineageContext(@transient val sparkContext: SparkContext)
     } else {
       rdd
     }
+  }
+
+  /** Distribute a local Scala collection to form an RDD.
+    *
+    * @note Parallelize acts lazily. If `seq` is a mutable collection and is
+    * altered after the call to parallelize and before the first action on the
+    * RDD, the resultant RDD will reflect the modified collection. Pass a copy of
+    * the argument to avoid this.
+    */
+  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int = sparkContext.defaultParallelism): Lineage[T] = {
+    new ParallelCollectionLRDD[T](this, seq, numSlices, Map[Int, Seq[String]]())
   }
 
   /**
@@ -281,8 +292,8 @@ object Direction extends Enumeration {
 }
 
 object LineageContext {
-  implicit def lRDDToPairLRDDFunctions[K, V](rdd: Lineage[(K, V)])
+  implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
     (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) = {
-    new PairLRDDFunctions(rdd)
+    new PairLRDDFunctions(lrdd)
   }
 }

@@ -18,19 +18,35 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark.Partitioner._
-import org.apache.spark.lineage.Lineage
-import org.apache.spark.rdd.PairRDDFunctions
+import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.rdd.Lineage
+import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.{Aggregator, HashPartitioner, Partitioner, SparkException}
 
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
-private[spark]
-class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
+private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
 (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null)
-  extends PairRDDFunctions[K, V](self) {
-
+  extends PairRDDFunctions[K, V](self)
+{
   def lineageContext = self.lineageContext
+
+  /**
+   * For each key k in `this` or `other`, return a resulting RDD that contains a tuple with the
+   * list of values for that key in `this` as well as `other`.
+   */
+  override def cogroup[W](other: RDD[(K, W)], partitioner: Partitioner)
+  : Lineage[(K, (Iterable[V], Iterable[W]))]  = {
+    if (partitioner.isInstanceOf[HashPartitioner] && keyClass.isArray) {
+      throw new SparkException("Default partitioner cannot partition array keys.")
+    }
+    val cg = new CoGroupedLRDD[K](Seq(self, other), partitioner)
+    cg.mapValues { case Array(vs, w1s) =>
+      (vs.asInstanceOf[Iterable[V]], w1s.asInstanceOf[Iterable[W]])
+    }
+  }
 
   /**
    * Generic function to combine the elements for each key using a custom set of aggregation
@@ -86,4 +102,46 @@ class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def reduceByKey(partitioner: Partitioner, func: (V, V) => V): Lineage[(K, V)] = {
     combineByKey[V]((v: V) => v, func, func, partitioner)
   }
+
+  /**
+   * Return an RDD containing all pairs of elements with matching keys in `this` and `other`. Each
+   * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `this` and
+   * (k, v2) is in `other`. Uses the given Partitioner to partition the output RDD.
+   */
+  override def join[W](other: RDD[(K, W)], partitioner: Partitioner): Lineage[(K, (V, W))] = {
+    this.cogroup(other, partitioner).flatMapValues( pair =>
+      for (v <- pair._1; w <- pair._2) yield (v, w)
+    )
+  }
+
+  /**
+   * Return an RDD containing all pairs of elements with matching keys in `this` and `other`. Each
+   * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `this` and
+   * (k, v2) is in `other`. Performs a hash join across the cluster.
+   */
+  override def join[W](other: RDD[(K, W)]): Lineage[(K, (V, W))] = {
+    join(other, defaultPartitioner(self, other))
+  }
+
+  /**
+   * Pass each value in the key-value pair RDD through a map function without changing the keys;
+   * this also retains the original RDD's partitioning.
+   */
+  override def mapValues[U](f: V => U): Lineage[(K, U)] = {
+    val cleanF = self.context.clean(f)
+    new MappedValuesLRDD(self, cleanF)
+  }
+
+  /**
+   * Pass each value in the key-value pair RDD through a flatMap function without changing the
+   * keys; this also retains the original RDD's partitioning.
+   */
+  override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = {
+    val cleanF = self.context.clean(f)
+    new FlatMappedValuesLRDD(self, cleanF)
+  }
+}
+
+object PairLRDDFunctions {
+  implicit def RDDToLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 }

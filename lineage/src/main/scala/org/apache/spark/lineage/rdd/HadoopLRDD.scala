@@ -22,7 +22,7 @@ import org.apache.hadoop.mapred.{InputFormat, JobConf}
 import org.apache.spark._
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.lineage.{Lineage, LineageContext}
+import org.apache.spark.lineage.LineageContext
 import org.apache.spark.rdd.HadoopRDD
 
 import scala.reflect._
@@ -66,13 +66,12 @@ class HadoopLRDD[K, V](
     minPartitions) with Lineage[(K, V)] {
 
   def this(
-      lc: LineageContext,
-      conf: JobConf,
-      inputFormatClass: Class[_ <: InputFormat[K, V]],
-      keyClass: Class[K],
-      valueClass: Class[V],
-      minPartitions: Int) = {
-    this(
+    lc: LineageContext,
+    conf: JobConf,
+    inputFormatClass: Class[_ <: InputFormat[K, V]],
+    keyClass: Class[K],
+    valueClass: Class[V],
+    minPartitions: Int) = { this(
       lc,
       lc.sparkContext.broadcast(new SerializableWritable(conf))
         .asInstanceOf[Broadcast[SerializableWritable[Configuration]]],
@@ -80,7 +79,8 @@ class HadoopLRDD[K, V](
       inputFormatClass,
       keyClass,
       valueClass,
-      minPartitions)
+      minPartitions
+    )
   }
 
   override def ttag = classTag[(K, V)]

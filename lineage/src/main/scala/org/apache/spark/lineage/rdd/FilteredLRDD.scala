@@ -17,7 +17,7 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.Lineage
+import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.rdd.FilteredRDD
 
 import scala.reflect._
@@ -27,5 +27,5 @@ private[spark] class FilteredLRDD[T: ClassTag](prev: Lineage[T], f: T => Boolean
 {
   override def lineageContext = prev.lineageContext
 
-  def ttag: ClassTag[T] = classTag[T]
+  override def ttag: ClassTag[T] = classTag[T]
 }

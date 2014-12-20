@@ -1,10 +1,11 @@
-package org.apache.spark.lineage
+package org.apache.spark.lineage.rdd
 
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark.SparkContext._
-import org.apache.spark.lineage.rdd._
+import org.apache.spark.lineage.LineageContext
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.{Dependency, OneToOneDependency}
 
@@ -158,6 +159,19 @@ trait Lineage[T] extends RDD[T] {
     }
 
     Array.concat(results: _*)
+  }
+
+  /**
+   * Return the number of elements in the RDD.
+   */
+  override def count(): Long = {
+    val result = lineageContext.runJob(this, Utils.getIteratorSize _).sum
+
+    if(lineageContext.isLineageActive) {
+      lineageContext.setLastLineagePosition(this.getTap())
+    }
+
+    result
   }
 
   /**

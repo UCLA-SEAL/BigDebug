@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.{Lineage, LineageContext}
+import org.apache.spark.lineage.LineageContext
 import org.apache.spark.rdd.ShuffledRDD
 
 import scala.reflect._

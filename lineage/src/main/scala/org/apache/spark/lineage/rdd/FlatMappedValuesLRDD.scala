@@ -17,16 +17,16 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.rdd.Lineage
-import org.apache.spark.rdd.MappedRDD
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.rdd.FlatMappedValuesRDD
 
 import scala.reflect._
 
 private[spark]
-class MappedLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T], f: T => U)
-  extends MappedRDD[U, T](prev, f) with Lineage[U] {
+class FlatMappedValuesLRDD[K, V, U](prev: Lineage[_ <: Product2[K, V]], f: V => TraversableOnce[U])
+  extends FlatMappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)]
+{
+  override def ttag = classTag[(K, U)]
 
-  override def ttag = classTag[U]
-
-  override def lineageContext = prev.lineageContext
+  override def lineageContext: LineageContext = prev.lineageContext
 }

@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import java.util.concurrent.atomic.AtomicLong
 
 import org.apache.spark._
-import org.apache.spark.lineage.{LCacheManager, Lineage, LineageContext}
+import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 
