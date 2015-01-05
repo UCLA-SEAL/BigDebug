@@ -75,7 +75,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, StorageLevel.MEMORY_ONLY)
 
-    firstParent[T].iterator(split, context).map(tap)
+    firstParent[T].iterator(split, context)map(tap)
   }
 
   override def filter(f: T => Boolean): Lineage[T] = {
@@ -89,8 +89,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def tap(record: T): T = {
+  def tap(record: T) = {
     recordId = (id, splitId, newRecordId)
+    //tContext.currentRecordInfo = Seq(recordId)
+    //addRecordInfo(recordId, Seq(record))
     addRecordInfo(recordId, tContext.currentRecordInfo)
 
     record

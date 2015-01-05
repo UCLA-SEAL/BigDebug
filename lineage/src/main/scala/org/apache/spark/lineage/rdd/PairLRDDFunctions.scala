@@ -19,7 +19,6 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark.Partitioner._
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.{Aggregator, HashPartitioner, Partitioner, SparkException}

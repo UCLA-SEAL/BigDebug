@@ -72,9 +72,9 @@ class CoGroupedRDD[K](@transient var rdds: Seq[RDD[_ <: Product2[K, _]]], part: 
   // For example, `(k, a) cogroup (k, b)` produces k -> Seq(ArrayBuffer as, ArrayBuffer bs).
   // Each ArrayBuffer is represented as a CoGroup, and the resulting Seq as a CoGroupCombiner.
   // CoGroupValue is the intermediate state of each value before being merged in compute.
-  private type CoGroup = CompactBuffer[Any]
-  private type CoGroupValue = (Any, Int)  // Int is dependency number
-  private type CoGroupCombiner = Array[CoGroup]
+  protected type CoGroup = CompactBuffer[Any]
+  protected type CoGroupValue = (Any, Int)  // Int is dependency number
+  protected type CoGroupCombiner = Array[CoGroup]
 
   private var serializer: Option[Serializer] = None
 
@@ -165,7 +165,7 @@ class CoGroupedRDD[K](@transient var rdds: Seq[RDD[_ <: Product2[K, _]]], part: 
     }
   }
 
-  private def createExternalMap(numRdds: Int)
+  protected def createExternalMap(numRdds: Int)
     : ExternalAppendOnlyMap[K, CoGroupValue, CoGroupCombiner] = {
 
     val createCombiner: (CoGroupValue => CoGroupCombiner) = value => {

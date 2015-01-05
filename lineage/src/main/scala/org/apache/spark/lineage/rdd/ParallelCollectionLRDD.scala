@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.rdd
 
+import org.apache.spark.OneToOneDependency
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.rdd.ParallelCollectionRDD
 
@@ -16,4 +17,11 @@ private[spark] class ParallelCollectionLRDD[T: ClassTag](
   override def lineageContext = lc
 
   def ttag: ClassTag[T] = classTag[T]
+
+  override def tapRight(): TapLRDD[T] = {
+    val tap = new TapParallelCollectionLRDD[T](lineageContext,  Seq(new OneToOneDependency(this)))
+    setTap(tap)
+    setCaptureLineage(true)
+    tap
+  }
 }

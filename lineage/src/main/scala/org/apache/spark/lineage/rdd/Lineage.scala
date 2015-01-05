@@ -22,35 +22,30 @@ trait Lineage[T] extends RDD[T] {
 
   private[spark] var captureLineage: Boolean = false
 
-  def tapRight(): TapLRDD[T] =
-  {
+  def tapRight(): TapLRDD[T] = {
     val tap = new TapLRDD[T](lineageContext,  Seq(new OneToOneDependency(this)))
     setTap(tap)
     setCaptureLineage(true)
     tap
   }
 
-  def tapLeft(): TapLRDD[T] =
-  {
+  def tapLeft(): TapLRDD[T] = {
     tapRight()
   }
 
-  def tap(deps: Seq[Dependency[_]]): TapLRDD[T] =
-  {
+  def tap(deps: Seq[Dependency[_]]): TapLRDD[T] = {
     val tap = new TapLRDD[T](lineageContext, deps)
     tap.checkpointData = checkpointData
     checkpointData = None
     tap
   }
 
-  def materialize =
-  {
+  def materialize = {
     storageLevel = StorageLevel.MEMORY_ONLY
     this
   }
 
-  def setTap(tap: TapLRDD[_] = null) =
-  {
+  def setTap(tap: TapLRDD[_] = null) = {
     if(tap == null) {
       tapRDD = None
     } else {
@@ -60,16 +55,14 @@ trait Lineage[T] extends RDD[T] {
 
   def getTap() = tapRDD
 
-  def setCaptureLineage(newLineage :Boolean) =
-  {
+  def setCaptureLineage(newLineage :Boolean) = {
     captureLineage = newLineage
     this
   }
 
   def isLineageActive: Boolean = captureLineage
 
-  def getLineage(): LineageRDD =
-  {
+  def getLineage(): LineageRDD = {
     if(getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(getTap())
       return new LineageRDD(getTap().get)
@@ -79,8 +72,7 @@ trait Lineage[T] extends RDD[T] {
 
   private[spark] def rightJoin(
     prev: Lineage[((Int, Int, Long), Any)],
-    next: Lineage[((Int, Int, Long), Any)]) =
-  {
+    next: Lineage[((Int, Int, Long), Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[(Int, Int, Long)]()
@@ -105,8 +97,7 @@ trait Lineage[T] extends RDD[T] {
   private[spark] def join3Way(
     prev: Lineage[((Int, Int, Long), Any)],
     next1: Lineage[((Int, Int, Long), (String, Long))],
-    next2: Lineage[(Long, String)]) =
-  {
+    next2: Lineage[(Long, String)]) = {
     prev.zipPartitions(next1,next2) {
       (buildIter, streamIter1, streamIter2) =>
         val hashSet = new java.util.HashSet[(Int, Int, Long)]()
@@ -150,8 +141,7 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return an array that contains all of the elements in this RDD.
    */
-  override def collect(): Array[T] =
-  {
+  override def collect(): Array[T] = {
     val results = lineageContext.runJob(this, (_: Iterator[T]).toArray)
 
     if(lineageContext.isLineageActive) {
@@ -177,8 +167,7 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new LRDD containing only the elements that satisfy a predicate.
    */
-  override def filter(f: T => Boolean): Lineage[T] =
-  {
+  override def filter(f: T => Boolean): Lineage[T] = {
     if(this.getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(this.getTap())
       var result: ShowRDD = null

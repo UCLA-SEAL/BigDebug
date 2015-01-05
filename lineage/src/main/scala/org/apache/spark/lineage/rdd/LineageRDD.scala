@@ -69,9 +69,9 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
     )
   }
 
-  def goBack(): LineageRDD =
+  def goBack(path: Int = 0): LineageRDD =
   {
-    val next = prev.lineageContext.getBackward
+    val next = prev.lineageContext.getBackward(path)
     if (next.isDefined) {
       var shuffled: Lineage[((Int, Int, Long), Any)] = next.get match {
         case _: TapPreShuffleLRDD[_] =>
@@ -80,10 +80,12 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
         case _ => prev
       }
 
+      val filter = prev.lineageContext.getCurrentLineagePosition.get.id
       new LineageRDD(
         rightJoin(shuffled, next.get)
           .map(r => (r._2, r._1))
           .asInstanceOf[Lineage[((Int, Int, Long), Any)]])
+          //.filter(r => r._1.equals(filter))
         .cache()
     } else {
       new LineageRDD(
@@ -92,13 +94,9 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
     }
   }
 
-  def goBack(times: Int = 1) = go(times, Direction.BACKWARD)
+  def goBackAll(times: Int = Int.MaxValue) = go(times, Direction.BACKWARD)
 
-  def goNext(times: Int = 1) = go(times)
-
-  def goBackAll() = go(Int.MaxValue, Direction.BACKWARD)
-
-  def goNextAll() = go(Int.MaxValue)
+  def goNextAll(times: Int = Int.MaxValue) = go(times)
 
   def show(): ShowRDD =
   {
@@ -151,7 +149,7 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
     try {
       while(counter < times) {
         if(direction == Direction.BACKWARD) {
-          result = result.goBack
+          result = result.goBack()
         } else {
           result = result.goNext
         }

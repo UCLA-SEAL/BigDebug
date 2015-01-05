@@ -50,7 +50,7 @@ private[spark] class LHashShuffleReader[K, C](
       val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
 
     if(isCache.isDefined) {
-      if (isCache.get) {
+      if(isCache.get) {
         return tappedIter
       } else {
         lineage = true
