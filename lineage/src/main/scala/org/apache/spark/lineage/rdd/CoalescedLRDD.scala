@@ -17,15 +17,14 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.rdd.MappedValuesRDD
+import org.apache.spark.rdd.CoalescedRDD
 
 import scala.reflect._
 
-private[spark]
-class MappedValuesLRDD[K, V, U](prev: Lineage[_ <: Product2[K, V]], f: V => U)
-  extends MappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)]
+private[spark] class CoalescedLRDD[T: ClassTag](prev: Lineage[T], maxPartitions: Int)
+  extends CoalescedRDD[T](prev, maxPartitions) with Lineage[T]
 {
   override def lineageContext = prev.lineageContext
 
-  override def ttag: ClassTag[(K, U)] = classTag[(K, U)]
+  override def ttag: ClassTag[T] = classTag[T]
 }

@@ -75,7 +75,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, StorageLevel.MEMORY_ONLY)
 
-    firstParent[T].iterator(split, context)map(tap)
+    firstParent[T].iterator(split, context).map(tap)
   }
 
   override def filter(f: T => Boolean): Lineage[T] = {

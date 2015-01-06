@@ -140,7 +140,6 @@ class LineageContext(@transient val sparkContext: SparkContext)
     def visit(rdd: RDD[_], parent: RDD[_]) {
       rdd.setCaptureLineage(isLineageActive)
       var dependencies = List[OneToOneDependency[_]]()
-      var flag: Boolean = false
       for (dep <- rdd.dependencies) {
         val newParent: RDD[_] = dep.rdd match {
           case tap: TapLRDD[_] =>
@@ -151,7 +150,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
         visit(dep.rdd, newParent)
       }
       if(!dependencies.isEmpty) {
-        parent.updateDependencies(dependencies)
+        val oldDeps = parent.dependencies.filter(d => d.rdd.isInstanceOf[TapLRDD[_]])
+        parent.updateDependencies(oldDeps.toList ::: dependencies)
       }
     }
 
@@ -175,11 +175,11 @@ class LineageContext(@transient val sparkContext: SparkContext)
         for (dep <- rdd.dependencies) {
           waitingForVisit.push(dep.rdd)
           dep match {
-            case shufDep: ShuffleDependency[_, _, _] => {
+            case shufDep: ShuffleDependency[_, _, _] =>
               shufDep.rdd.setTap(rdd.tapLeft())
               deps += shufDep.tapDependency(shufDep.rdd.getTap().get)
-            }
-            case narDep: OneToOneDependency[_] => {
+
+            case narDep: OneToOneDependency[_] =>
               // Intercept the end of the stage to add a post-shuffle tap
               if(narDep.rdd.dependencies.nonEmpty) {
                 if(narDep.rdd.dependencies
@@ -189,7 +189,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
                   deps += narDep.tapDependency(tap)
                 }
               }
-            }
+
+            case _ =>
           }
         }
         if(deps.nonEmpty) {

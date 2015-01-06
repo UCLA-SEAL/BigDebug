@@ -50,7 +50,7 @@ object SparkTC {
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(true)
 
-    var tc = lc.parallelize(generateGraph, slices).cache()
+    var tc = lc.parallelize(generateGraph, slices)
 
     // Linear transitive closure: each round grows paths by one edge,
     // by joining the graph's edges with the already-discovered paths.
@@ -67,7 +67,7 @@ object SparkTC {
 //    oldCount = nextCount
 //    // Perform the join, obtaining an RDD of (y, (z, x)) pairs,
 //    // then project the result to obtain the new (x, z) paths.
-    tc = tc.join(edges).map(x => (x._2._2, x._2._1))
+    tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1)))
 //    nextCount = tc.count()
 //
     println("TC has " + tc.count() + " edges.")
@@ -78,10 +78,12 @@ object SparkTC {
   //  lineage.show()
     lineage = lineage.goBack()
     lineage.collect().foreach(println)
-  //  lineage.show()
-    lineage = lineage.goBack()
+    lineage = lineage.goBack(1)
     lineage.collect().foreach(println)
     lineage = lineage.goBack()
+    lineage.collect().foreach(println)
+    val show = lineage.show
+    lineage = show.getLineage()
     lineage.collect().foreach(println)
     sc.stop()
   }

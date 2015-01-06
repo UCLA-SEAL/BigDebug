@@ -17,7 +17,6 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.rdd.MappedRDD
 
 import scala.reflect._

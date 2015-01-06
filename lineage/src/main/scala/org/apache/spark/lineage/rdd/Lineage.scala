@@ -229,6 +229,12 @@ trait Lineage[T] extends RDD[T] {
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = new MappedLRDD(this, sparkContext.clean(f))
 
+  /**
+   * Return the union of this RDD and another one. Any identical elements will appear multiple
+   * times (use `.distinct()` to eliminate them).
+   */
+  def union(other: Lineage[T]): Lineage[T] = new CoalescedLRDD(new UnionLRDD(lineageContext, Array(this, other)), this.partitions.size)
+
   override def zipPartitions[B: ClassTag, V: ClassTag]
   (rdd2: RDD[B])
   (f: (Iterator[T], Iterator[B]) => Iterator[V]): Lineage[V] =

@@ -17,15 +17,15 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.rdd.MappedValuesRDD
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.rdd.UnionRDD
 
 import scala.reflect._
 
-private[spark]
-class MappedValuesLRDD[K, V, U](prev: Lineage[_ <: Product2[K, V]], f: V => U)
-  extends MappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)]
+private[spark] class UnionLRDD[T: ClassTag](@transient lc: LineageContext, rdds: Seq[Lineage[T]])
+  extends UnionRDD[T](lc.sparkContext, rdds) with Lineage[T]
 {
-  override def lineageContext = prev.lineageContext
+  override def lineageContext = lc
 
-  override def ttag: ClassTag[(K, U)] = classTag[(K, U)]
+  override def ttag: ClassTag[T] = classTag[T]
 }
