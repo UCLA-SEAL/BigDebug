@@ -3,6 +3,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark.SparkContext._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.Utils
@@ -163,6 +164,17 @@ trait Lineage[T] extends RDD[T] {
 
     result
   }
+
+  /**
+   * Return a new RDD containing the distinct elements in this RDD.
+   */
+  override def distinct(): Lineage[T] = distinct(partitions.size)
+
+  /**
+   * Return a new RDD containing the distinct elements in this RDD.
+   */
+  override def distinct(numPartitions: Int)(implicit ord: Ordering[T] = null): Lineage[T] =
+    map(x => (x, null)).reduceByKey((x, y) => x, numPartitions).map(_._1)
 
   /**
    * Return a new LRDD containing only the elements that satisfy a predicate.

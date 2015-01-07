@@ -28,8 +28,8 @@ import scala.util.Random
  * Transitive closure on a graph.
  */
 object SparkTC {
-  val numEdges = 200
-  val numVertices = 100
+  val numEdges = 20
+  val numVertices = 10
   val rand = new Random(42)
 
   def generateGraph = {
@@ -62,29 +62,34 @@ object SparkTC {
 
     // This join is iterated until a fixed point is reached.
     var oldCount = 0L
-
-//    do {
-//    oldCount = nextCount
+    var nextCount = tc.count()
+    var count = 0
+    do {
+      oldCount = nextCount
 //    // Perform the join, obtaining an RDD of (y, (z, x)) pairs,
 //    // then project the result to obtain the new (x, z) paths.
-    tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1)))
-//    nextCount = tc.count()
-//
-    println("TC has " + tc.count() + " edges.")
+      tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1))).distinct()
+      nextCount = tc.count()
+      count = count + 1
+    } while (nextCount != oldCount)
+
+    println("TC has " + nextCount + " edges.")
     lc.setCaptureLineage(false)
 
     var lineage = tc.getLineage()
     lineage.collect().foreach(println)
-  //  lineage.show()
-    lineage = lineage.goBack()
-    lineage.collect().foreach(println)
-    lineage = lineage.goBack(1)
-    lineage.collect().foreach(println)
-    lineage = lineage.goBack()
-    lineage.collect().foreach(println)
+
+    for(i<-1 to count-1) {
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+    }
+
     val show = lineage.show
     lineage = show.getLineage()
-    lineage.collect().foreach(println)
     sc.stop()
   }
 }

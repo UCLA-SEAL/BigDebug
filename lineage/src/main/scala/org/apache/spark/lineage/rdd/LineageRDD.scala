@@ -74,7 +74,7 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
     val next = prev.lineageContext.getBackward(path)
     if (next.isDefined) {
       val shuffled: Lineage[((Int, Int, Long), Any)] = next.get match {
-        case _: TapPreShuffleLRDD[_] =>
+        case _: TapPreShuffleLRDD[_] | _: TapCoGroupLRDD[_]  | _: FilteredLRDD[_] =>
           val part = new LocalityAwarePartitioner(next.get.partitions.size)
           new ShuffledLRDD[(Int, Int, Long), Any, Any](prev, part)
         case _ => prev
@@ -88,9 +88,14 @@ class LineageRDD(prev: Lineage[((Int, Int, Long), Any)])
           //.filter(r => r._1.equals(filter))
         .cache()
     } else {
-      val filter = lineageContext.getCurrentLineagePosition.get.id
+      val previous = lineageContext.getCurrentLineagePosition.get match {
+        case _: TapCoGroupLRDD[_] =>
+          val filter = lineageContext.getCurrentLineagePosition.get.id
+          prev.filter(r => r._2.asInstanceOf[((Int, Int, Long))]._1.equals(filter))
+        case _ => prev
+      }
       new LineageRDD(
-        prev.filter(r => r._2.asInstanceOf[((Int, Int, Long))]._1.equals(filter)).map(r => (r._2, r._1)).cache()
+        previous.map(r => (r._2, r._1)).cache()
       )
     }
   }

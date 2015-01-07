@@ -27,8 +27,8 @@ import org.apache.spark.SparkContext._
  * Transitive closure on a graph.
  */
 object SparkTC {
-  val numEdges = 200
-  val numVertices = 100
+  val numEdges = 20
+  val numVertices = 10
   val rand = new Random(42)
 
   def generateGraph = {
@@ -42,7 +42,7 @@ object SparkTC {
   }
 
   def main(args: Array[String]) {
-    val sparkConf = new SparkConf().setAppName("SparkTC")
+    val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkTC")
     val spark = new SparkContext(sparkConf)
     val slices = if (args.length > 0) args(0).toInt else 2
     var tc = spark.parallelize(generateGraph, slices).cache()

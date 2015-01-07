@@ -94,6 +94,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     //tContext.currentRecordInfo = Seq(recordId)
     //addRecordInfo(recordId, Seq(record))
     addRecordInfo(recordId, tContext.currentRecordInfo)
+    tContext.currentRecordInfo = Seq(recordId)
 
     record
   }

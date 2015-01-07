@@ -136,22 +136,26 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
   def getLineage(rdd: Lineage[_]) = {
     val initialTap: Lineage[_] = rdd.materialize
+    val visited = new HashSet[RDD[_]]
 
     def visit(rdd: RDD[_], parent: RDD[_]) {
-      rdd.setCaptureLineage(isLineageActive)
-      var dependencies = List[OneToOneDependency[_]]()
-      for (dep <- rdd.dependencies) {
-        val newParent: RDD[_] = dep.rdd match {
-          case tap: TapLRDD[_] =>
-            dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
-            tap
-          case _ => parent
+      if (!visited(rdd)) {
+        visited += rdd
+        rdd.setCaptureLineage(isLineageActive)
+        var dependencies = List[OneToOneDependency[_]]()
+        for (dep <- rdd.dependencies) {
+          val newParent: RDD[_] = dep.rdd match {
+            case tap: TapLRDD[_] =>
+              dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
+              tap
+            case _ => parent
+          }
+          visit(dep.rdd, newParent)
         }
-        visit(dep.rdd, newParent)
-      }
-      if(!dependencies.isEmpty) {
-        val oldDeps = parent.dependencies.filter(d => d.rdd.isInstanceOf[TapLRDD[_]])
-        parent.updateDependencies(oldDeps.toList ::: dependencies)
+        if (!dependencies.isEmpty) {
+          val oldDeps = parent.dependencies.filter(d => d.rdd.isInstanceOf[TapLRDD[_]])
+          parent.updateDependencies(oldDeps.toList ::: dependencies)
+        }
       }
     }
 
@@ -169,7 +173,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
     // caused by recursively visiting
     val waitingForVisit = new Stack[RDD[_]]
     def visit(rdd: RDD[_]) {
-      if (!visited(rdd)) {
+      if (!visited(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
         visited += rdd
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
@@ -184,7 +188,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
               if(narDep.rdd.dependencies.nonEmpty) {
                 if(narDep.rdd.dependencies
                   .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
-                  .count(d => d.rdd.getTap() == None) > 0) {
+                  .size > 0) {
                   val tap = narDep.rdd.tapRight()
                   deps += narDep.tapDependency(tap)
                 }
@@ -257,12 +261,13 @@ class LineageContext(@transient val sparkContext: SparkContext)
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {
-      var result = prevLineagePosition.head
-      if (prevLineagePosition.head.dependencies.size > 1) {
-        // Filter the correct values. Required because lastOperation is a join
-        val filter = currentLineagePosition.get.id
-        result = result.asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]].filter(r => r._2._1.equals(filter))
+      val result: Lineage[_] = getCurrentLineagePosition.get match {
+        case _: TapCoGroupLRDD[_] =>
+          val filter = getCurrentLineagePosition.get.id
+          prevLineagePosition.head.asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]].filter(r => r._2._1.equals(filter))
+        case _ => prevLineagePosition.head
       }
+
       Some(result.asInstanceOf[Lineage[((Int, Int, Long), Any)]])
     }
   }
