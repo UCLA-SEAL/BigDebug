@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="SBT: io.netty:netty:3.6.6.Final">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/netty-3.6.6.Final.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
