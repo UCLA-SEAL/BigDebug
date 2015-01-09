@@ -23,6 +23,9 @@ trait Lineage[T] extends RDD[T] {
 
   private[spark] var captureLineage: Boolean = false
 
+  // None = no cache, true = pre, false = post
+  private[spark] var isPreShuffleCache: Option[Boolean] = None
+
   def tapRight(): TapLRDD[T] = {
     val tap = new TapLRDD[T](lineageContext,  Seq(new OneToOneDependency(this)))
     setTap(tap)
@@ -52,6 +55,7 @@ trait Lineage[T] extends RDD[T] {
     } else {
       tapRDD = Some(tap)
     }
+    this
   }
 
   def getTap() = tapRDD
@@ -93,6 +97,16 @@ trait Lineage[T] extends RDD[T] {
           hashSet.contains(current._1)
         })
     }
+  }
+
+  def setIsPreShuffleCache(): Lineage[T] = {
+    this.isPreShuffleCache = Some(true)
+    this
+  }
+
+  def setIsPostShuffleCache(): Lineage[T] = {
+    this.isPreShuffleCache = Some(false)
+    this
   }
 
   private[spark] def join3Way(

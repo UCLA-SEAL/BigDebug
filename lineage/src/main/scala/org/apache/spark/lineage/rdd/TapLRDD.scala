@@ -44,7 +44,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   private[spark] var nextRecord: AtomicLong = new AtomicLong(0)
 
-  private[spark] var shuffledData: ShuffledLRDD[_, _, _] = null
+  private[spark] var shuffledData: Lineage[_] = null
 
   private[spark] def newRecordId = nextRecord.getAndIncrement
 
@@ -82,7 +82,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     new FilteredLRDD[T](this, sparkContext.clean(f))
   }
 
-  def setCached(cache: ShuffledLRDD[_, _, _]): TapLRDD[T] = {
+  def setCached(cache: Lineage[_]): TapLRDD[T] = {
     shuffledData = cache
     this
   }

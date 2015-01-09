@@ -82,14 +82,19 @@ object SparkTC {
     for(i<-1 to count-1) {
       lineage = lineage.goBack()
       lineage.collect().foreach(println)
+      var show = lineage.show
+      lineage = show.getLineage()
       lineage = lineage.goBack()
       lineage.collect().foreach(println)
+      show = lineage.show
+      lineage = show.getLineage()
       lineage = lineage.goBack()
       lineage.collect().foreach(println)
     }
 
-    val show = lineage.show
+    var show = lineage.show
     lineage = show.getLineage()
+    lineage.collect().foreach(println)
     sc.stop()
   }
 }

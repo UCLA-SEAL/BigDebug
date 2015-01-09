@@ -52,19 +52,27 @@ class ShowRDD(prev: Lineage[((Int, Int, Long), String)])
     if(prev.lineageContext.getCurrentLineagePosition.get.isInstanceOf[TapParallelCollectionLRDD[_]]) {
       new LineageRDD(prev.lineageContext.getCurrentLineagePosition.get)
     } else {
+      var right = prev.lineageContext.getCurrentLineagePosition.get
       val shuffled: Lineage[((Int, Int, Long), Any)] = prev.lineageContext.getCurrentLineagePosition.get match {
         case _: TapPreShuffleLRDD[_] =>
           val part = new LocalityAwarePartitioner(prev.lineageContext.getCurrentLineagePosition.get.partitions.size)
           new ShuffledLRDD[(Int, Int, Long), Any, Any](prev, part)
+        case _: TapCoGroupLRDD[_] =>
+          val part = new LocalityAwarePartitioner(prev.lineageContext.getCurrentLineagePosition.get.partitions.size)
+          right = new ShuffledLRDD[(Int, Int, Long), Any, Any](prev.lineageContext.getCurrentLineagePosition.get.map { case (a, b) => (b.asInstanceOf[(Int, Int, Long)], a)}, part)
+          prev
         case _ => prev
       }
 
-      new LineageRDD(
-        rightJoin(
+        var join = rightJoin(
           shuffled,
-          prev.lineageContext.getCurrentLineagePosition.get
-        ).cache()
-      )
+          right
+        )
+        join = prev.lineageContext.getCurrentLineagePosition.get match {
+          case _: TapCoGroupLRDD[_] => join.map(r => (r._2, r._1)).cache()
+          case _ => join.cache()
+        }
+      new LineageRDD(join)
     }
   }
 }

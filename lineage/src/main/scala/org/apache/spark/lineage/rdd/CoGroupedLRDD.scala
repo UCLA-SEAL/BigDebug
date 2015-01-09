@@ -67,7 +67,7 @@ class CoGroupedLRDD[K: ClassTag](@transient var lrdds: Seq[RDD[_ <: Product2[K, 
         // Read map outputs of shuffle
         val it = SparkEnv.get.shuffleManager
           .getReader(handle, split.index, split.index + 1, context, Some(isLineageActive))
-          .read(None, id)
+          .read(isPreShuffleCache, id)
         rddIterators += ((it, depNum))
     }
 
@@ -105,12 +105,11 @@ class CoGroupedLRDD[K: ClassTag](@transient var lrdds: Seq[RDD[_ <: Product2[K, 
     val tap = new TapCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(new OneToOneDependency[(K, Array[Iterable[_]])](this)))
     setTap(tap)
     setCaptureLineage(true)
-    tap
-    //tap.setCached(this)
+    tap.setCached(this)
   }
 
   override def tapLeft(): TapLRDD[(K, Array[Iterable[_]])] = {
     if(newDeps.isEmpty) computeTapDependencies
-    new TapPreShuffleLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(newDeps.pop()))//.setCached(this)
+    new TapPreCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(newDeps.pop())).setCached(this)
   }
 }

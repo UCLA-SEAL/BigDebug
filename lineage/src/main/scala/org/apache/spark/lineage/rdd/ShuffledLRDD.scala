@@ -63,17 +63,4 @@ class ShuffledLRDD[K, V, C](
     }
     new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this)
   }
-
-  // None = no cache, true = pre, false = post
-  private[spark] var isPreShuffleCache: Option[Boolean] = None
-
-  def setIsPreShuffleCache(): ShuffledLRDD[K, V, C] = {
-    this.isPreShuffleCache = Some(true)
-    this
-  }
-
-  def setIsPostShuffleCache(): ShuffledLRDD[K, V, C] = {
-    this.isPreShuffleCache = Some(false)
-    this
-  }
 }
