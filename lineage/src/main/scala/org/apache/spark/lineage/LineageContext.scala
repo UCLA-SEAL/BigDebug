@@ -29,10 +29,20 @@ import scala.collection.mutable.{ Stack, HashSet }
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
-class LineageContext(@transient val sparkContext: SparkContext)
-  extends Logging {
+object LineageContext {
+  type RecordId = (Int, Int, Long)
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
+
+  implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
+      (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) =
+    new PairLRDDFunctions(lrdd)
+}
+
+import org.apache.spark.lineage.LineageContext._
+
+class LineageContext(@transient val sparkContext: SparkContext)
+  extends Logging {
 
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
@@ -161,7 +171,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
     visit(initialTap, initialTap)
 
-    currentLineagePosition = Some(rdd.asInstanceOf[Lineage[((Int, Int, Long), Any)]])
+    currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
   }
 
   private def tapJob[T](rdd: Lineage[T]): RDD[T] = {
@@ -264,11 +274,11 @@ class LineageContext(@transient val sparkContext: SparkContext)
       val result: Lineage[_] = getCurrentLineagePosition.get match {
         case _: TapCoGroupLRDD[_] =>
           val filter = getCurrentLineagePosition.get.id
-          prevLineagePosition.head.asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]].filter(r => r._2._1.equals(filter))
+          prevLineagePosition.head.asInstanceOf[RDD[(RecordId, RecordId)]].filter(r => r._2._1.equals(filter))
         case _ => prevLineagePosition.head
       }
 
-      Some(result.asInstanceOf[Lineage[((Int, Int, Long), Any)]])
+      Some(result.asInstanceOf[Lineage[(RecordId, Any)]])
     }
   }
 
@@ -292,11 +302,4 @@ class LineageContext(@transient val sparkContext: SparkContext)
 object Direction extends Enumeration {
   type Direction = Value
   val FORWARD, BACKWARD = Value
-}
-
-object LineageContext {
-  implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
-    (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) = {
-    new PairLRDDFunctions(lrdd)
-  }
 }

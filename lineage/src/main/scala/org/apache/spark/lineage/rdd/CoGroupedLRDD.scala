@@ -39,14 +39,17 @@ import scala.reflect._
  * @param part partitioner used to partition the shuffle output
  */
 @DeveloperApi
-class CoGroupedLRDD[K: ClassTag](@transient var lrdds: Seq[RDD[_ <: Product2[K, _]]], part: Partitioner)
+class CoGroupedLRDD[K: ClassTag](var lrdds: Seq[RDD[_ <: Product2[K, _]]], part: Partitioner)
   extends CoGroupedRDD[K](lrdds, part) with Lineage[(K, Array[Iterable[_]])]
 {
   override def lineageContext = lrdds.head.lineageContext
 
   override def ttag: ClassTag[(K, Array[Iterable[_]])] = classTag[(K, Array[Iterable[_]])]
 
-  var newDeps = new Stack[Dependency[_]]
+  private[spark] var newDeps = new Stack[Dependency[_]]
+
+  private[spark] def computeTapDependencies() =
+    dependencies.foreach(dep => newDeps.push(new OneToOneDependency(dep.rdd)))
 
   // Copied from CoGroupRDD
   override def compute(s: Partition, context: TaskContext): Iterator[(K, Array[Iterable[_]])] = {
@@ -99,10 +102,10 @@ class CoGroupedLRDD[K: ClassTag](@transient var lrdds: Seq[RDD[_ <: Product2[K, 
     }
   }
 
-  def computeTapDependencies() = dependencies.foreach(dep => newDeps.push(new OneToOneDependency(dep.rdd)))
-
   override def tapRight(): TapLRDD[(K, Array[Iterable[_]])] = {
-    val tap = new TapCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(new OneToOneDependency[(K, Array[Iterable[_]])](this)))
+    val tap = new TapCoGroupLRDD[(K, Array[Iterable[_]])](
+      lineageContext, Seq(new OneToOneDependency[(K, Array[Iterable[_]])](this))
+    )
     setTap(tap)
     setCaptureLineage(true)
     tap.setCached(this)
@@ -110,6 +113,7 @@ class CoGroupedLRDD[K: ClassTag](@transient var lrdds: Seq[RDD[_ <: Product2[K, 
 
   override def tapLeft(): TapLRDD[(K, Array[Iterable[_]])] = {
     if(newDeps.isEmpty) computeTapDependencies
-    new TapPreCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(newDeps.pop())).setCached(this)
+    new TapPreCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(newDeps.pop()))
+      .setCached(this)
   }
 }

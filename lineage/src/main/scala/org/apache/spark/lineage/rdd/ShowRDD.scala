@@ -18,26 +18,26 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark.lineage.LocalityAwarePartitioner
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{Partition, TaskContext}
 
 import scala.reflect._
 
 private[spark]
-class ShowRDD(prev: Lineage[((Int, Int, Long), String)])
+class ShowRDD(prev: Lineage[(RecordId, String)])
   extends RDD[String](prev) with Lineage[String]
 {
   override def ttag = classTag[String]
 
   override def lineageContext = prev.lineageContext
 
-  override def getPartitions: Array[Partition] = firstParent[((Int, Int, Long), Any)].partitions
+  override def getPartitions: Array[Partition] = firstParent[(RecordId, Any)].partitions
 
   override def compute(split: Partition, context: TaskContext) =
-    firstParent[((Int, Int, Long), String)].iterator(split, context).map(r => r._2)
+    firstParent[(RecordId, String)].iterator(split, context).map(r => r._2)
 
-  override def collect(): Array[String] =
-  {
+  override def collect(): Array[String] = {
     val results = prev.context.runJob(
       prev.map(r => r._2), (iter: Iterator[String]) => iter.toArray.distinct
     )
@@ -45,34 +45,37 @@ class ShowRDD(prev: Lineage[((Int, Int, Long), String)])
   }
 
   override def filter(f: String => Boolean): ShowRDD =
-    new ShowRDD(firstParent[((Int, Int, Long), String)].filter(r => f(r._2)).cache())
+    new ShowRDD(firstParent[(RecordId, String)].filter(r => f(r._2)).cache())
 
-  override def getLineage(): LineageRDD =
-  {
-    if(prev.lineageContext.getCurrentLineagePosition.get.isInstanceOf[TapParallelCollectionLRDD[_]]) {
-      new LineageRDD(prev.lineageContext.getCurrentLineagePosition.get)
-    } else {
-      var right = prev.lineageContext.getCurrentLineagePosition.get
-      val shuffled: Lineage[((Int, Int, Long), Any)] = prev.lineageContext.getCurrentLineagePosition.get match {
-        case _: TapPreShuffleLRDD[_] =>
-          val part = new LocalityAwarePartitioner(prev.lineageContext.getCurrentLineagePosition.get.partitions.size)
-          new ShuffledLRDD[(Int, Int, Long), Any, Any](prev, part)
-        case _: TapCoGroupLRDD[_] =>
-          val part = new LocalityAwarePartitioner(prev.lineageContext.getCurrentLineagePosition.get.partitions.size)
-          right = new ShuffledLRDD[(Int, Int, Long), Any, Any](prev.lineageContext.getCurrentLineagePosition.get.map { case (a, b) => (b.asInstanceOf[(Int, Int, Long)], a)}, part)
-          prev
-        case _ => prev
-      }
+  override def getLineage(): LineageRDD = {
+    val position = prev.lineageContext.getCurrentLineagePosition.get
+    position match {
+      case _: TapParallelCollectionLRDD[_] => new LineageRDD(position)
+      case _ => {
+        var right = position
+        val shuffled: Lineage[(RecordId, Any)] = position match {
+          case _: TapPreShuffleLRDD[_] =>
+            val part = new LocalityAwarePartitioner(position.partitions.size)
+            new ShuffledLRDD[RecordId, Any, Any](prev, part)
+          case _: TapCoGroupLRDD[_] =>
+            val part = new LocalityAwarePartitioner(position.partitions.size)
+            right = new ShuffledLRDD[RecordId, Any, Any](position.map {
+                case (a, b) => (b.asInstanceOf[RecordId], a)
+              }, part)
+            prev
+          case _ => prev
+        }
 
         var join = rightJoin(
           shuffled,
           right
         )
-        join = prev.lineageContext.getCurrentLineagePosition.get match {
+        join = position match {
           case _: TapCoGroupLRDD[_] => join.map(r => (r._2, r._1)).cache()
           case _ => join.cache()
         }
-      new LineageRDD(join)
+        new LineageRDD(join)
+      }
     }
   }
 }

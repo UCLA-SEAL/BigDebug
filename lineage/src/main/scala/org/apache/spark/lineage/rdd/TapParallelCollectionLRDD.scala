@@ -23,8 +23,9 @@ import org.apache.spark.lineage.LineageContext
 import scala.reflect.ClassTag
 
 private[spark]
-class TapParallelCollectionLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[T](lc, deps)
+class TapParallelCollectionLRDD[T: ClassTag](
+    @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
+  ) extends TapLRDD[T](lc, deps)
 {
   def this(@transient prev: ParallelCollectionLRDD[_]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))

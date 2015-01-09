@@ -34,8 +34,8 @@ import scala.reflect._
 
 class ShuffledLRDD[K, V, C](
     @transient var previous: Lineage[_ <: Product2[K, V]],
-    part: Partitioner)
-  extends ShuffledRDD[K, V, C](previous, part) with Lineage[(K, C)] {
+    part: Partitioner
+  ) extends ShuffledRDD[K, V, C](previous, part) with Lineage[(K, C)] {
 
   override def ttag = classTag[(K, C)]
 
@@ -50,7 +50,9 @@ class ShuffledLRDD[K, V, C](
   }
 
   override def tapRight(): TapLRDD[(K, C)] = {
-    val tap = new TapPostShuffleLRDD[(K, C)](lineageContext, Seq(new OneToOneDependency[(K, C)](this)))
+    val tap = new TapPostShuffleLRDD[(K, C)](
+      lineageContext, Seq(new OneToOneDependency[(K, C)](this))
+    )
     setTap(tap)
     setCaptureLineage(true)
     tap.setCached(this)

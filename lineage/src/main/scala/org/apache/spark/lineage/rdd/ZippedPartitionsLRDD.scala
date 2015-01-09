@@ -25,8 +25,8 @@ import scala.reflect._
 private[spark] abstract class ZippedPartitionsBaseLRDD[V: ClassTag](
     @transient lc: LineageContext,
     var lrdds: Seq[Lineage[_]],
-    preservesPartitioning: Boolean = false)
-    extends ZippedPartitionsBaseRDD[V](lc.sparkContext, lrdds) with Lineage[V] {
+    preservesPartitioning: Boolean = false
+  ) extends ZippedPartitionsBaseRDD[V](lc.sparkContext, lrdds) with Lineage[V] {
 
   override def ttag = classTag[V]
 
@@ -38,8 +38,8 @@ private[spark] class ZippedPartitionsLRDD2[A: ClassTag, B: ClassTag, V: ClassTag
     f: (Iterator[A], Iterator[B]) => Iterator[V],
     var lrdd1: Lineage[A],
     var lrdd2: Lineage[B],
-    preservesPartitioning: Boolean = false)
-    extends ZippedPartitionsRDD2[A, B, V](lc.sparkContext, f, lrdd1, lrdd2, preservesPartitioning)
+    preservesPartitioning: Boolean = false
+  ) extends ZippedPartitionsRDD2[A, B, V](lc.sparkContext, f, lrdd1, lrdd2, preservesPartitioning)
     with Lineage[V] {
 
   override def ttag = classTag[V]
@@ -53,9 +53,15 @@ private[spark] class ZippedPartitionsLRDD3[A: ClassTag, B: ClassTag, C: ClassTag
     var lrdd1: Lineage[A],
     var lrdd2: Lineage[B],
     var lrdd3: Lineage[C],
-    preservesPartitioning: Boolean = false)
-    extends ZippedPartitionsRDD3[A, B, C, V](lc.sparkContext, f, lrdd1, lrdd2, lrdd3, preservesPartitioning)
-    with Lineage[V] {
+    preservesPartitioning: Boolean = false
+  ) extends ZippedPartitionsRDD3[A, B, C, V](
+      lc.sparkContext,
+      f,
+      lrdd1,
+      lrdd2,
+      lrdd3,
+      preservesPartitioning
+  ) with Lineage[V] {
 
   override def ttag = classTag[V]
 

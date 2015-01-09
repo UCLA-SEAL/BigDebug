@@ -32,9 +32,9 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
 
   private var underMaterialization = new mutable.HashSet[(RDD[_], Int, StorageLevel)]
 
-  def initMaterialization[T](rdd: RDD[T], partition: Partition, level: StorageLevel) = {
-    underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
-  }
+  def initMaterialization[T](
+      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_ONLY
+    ) = underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
 
   def materialize(
       split: Int,

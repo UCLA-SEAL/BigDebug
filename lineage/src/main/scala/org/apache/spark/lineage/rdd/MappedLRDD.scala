@@ -23,8 +23,8 @@ import scala.reflect._
 
 private[spark]
 class MappedLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T], f: T => U)
-  extends MappedRDD[U, T](prev, f) with Lineage[U] {
-
+  extends MappedRDD[U, T](prev, f) with Lineage[U]
+{
   override def ttag = classTag[U]
 
   override def lineageContext = prev.lineageContext

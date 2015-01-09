@@ -23,9 +23,9 @@ import org.apache.spark.lineage.LineageContext
 import scala.reflect.ClassTag
 
 private[spark]
-class TapCoGroupLRDD[T: ClassTag]
-  (@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[T](lc, deps)
+class TapCoGroupLRDD[T: ClassTag](
+    @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
+  ) extends TapLRDD[T](lc, deps)
 {
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 

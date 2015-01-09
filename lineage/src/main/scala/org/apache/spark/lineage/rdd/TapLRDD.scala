@@ -22,7 +22,6 @@ import java.util.concurrent.atomic.AtomicLong
 import org.apache.spark._
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect._
@@ -73,14 +72,13 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
     splitId = split.index
 
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, StorageLevel.MEMORY_ONLY)
+    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  override def filter(f: T => Boolean): Lineage[T] = {
+  override def filter(f: T => Boolean): Lineage[T] =
     new FilteredLRDD[T](this, sparkContext.clean(f))
-  }
 
   def setCached(cache: Lineage[_]): TapLRDD[T] = {
     shuffledData = cache
@@ -91,8 +89,6 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def tap(record: T) = {
     recordId = (id, splitId, newRecordId)
-    //tContext.currentRecordInfo = Seq(recordId)
-    //addRecordInfo(recordId, Seq(record))
     addRecordInfo(recordId, tContext.currentRecordInfo)
     tContext.currentRecordInfo = Seq(recordId)
 

@@ -8,15 +8,15 @@ import scala.collection.Map
 import scala.reflect._
 
 private[spark] class ParallelCollectionLRDD[T: ClassTag](
-  @transient lc: LineageContext,
-  @transient data: Seq[T],
-  numSlices: Int,
-  locationPrefs: Map[Int, Seq[String]])
-  extends ParallelCollectionRDD[T](lc.sparkContext, data, numSlices, locationPrefs) with Lineage[T]
+    @transient lc: LineageContext,
+    @transient data: Seq[T],
+    numSlices: Int,
+    locationPrefs: Map[Int, Seq[String]]
+  )extends ParallelCollectionRDD[T](lc.sparkContext, data, numSlices, locationPrefs) with Lineage[T]
 {
   override def lineageContext = lc
 
-  def ttag: ClassTag[T] = classTag[T]
+  override def ttag: ClassTag[T] = classTag[T]
 
   override def tapRight(): TapLRDD[T] = {
     val tap = new TapParallelCollectionLRDD[T](lineageContext,  Seq(new OneToOneDependency(this)))

@@ -30,8 +30,8 @@ private[spark] class LHashShuffleReader[K, C](
     startPartition: Int,
     endPartition: Int,
     context: TaskContext,
-    var lineage: Boolean = false)
-    extends HashShuffleReader[K, C](handle, startPartition, endPartition, context)
+    var lineage: Boolean = false
+  ) extends HashShuffleReader[K, C](handle, startPartition, endPartition, context)
 {
   require(endPartition == startPartition + 1,
     "Hash shuffle currently only supports fetching one partition")
@@ -45,9 +45,9 @@ private[spark] class LHashShuffleReader[K, C](
   private def newRecordId = nextRecord.getAndIncrement
 
   /** Read the combined key-values for this reduce task */
-  override def read(isCache: Option[Boolean] = None, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
-      val ser = Serializer.getSerializer(dep.serializer)
-      val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
+  override def read(isCache: Option[Boolean] = None, shuffId: Int = 0): Iterator[Product2[K, C]] = {
+    val ser = Serializer.getSerializer(dep.serializer)
+    val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
 
     if(isCache.isDefined) {
       if(isCache.get) {
@@ -64,7 +64,7 @@ private[spark] class LHashShuffleReader[K, C](
 
       tap(new InterruptibleIterator(context,
         dep.aggregator.get.combineValuesByKey(iter, context)),
-        trace, context, startPartition, shuffleId)
+        trace, context, startPartition, shuffId)
     } else {
       // Convert the Product2s to pairs since this is what downstream RDDs currently expect
       tappedIter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))

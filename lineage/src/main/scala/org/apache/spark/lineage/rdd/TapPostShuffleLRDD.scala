@@ -19,21 +19,25 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
 
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPostShuffleLRDD[T: ClassTag]
-  (@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[T](lc, deps)
+class TapPostShuffleLRDD[T: ClassTag](
+    @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
+  ) extends TapLRDD[T](lc, deps)
 {
+  implicit def fromTtoProduct2[T](record: T) = record.asInstanceOf[Product2[T, RecordId]]
+
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
   override def tap(record: T) = {
-    recordId = record.asInstanceOf[Product2[T, (Int, Int, Long)]]._2
+    recordId = record._2
     addRecordInfo(recordId, tContext.currentRecordInfo)
     tContext.currentRecordInfo = Seq(recordId)
 
-    record.asInstanceOf[Product2[T, (Int, Int, Long)]]._1
+    record._1
   }
 }
