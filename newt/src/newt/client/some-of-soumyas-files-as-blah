@@ -1,0 +1,744 @@
+package newt.client;
+
+import java.lang.*;
+import java.util.*;
+import java.io.*;
+import java.security.*;
+
+import org.w3c.dom.*;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import newt.common.*;
+import newt.contract.*;
+import newt.actor.*;
+
+public class NewtClient<I extends ProvenanceDataType, O extends ProvenanceDataType> {
+    public enum Mode {
+        CAPTURE,
+        REPLAY,
+        NONE
+    }
+    
+    Mode                    clientMode = Mode.NONE;
+    public static String    masterUrl = null;
+    static NewtService      masterClient = null;
+    NewtService             peerClient = null;
+    final int               maxProv = 5000;
+
+    String                  universeName = null;
+    int                     universeID = -1;
+    String                  actorName = null;
+    String                  actorType = null;
+    String                  relativeID = null;
+
+    int                     actorID = -1;
+    int                     parentID = -1;
+    int                     schemaID = -1;
+    String                  tableName = null;
+    int                     maxParallelRequests = 1;
+    NewtProvenanceSender    newtProvenanceSender = null;
+    ProvenanceContainer     provenanceContainer = null;
+    ArrayList               provenance = null;
+
+    int                     traceID = -1;
+    HashSet                 replayFilter = null;
+
+    boolean                 isFileLocatableSet = false;
+    boolean                 inputFileLocatable = false;
+    boolean                 outputFileLocatable = false;
+    Vector<String>          fileLocatables = null;
+    int                     count = 0;
+    int                     index = 0;
+
+    long                    beginTime = 0;
+    long                    startTime = 0;
+    long                    endTime = 0;
+    float                   totalTimeTaken = 0;
+    int                     requests = 0;
+
+    static void init() {
+    	try {
+            if( masterUrl == null ) {
+                String newtHome = System.getenv( "NEWT_HOME" );
+                BufferedReader configFile = new BufferedReader( new FileReader( newtHome + "/NewtClientConfig" ) );
+                String masterIP = configFile.readLine();
+                masterUrl = "http://" + masterIP + ":" + Configuration.masterPort + "/hessianrpc";
+                configFile.close();
+            }
+    	
+            masterClient = RpcCommunication.getService( masterUrl );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+
+    public NewtClient( Mode mode ) {
+        init();
+        clientMode = mode;
+        if( mode == Mode.CAPTURE ) {
+            provenanceContainer = new ProvenanceContainer( maxProv );
+            newtProvenanceSender = new NewtProvenanceSender( masterClient );
+            provenance = newtProvenanceSender.getProvenanceBuffer();
+            fileLocatables = new Vector<String>();
+        }
+
+        beginTime = System.currentTimeMillis();
+        endTime = System.currentTimeMillis();
+    }
+    
+    public NewtClient( Mode mode, int pid, String aname, String atype, String rid ) {
+        this( mode );
+        actorName = aname;
+        actorType = atype;
+        parentID = pid;
+        relativeID = rid == null ? "" : rid;
+
+        if( clientMode == Mode.CAPTURE ) {
+            try { 
+                actorID = (Integer) masterClient.addActor( parentID, actorName, actorType, relativeID );
+            } catch( Exception e ) {
+                System.err.println( e.getMessage() );
+                e.printStackTrace();
+            }
+
+            System.err.println( "NewtClient registered with actorID: " + actorID + " for actor: " 
+                + actorName + " with parent: " + parentID + " and relativeID: " + relativeID );
+        }
+    }
+
+    public NewtClient( int pid, String aname, String atype, String rid, int sid ) {
+        this( Mode.CAPTURE, pid, aname, atype, rid );
+        schemaID = sid;
+
+        System.err.println( "NewtClient registered with actorID: " + actorID + " for actor: " 
+            + actorName + " with parent: " + parentID + ", relativeID: " + relativeID 
+            + "and schemaID: " + schemaID );
+    }
+    
+    public NewtClient( int pid, String aname, String atype, String rid, int sid, String tname )
+    {
+        this( pid, aname, atype, rid, sid );
+        tableName = tname;
+
+        System.err.println( "NewtClient registered with actorID: " + actorID + " for actor: " 
+            + actorName + " with parent: " + parentID + ", relativeID: " + relativeID 
+            + ", schemaID: " + schemaID + " and tableName: " + tableName );
+    }
+
+    public NewtClient( int tid, int rpid, String aname, String atype, String rid )
+    {
+        this( Mode.REPLAY, rpid, aname, atype, rid );
+        this.traceID = tid;
+
+        String peerUrl = getTraceNode();
+        System.err.println( "NewtClient registered with actorID: " + actorID + " for actor: " 
+            + actorName + " with parent: " + parentID + " and relativeID: " + relativeID );
+        
+        getReplayFilter( peerUrl );
+        System.err.println( "Trace results for trace: " + traceID + " for actor: " + actorID
+            + " with table: " + tableName + " retrieved. Total record count: " + replayFilter.size() );
+    }
+
+    public Mode getMode()
+    {
+        return clientMode;
+    }
+
+    public void setMode( Mode mode )
+    {
+        clientMode = mode;
+    }
+
+    public void setSchemaID( int sid )
+    {
+        schemaID = sid;
+    }
+
+    public void setTableName( String tname )
+    {
+        tableName = tname;
+    }
+
+    public String getTableName()
+    {
+        return tableName;
+    }
+
+    public int getUniverseID()
+    {
+        return universeID;
+    }
+
+    public void setUniverseName( String uname )
+    {
+        universeName = uname;
+        universeID = getUniverseID( universeName );
+    }
+
+    public static int getUniverseID( String uname )
+    {
+        init();
+        int uid = -1;
+        try {
+            uid = (Integer) RpcCommunication.getService( masterUrl ).getUniverse( uname );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+        return uid;
+    }
+
+    public int register( String aname, int pid )
+    {
+        actorName = aname;
+        actorType = "RootActor";
+        parentID = pid;
+
+        try {
+            actorID = (Integer) masterClient.register( actorName, parentID );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+        return actorID;
+    }
+
+    public int setProvenanceHierarchy( String hierarchy )
+    {
+        Integer result = -1;
+        try {
+            result = (Integer) masterClient.setProvenanceHierarchy( actorID, hierarchy );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+        return result;
+    }
+
+    public int setProvenanceSchemas( String schemas )
+    {
+        Integer result = -1;
+        try {
+            result = (Integer) masterClient.setProvenanceSchemas( actorID, schemas );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+        return result;
+    }
+
+    public void addSourceOrDestinationActor( int fid, boolean isSource )
+    {
+        try { 
+            masterClient.addSourceOrDestinationActor( actorID, fid, isSource );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+    }
+
+    public int getActorID()
+    {
+        return actorID;
+    }
+
+    public static int getActorID( String aname, String atype )
+    {
+        init();
+        int aid = -1;
+        try {
+            aid = (Integer) RpcCommunication.getService( masterUrl ).getID( aname, atype );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+
+        return aid;
+    }
+
+    public int getParentID()
+    {
+        return parentID;
+    }
+
+    public int getSchemaID()
+    {
+        return schemaID;
+    }
+
+    public void setSchemaID( String uname, String sname )
+    {
+        schemaID = getSchemaID( uname, sname );
+    }
+    
+    public static int getSchemaID( String uname, String sname )
+    {
+        init();
+        int uid = getUniverseID( uname );
+        return getSchemaID( uid, sname );
+    }
+
+    public static int getSchemaID( int uid, String sname )
+    {
+        init();
+        int sid = -1;
+        try {
+            sid = (Integer) RpcCommunication.getService( masterUrl ).getSchemaID( uid, sname );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+
+        return sid;
+    }
+
+    public void addFileLocatable( String l, boolean isInput, boolean isGhostable )
+    {
+        if( !fileLocatables.contains( l ) ) {
+            try {
+                masterClient.addFileLocatable( actorID, l, isInput, true );
+                fileLocatables.add( l );
+            } catch( Exception e ) {
+                System.err.println( e.getMessage() );
+            }
+        }
+    }
+
+    protected void setFileLocatable( I input, O output )
+    {
+        if( input instanceof FileLocatable ) {
+            inputFileLocatable = true;
+        }
+        if( output instanceof FileLocatable ) {
+            outputFileLocatable = true;
+        }
+        isFileLocatableSet = true;
+    }
+
+    public void getPeerClient()
+    {
+        try {
+            String peerUrl = (String) masterClient.getProvenanceNode( actorID, tableName, schemaID  );
+            peerClient = RpcCommunication.getService( peerUrl );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+    public void submitProvenance()
+    {
+        count += index;
+        index = 0;
+        requests++;
+        
+        if( peerClient == null ) {
+            getPeerClient();
+        }
+
+        synchronized( provenance ) {
+            provenance.add( new ProvenanceTask( requests, provenanceContainer, actorID, schemaID, tableName, peerClient, false ) );
+            provenance.notifyAll();
+        }
+        provenanceContainer = new ProvenanceContainer( maxProv );
+    }
+
+    public void addProvenance( I input, O output )
+    {
+        if( input == null || output == null ) {
+            return;
+        }
+        
+        if( !isFileLocatableSet ) {
+            setFileLocatable( input, output );
+            if( inputFileLocatable ) {
+                addFileLocatable( ((FileLocatable) input).getPathname(), true, ((FileLocatable) input).isFileLocation() );
+            }
+            if( outputFileLocatable ) {
+                addFileLocatable( ((FileLocatable) output).getPathname(), false, ((FileLocatable) output).isFileLocation() );
+            }
+        }
+
+        startTime = endTime;
+        endTime = System.currentTimeMillis();
+        provenanceContainer.add( new ProvenanceAssociation( input.getBytes(), output.getBytes(), endTime - startTime ) );
+        index++;
+        System.err.println( "\n***************************" );
+        System.err.println( "Added provenance for actorID " + actorID + " : " + input + " <===> " + output );
+        System.err.println( "Index: " + index );
+        System.err.println( "***************************\n" );
+
+        if( index >= maxProv ) {
+            submitProvenance();
+        }
+    }
+
+    public void commit()
+    {
+        count += index;
+        requests++;
+        System.err.println( "\n***************************" );
+        System.err.println( "Committing " + actorID );
+        System.err.println( "Index: " + index );
+        System.err.println( "Count: " + count );
+        System.err.println( "***************************\n" );
+        if( peerClient == null ) {
+            getPeerClient();
+        }
+        ProvenanceTask task = new ProvenanceTask( requests, provenanceContainer, actorID, schemaID, tableName, peerClient, true );
+
+        // Submit remaining provenance associations
+        synchronized( provenance ) {
+            provenance.add( task );
+            provenance.notifyAll();
+        }
+
+        // Wait for all provenance requests and commit request to be completed
+        // Neccessary for ensuring that an actor doesn't commit without its provenance
+        // committing
+       
+        try {
+            newtProvenanceSender.join();
+            masterClient.commit( actorID );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+
+        float avgTime = ((float)(System.currentTimeMillis() - beginTime)) / count;
+        float processRate = ((float)count) / (System.currentTimeMillis() - beginTime);
+        System.err.println( "Actor: " + actorID + ": Provenance count = " + count + ", time/assoc: " + avgTime + " ms, assoc/time: " + processRate + " ms" );
+    }
+
+    public static int trace( Vector data, String direction, int cid, int aid )
+    {
+        init();
+        return trace( data, direction, cid, aid, null);
+    }
+
+    public static int trace( Vector data, String direction, int cid, String atype )
+    {
+        init();
+        return trace( data, direction, cid, -1, atype );
+    }
+
+    public static int trace( Vector data, String direction, int cid, int aid, String atype )
+    {
+        init();
+        int tid= -1;
+        try {
+            tid = (Integer) RpcCommunication.getService( masterUrl ).trace( data, direction, cid, aid, atype );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+
+        return tid;
+    }
+
+    public String getTraceNode()
+    {
+        String peerUrl = null;
+        try { 
+            Object[] result = (Object[]) masterClient.getTraceNode( traceID, parentID, actorType, relativeID );
+            actorID = (Integer) result[ 0 ];
+            tableName = (String) result[ 1 ];
+            peerUrl = (String) result[ 2 ];
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        return peerUrl;
+    }
+
+    public void getReplayFilter( String peerUrl )
+    {
+        try {
+            replayFilter = (HashSet) RpcCommunication.getService( peerUrl ).getReplayFilter( traceID, tableName );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public static void printTraceResults( int traceID, String actorName )
+    {
+        init();
+        HashSet replayFilter = null;
+        try {
+            Object[] result = (Object[]) RpcCommunication.getService( masterUrl ).getTraceNodeByActorID( traceID, actorName );
+            String peerUrl = (String) result[ 0 ];
+            String tableName = (String) result[ 1 ];
+            replayFilter = (HashSet) RpcCommunication.getService( peerUrl ).getReplayFilter( traceID, tableName );
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        for( Object o: replayFilter ) {
+            if( o instanceof ByteArray ) {
+               System.out.println( new String( ((ByteArray)o).getBytes() ) );
+            } else {
+               System.out.println( o.toString() );
+            }
+        }
+
+       System.out.println( "Total " + replayFilter.size() + " records found.\n" );
+    }
+
+    public boolean allowInput( I input )
+    {
+        if( replayFilter != null ) {
+            return replayFilter.contains( input.toProvenance() );
+        } else {
+            return true;
+        }
+    }
+}
+package newt.client;
+
+import java.io.*;
+import java.util.*;
+
+import org.apache.xmlrpc.client.XmlRpcClient;
+
+import newt.common.*;
+import newt.contract.*;
+import newt.actor.*;
+
+public class NewtLogger {
+    String              logRoot = Configuration.clientLogDir;  /* no reason to persist these */
+    ObjectOutputStream  log = null;
+    int                 actorID = -1;
+    int                 schemaID = -1;
+    String              tableID = null;
+    String              filename = null;
+    int                 maxProv = 5000;
+
+    public NewtLogger( int actorID, String tableID, int schemaID )
+    throws Exception
+    {
+        this.actorID = actorID;
+        this.tableID = tableID;
+        this.schemaID = schemaID;
+        
+	    File f;
+	    f = new File( logRoot );
+	    if( !f.exists() ) {
+            f.mkdirs();  /* make sure temp log dir exists */
+        }
+        
+        filename = logRoot + "/" + actorID + "_" + tableID + "_" + schemaID + ".log";
+        f = new File( filename );
+        if( f.exists() ) {
+            f.delete();
+        }
+
+        log = new ObjectOutputStream( new FileOutputStream( filename ) );
+    }
+
+    public void log( ProvenanceContainer provenanceContainer )
+    {
+        try {
+            for( int i = 0; i < provenanceContainer.size(); i++ ) {
+                synchronized( log ) {
+                    log.writeObject( provenanceContainer.get( i ) );
+                }
+            }
+            log.flush();
+        } catch( Exception e ) {
+            System.err.println( "Cannot log provenance: " + e.getMessage() );
+            return;
+        }
+
+        System.err.println( "Logged provenance: " + actorID );
+    }
+
+    public void makeAttempt( NewtService client )
+    {
+        ProvenanceContainer provenanceContainer = new ProvenanceContainer( maxProv );
+
+        try {
+            log.flush();
+            log.close();
+
+            int index = 0;
+            ObjectInputStream o = new ObjectInputStream( new FileInputStream( filename ) );
+            while( o.available() > 0 ) {
+                while( index < maxProv && o.available() > 0 ) {
+                    provenanceContainer.add( (ProvenanceAssociation)o.readObject() );
+                    index++;
+                }
+                Integer result = (Integer) client.addProvenance( actorID, tableID, schemaID, provenanceContainer );
+                index = 0;
+            }
+
+            o.close();
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+        }
+    }
+}
+package newt.client;
+
+import java.lang.*;
+import java.util.*;
+
+import newt.actor.*;
+import newt.client.NewtClient.Mode;
+
+public class NewtStageClient<I extends ProvenanceDataType, O extends ProvenanceDataType> {
+    NewtClient<I, O>  newtClient = null;
+    Object trgr = null;
+    HashMap<String, ArrayList<I>> inputBuffer = null;
+
+    public NewtStageClient( NewtClient<I, O> newtClient ) 
+    { 
+        this.newtClient = newtClient;
+        inputBuffer = new HashMap<String, ArrayList<I>>();
+    }
+
+    public NewtClient getNewtClient()
+    {
+        return newtClient;
+    }
+   
+    public boolean allowInput( I input )
+    {
+        if( newtClient.getMode() == Mode.REPLAY ) {
+            return newtClient.allowInput( input );
+        }
+
+        return true;
+    }
+   
+    public void addInput( Object trigger, I input ) 
+    {
+        if( !inputBuffer.containsKey( "" ) ) {
+            inputBuffer.put( "", new ArrayList<I>() );
+        }
+        if( !trigger.equals( trgr ) ) {
+            trgr = trigger;
+            inputBuffer.get( "" ).clear();
+        }
+        inputBuffer.get( "" ).add( input );
+    }
+
+    public void addTaggedInput( String tag, I input )
+    {
+        if( !inputBuffer.containsKey( tag ) ) {
+            inputBuffer.put( tag, new ArrayList<I>() );
+        }
+        inputBuffer.get( tag ).add( input );
+        System.err.println( "\n===========================" );
+        System.err.println( "Added input for actorID " + newtClient.getActorID() + " : " + input + " with tag: " + tag + ". Buffer contains: " );
+        for( I in: inputBuffer.get( tag ) ) {
+            System.err.println( in );
+        }
+        Set<String> tagSet = inputBuffer.keySet();
+        System.err.println( "Tags: " );
+        for( String t: tagSet ) {
+            System.err.println( t );
+        }
+        System.err.println( "===========================\n" );
+    }
+
+    public void addOutput( O output ) throws Exception
+    {
+        if( inputBuffer.size() > 1 || (inputBuffer.size() == 1 && !inputBuffer.containsKey( "" )) ) {
+            throw new Exception( "Input tags found. Must supply tags with output for correct association." );
+        }
+        
+        ArrayList<I> inputs = inputBuffer.get( "" );
+        for( I input: inputs ) {
+            newtClient.addProvenance( input, output );
+        }
+    }
+
+    public void addTaggedOutput( String tag, O output )
+    {
+        ArrayList<I> inputs = inputBuffer.get( tag );
+        if( inputs == null || inputs.isEmpty() ) {
+            return;
+        }
+
+        for( I input: inputs ) {
+            newtClient.addProvenance( input, output );
+        }
+    }
+
+    public void addTaggedOutputAndFlush( String tag, O output )
+    {
+        ArrayList<I> inputs = inputBuffer.get( tag );
+        if( inputs == null || inputs.isEmpty() ) {
+            return;
+        }
+
+        System.err.println( "\n===========================" );
+        System.err.println( "Added output for actorID " + newtClient.getActorID() + " : " + output + " with tag: " + tag + ". Associating with: " );
+        for( I in: inputBuffer.get( tag ) ) {
+            System.err.println( in );
+        }
+        for( I input: inputs ) {
+            newtClient.addProvenance( input, output );
+            System.err.println( "Associated: " + input + " <===> " + output );
+        }
+        inputBuffer.get( tag ).clear();
+    }
+}
+
+package newt.client;
+
+import java.lang.*;
+import java.util.*;
+import java.io.*;
+import java.security.*;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import newt.contract.*;
+import newt.common.*;
+import newt.actor.*;
+
+public class NewtProvenanceSender extends Thread {
+    NewtService             masterClient = null;
+    ProvenanceTask          provenanceTask = null;
+    ArrayList               provenance = null;
+    int                     requests = 0;
+    double                  totalTimeTaken = 0;
+
+    public NewtProvenanceSender( NewtService masterClient )
+    {
+        provenance = new ArrayList();
+        this.masterClient = masterClient;
+        start();
+    }
+
+    public ArrayList getProvenanceBuffer()
+    {
+        return provenance;
+    }
+
+    public void waitForProvenance()
+    {
+        synchronized( provenance ) {
+            while( provenance.size() == 0 ) {
+                try {
+                    provenance.wait();
+                } catch( Exception e ) {
+                }
+            }
+
+            provenanceTask = (ProvenanceTask) provenance.get( 0 );
+            provenance.remove( provenanceTask);
+        }
+    }
+
+    public void run()
+    {
+        while( true ) {
+            waitForProvenance();
+            totalTimeTaken += provenanceTask.execute();
+            requests++;
+
+            if( provenanceTask.isCommitTask() ) {
+               System.out.println( "Average time taken to send provenance = " + (totalTimeTaken / requests) + " ms, for " + requests + " requests" );
+                break;
+            }
+        }
+
+    }
+}

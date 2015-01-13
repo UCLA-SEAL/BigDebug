@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<!--Here's a sample config:
+<Replay>
+    <Actor>job_201202281606_0002</Actor> => This is the umbrella actor under which you want to search.
+    <ActorType>MRJob</ActorType> => This is type of above actor
+    <TraceActorID></TraceActorID> => This is the ID of the actor whose output you're tracing
+    <TraceActorType>RW</TraceActorType> => If ID of actor whose output is being traced is not known, provide type
+    <TraceID></TraceID> => Leave this blank for now, I'll need to further edit the trace client to use this
+</Replay>
+
+Another example:
+<Replay>
+    <Actor>MapReduce</Actor> => This time, I want to search across jobs, so now my scope limiter is MapReduce
+    <ActorType>RootActor</ActorType> => This is type of above actor
+    <TraceActorID>13</TraceActorID> => This is the ID of the actor whose output you're tracing (Note: across multiple jobs, it is better to give ID than type, or the trace can get arbitrarily large as Newt tries to match the trace outputs against ALL actors of this type)
+    <TraceActorType></TraceActorType> => If ID of actor whose output is being traced is not known, provide type
+    <TraceID></TraceID> => Leave this blank for now, I'll need to further edit the trace client to use this
+</Replay>
+/-->
+
+<Replay>
+    <Actor>MapReduce</Actor>
+    <ActorType>RootActor</ActorType>
+    <TraceActorID>8</TraceActorID>
+    <TraceActorType></TraceActorType>
+    <TraceID></TraceID>
+</Replay>

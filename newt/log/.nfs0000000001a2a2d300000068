@@ -1,0 +1,857 @@
+Initing newtState...
+Master: csag105.sysnet.ucsd.edu
+I AM DA MASTER!
+Slave: csag106.sysnet.ucsd.edu
+Slave: csag107.sysnet.ucsd.edu
+Dropping old Newt database
+Initing Newt Database...
+SLF4J: This version of SLF4J requires log4j version 1.2.12 or later. See also http://www.slf4j.org/codes.html#log4j_version
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/home/zhy001/test_gl_jni/newt/lib/slf4j-log4j12-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/home/zhy001/test_gl_jni/newt/lib/slf4j-simple-1.7.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+log4j:WARN No appenders could be found for logger (org.eclipse.jetty.util.log).
+log4j:WARN Please initialize the log4j system properly.
+Newt Server successfully started!
+Returning uid: 0 for universe: GraphLabUniverse
+Returning root aid: 1 for root actor: JobActor with parent: 0
+Returning aid: 2 for actor: vertex4version1 with parent: 1
+Returning aid: 3 for actor: vertex0version1 with parent: 1
+Returning aid: 5 for actor: vertex2version1 with parent: 1
+Returning aid: 7 for actor: vertex8version1 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 10
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 9
+Returning aid: 13 for actor: vertex3version1 with parent: 1
+Commit completed for: subactor10_table
+Commit completed for: subactor9_table
+The sourcelist for actor 3 updated by subactor 14 is 7
+addSourceBySubactor: 7 for subactor: 14
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 8
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 4
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 6
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 11
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 3
+Commit completed for: subactor4_table
+Commit completed for: subactor6_table
+Returning aid: 17 for actor: vertex5version1 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 15
+Commit completed for: subactor8_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 12
+Commit completed for: actor3_table
+Returning aid: 18 for actor: vertex0version2 with parent: 1
+Commit completed for: subactor11_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 13
+Commit completed for: subactor15_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 16
+Commit completed for: subactor12_table
+The sourcelist for actor 17 updated by subactor 21 is 2
+addSourceBySubactor: 2 for subactor: 21
+Commit completed for: actor13_table
+Returning aid: 22 for actor: vertex3version2 with parent: 1
+Returning aid: 23 for actor: vertex1version1 with parent: 1
+Commit completed for: subactor16_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 14
+The sourcelist for actor 22 updated by subactor 24 is 5
+addSourceBySubactor: 5 for subactor: 24
+Commit completed for: subactor14_table
+The sourcelist for actor 18 updated by subactor 25 is 7
+addSourceBySubactor: 7 for subactor: 25
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 20
+The sourcelist for actor 17 updated by subactor 27 is 2 5
+addSourceBySubactor: 5 for subactor: 27
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 25
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 7
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 27
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 19
+Commit completed for: subactor20_table
+The sourcelist for actor 23 updated by subactor 28 is 18
+addSourceBySubactor: 18 for subactor: 28
+Commit completed for: actor7_table
+Returning aid: 29 for actor: vertex8version2 with parent: 1
+Commit completed for: subactor27_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 28
+Commit completed for: subactor19_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 21
+Commit completed for: subactor25_table
+The sourcelist for actor 29 updated by subactor 30 is 17
+addSourceBySubactor: 17 for subactor: 30
+Commit completed for: subactor28_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 26
+Returning aid: 32 for actor: vertex6version1 with parent: 1
+Commit completed for: subactor21_table
+Returning aid: 35 for actor: vertex7version1 with parent: 1
+The sourcelist for actor 32 updated by subactor 34 is 17
+addSourceBySubactor: 17 for subactor: 34
+Returning aid: 37 for actor: vertex9version1 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 24
+Commit completed for: subactor26_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 36
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 34
+The sourcelist for actor 35 updated by subactor 38 is 17
+addSourceBySubactor: 17 for subactor: 38
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 30
+Commit completed for: subactor24_table
+Commit completed for: subactor36_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 38
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 5
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 31
+Commit completed for: subactor38_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 33
+Commit completed for: subactor34_table
+Commit completed for: subactor30_table
+The sourcelist for actor 37 updated by subactor 40 is 29
+addSourceBySubactor: 29 for subactor: 40
+Commit completed for: actor5_table
+Returning aid: 41 for actor: vertex2version2 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 2
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 22
+Commit completed for: subactor31_table
+Commit completed for: subactor33_table
+Commit completed for: actor22_table
+Returning aid: 42 for actor: vertex3version3 with parent: 1
+Commit completed for: actor2_table
+Returning aid: 43 for actor: vertex4version2 with parent: 1
+The sourcelist for actor 41 updated by subactor 44 is 22
+addSourceBySubactor: 22 for subactor: 44
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 39
+The sourcelist for actor 41 updated by subactor 44 is 22 23
+addSourceBySubactor: 23 for subactor: 44
+The sourcelist for actor 42 updated by subactor 46 is 5
+addSourceBySubactor: 5 for subactor: 46
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 37
+Commit completed for: subactor39_table
+The sourcelist for actor 43 updated by subactor 47 is 37
+addSourceBySubactor: 37 for subactor: 47
+The sourcelist for actor 42 updated by subactor 46 is 5 23
+addSourceBySubactor: 23 for subactor: 46
+Commit completed for: actor37_table
+Returning aid: 49 for actor: vertex9version2 with parent: 1
+The sourcelist for actor 43 updated by subactor 48 is 37 5
+addSourceBySubactor: 5 for subactor: 48
+The sourcelist for actor 42 updated by subactor 50 is 5 23 32
+addSourceBySubactor: 32 for subactor: 50
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 40
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 45
+Commit completed for: subactor40_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 47
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 46
+The sourcelist for actor 49 updated by subactor 52 is 29
+addSourceBySubactor: 29 for subactor: 52
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 41
+Commit completed for: subactor45_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 51
+Commit completed for: subactor47_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 44
+Commit completed for: actor41_table
+Returning aid: 53 for actor: vertex2version3 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 50
+Commit completed for: subactor51_table
+Commit completed for: subactor44_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 52
+Commit completed for: subactor46_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 42
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 48
+Commit completed for: subactor50_table
+Commit completed for: subactor52_table
+Commit completed for: actor42_table
+Returning aid: 54 for actor: vertex3version4 with parent: 1
+Commit completed for: subactor48_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 32
+The sourcelist for actor 54 updated by subactor 56 is 41
+addSourceBySubactor: 41 for subactor: 56
+The sourcelist for actor 54 updated by subactor 56 is 41 23
+addSourceBySubactor: 23 for subactor: 56
+The sourcelist for actor 54 updated by subactor 58 is 41 23 32
+addSourceBySubactor: 32 for subactor: 58
+The sourcelist for actor 53 updated by subactor 57 is 42
+addSourceBySubactor: 42 for subactor: 57
+Commit completed for: actor32_table
+Returning aid: 59 for actor: vertex6version2 with parent: 1
+The sourcelist for actor 53 updated by subactor 57 is 42 23
+addSourceBySubactor: 23 for subactor: 57
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 58
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 56
+Commit completed for: subactor58_table
+The sourcelist for actor 59 updated by subactor 61 is 17
+addSourceBySubactor: 17 for subactor: 61
+The sourcelist for actor 59 updated by subactor 61 is 17 35
+addSourceBySubactor: 35 for subactor: 61
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 17
+Commit completed for: subactor56_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 57
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 60
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 54
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 61
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 55
+Commit completed for: actor17_table
+Returning aid: 62 for actor: vertex5version2 with parent: 1
+Commit completed for: subactor57_table
+Commit completed for: subactor60_table
+Commit completed for: actor54_table
+Returning aid: 63 for actor: vertex3version5 with parent: 1
+Commit completed for: subactor61_table
+The sourcelist for actor 62 updated by subactor 64 is 53
+addSourceBySubactor: 53 for subactor: 64
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 53
+Commit completed for: subactor55_table
+The sourcelist for actor 63 updated by subactor 65 is 53
+addSourceBySubactor: 53 for subactor: 65
+The sourcelist for actor 62 updated by subactor 66 is 53 49
+addSourceBySubactor: 49 for subactor: 66
+The sourcelist for actor 63 updated by subactor 65 is 53 23
+addSourceBySubactor: 23 for subactor: 65
+Commit completed for: actor53_table
+Returning aid: 67 for actor: vertex2version4 with parent: 1
+The sourcelist for actor 67 updated by subactor 69 is 54
+addSourceBySubactor: 54 for subactor: 69
+The sourcelist for actor 63 updated by subactor 68 is 53 23 59
+addSourceBySubactor: 59 for subactor: 68
+The sourcelist for actor 67 updated by subactor 69 is 54 23
+addSourceBySubactor: 23 for subactor: 69
+The sourcelist for actor 62 updated by subactor 71 is 53 49 43
+addSourceBySubactor: 43 for subactor: 71
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 65
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 18
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 70
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 66
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 69
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 63
+Commit completed for: subactor65_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 67
+Commit completed for: subactor70_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 64
+Commit completed for: subactor69_table
+Commit completed for: actor63_table
+Returning aid: 72 for actor: vertex3version6 with parent: 1
+Commit completed for: actor18_table
+Returning aid: 73 for actor: vertex0version3 with parent: 1
+Commit completed for: actor67_table
+Returning aid: 75 for actor: vertex2version5 with parent: 1
+Commit completed for: subactor66_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 71
+Commit completed for: subactor64_table
+The sourcelist for actor 72 updated by subactor 74 is 67
+addSourceBySubactor: 67 for subactor: 74
+The sourcelist for actor 72 updated by subactor 74 is 67 23
+addSourceBySubactor: 23 for subactor: 74
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 29
+The sourcelist for actor 73 updated by subactor 77 is 29
+addSourceBySubactor: 29 for subactor: 77
+The sourcelist for actor 75 updated by subactor 78 is 63
+addSourceBySubactor: 63 for subactor: 78
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 59
+Commit completed for: subactor71_table
+The sourcelist for actor 75 updated by subactor 78 is 63 23
+addSourceBySubactor: 23 for subactor: 78
+Commit completed for: actor29_table
+Returning aid: 79 for actor: vertex8version3 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 76
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 68
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 77
+Commit completed for: actor59_table
+Returning aid: 82 for actor: vertex6version3 with parent: 1
+The sourcelist for actor 79 updated by subactor 81 is 62
+addSourceBySubactor: 62 for subactor: 81
+Commit completed for: subactor76_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 78
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 80
+Commit completed for: subactor77_table
+Commit completed for: subactor68_table
+The sourcelist for actor 72 updated by subactor 85 is 67 23 59
+addSourceBySubactor: 59 for subactor: 85
+Commit completed for: subactor78_table
+Commit completed for: subactor80_table
+The sourcelist for actor 82 updated by subactor 84 is 62
+addSourceBySubactor: 62 for subactor: 84
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 74
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 85
+The sourcelist for actor 82 updated by subactor 84 is 62 35
+addSourceBySubactor: 35 for subactor: 84
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 72
+Commit completed for: subactor74_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 35
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 83
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 84
+Commit completed for: actor72_table
+Returning aid: 87 for actor: vertex3version7 with parent: 1
+Commit completed for: subactor85_table
+Commit completed for: subactor83_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 75
+Commit completed for: subactor84_table
+The sourcelist for actor 87 updated by subactor 88 is 75
+addSourceBySubactor: 75 for subactor: 88
+Commit completed for: actor35_table
+Returning aid: 89 for actor: vertex7version2 with parent: 1
+Commit completed for: actor75_table
+Returning aid: 90 for actor: vertex2version6 with parent: 1
+The sourcelist for actor 87 updated by subactor 88 is 75 23
+addSourceBySubactor: 23 for subactor: 88
+The sourcelist for actor 87 updated by subactor 91 is 75 23 82
+addSourceBySubactor: 82 for subactor: 91
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 73
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 86
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 81
+The sourcelist for actor 89 updated by subactor 92 is 62
+addSourceBySubactor: 62 for subactor: 92
+Commit completed for: actor73_table
+Returning aid: 93 for actor: vertex0version4 with parent: 1
+Commit completed for: subactor86_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 82
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 92
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 49
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 88
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 43
+Commit completed for: subactor81_table
+The sourcelist for actor 90 updated by subactor 95 is 87
+addSourceBySubactor: 87 for subactor: 95
+Commit completed for: actor82_table
+Returning aid: 96 for actor: vertex6version4 with parent: 1
+Commit completed for: actor49_table
+Returning aid: 98 for actor: vertex9version3 with parent: 1
+The sourcelist for actor 90 updated by subactor 95 is 87 23
+addSourceBySubactor: 23 for subactor: 95
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 87
+Commit completed for: subactor88_table
+Commit completed for: actor43_table
+Returning aid: 99 for actor: vertex4version3 with parent: 1
+The sourcelist for actor 96 updated by subactor 97 is 62
+addSourceBySubactor: 62 for subactor: 97
+Commit completed for: subactor92_table
+The sourcelist for actor 96 updated by subactor 97 is 62 89
+addSourceBySubactor: 89 for subactor: 97
+Commit completed for: actor87_table
+Returning aid: 104 for actor: vertex3version8 with parent: 1
+The sourcelist for actor 93 updated by subactor 102 is 79
+addSourceBySubactor: 79 for subactor: 102
+The sourcelist for actor 98 updated by subactor 105 is 79
+addSourceBySubactor: 79 for subactor: 105
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 94
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 101
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 97
+The sourcelist for actor 99 updated by subactor 107 is 49
+addSourceBySubactor: 49 for subactor: 107
+The sourcelist for actor 104 updated by subactor 106 is 75
+addSourceBySubactor: 75 for subactor: 106
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 103
+Commit completed for: subactor94_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 91
+Commit completed for: subactor101_table
+The sourcelist for actor 99 updated by subactor 108 is 49 90
+addSourceBySubactor: 90 for subactor: 108
+The sourcelist for actor 104 updated by subactor 106 is 75 23
+addSourceBySubactor: 23 for subactor: 106
+Commit completed for: subactor103_table
+Commit completed for: subactor91_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 102
+Commit completed for: subactor97_table
+The sourcelist for actor 104 updated by subactor 109 is 75 23 96
+addSourceBySubactor: 96 for subactor: 109
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 95
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 100
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 106
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 90
+Commit completed for: subactor102_table
+Commit completed for: subactor100_table
+Commit completed for: subactor106_table
+Commit completed for: actor90_table
+Returning aid: 110 for actor: vertex2version7 with parent: 1
+Commit completed for: subactor95_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 105
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 107
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 108
+Commit completed for: subactor108_table
+Commit completed for: subactor105_table
+The sourcelist for actor 110 updated by subactor 112 is 104
+addSourceBySubactor: 104 for subactor: 112
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 109
+Commit completed for: subactor107_table
+The sourcelist for actor 110 updated by subactor 112 is 104 23
+addSourceBySubactor: 23 for subactor: 112
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 62
+Commit completed for: subactor109_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 104
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 111
+Returning aid: 113 for actor: vertex5version3 with parent: 1
+Commit completed for: actor62_table
+Returning aid: 115 for actor: vertex3version9 with parent: 1
+Commit completed for: actor104_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 112
+The sourcelist for actor 113 updated by subactor 114 is 98
+addSourceBySubactor: 98 for subactor: 114
+The sourcelist for actor 115 updated by subactor 116 is 110
+addSourceBySubactor: 110 for subactor: 116
+Commit completed for: subactor111_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 110
+The sourcelist for actor 113 updated by subactor 117 is 98 99
+addSourceBySubactor: 99 for subactor: 117
+The sourcelist for actor 115 updated by subactor 116 is 110 23
+addSourceBySubactor: 23 for subactor: 116
+Commit completed for: subactor112_table
+The sourcelist for actor 113 updated by subactor 118 is 98 99 110
+addSourceBySubactor: 110 for subactor: 118
+The sourcelist for actor 115 updated by subactor 119 is 110 23 96
+addSourceBySubactor: 96 for subactor: 119
+Commit completed for: actor110_table
+Returning aid: 120 for actor: vertex2version8 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 118
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 116
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 23
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 114
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 117
+Commit completed for: subactor118_table
+Commit completed for: subactor116_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 79
+Commit completed for: actor23_table
+Returning aid: 123 for actor: vertex1version2 with parent: 1
+The sourcelist for actor 120 updated by subactor 122 is 115
+addSourceBySubactor: 115 for subactor: 122
+The sourcelist for actor 120 updated by subactor 122 is 115 23
+addSourceBySubactor: 23 for subactor: 122
+Commit completed for: actor79_table
+Returning aid: 124 for actor: vertex8version4 with parent: 1
+Commit completed for: subactor114_table
+The sourcelist for actor 123 updated by subactor 125 is 93
+addSourceBySubactor: 93 for subactor: 125
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 89
+Commit completed for: subactor117_table
+The sourcelist for actor 124 updated by subactor 126 is 113
+addSourceBySubactor: 113 for subactor: 126
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 119
+Returning aid: 128 for actor: vertex7version3 with parent: 1
+Commit completed for: actor89_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 115
+The sourcelist for actor 128 updated by subactor 130 is 113
+addSourceBySubactor: 113 for subactor: 130
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 96
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 130
+Returning aid: 131 for actor: vertex3version10 with parent: 1
+Commit completed for: actor115_table
+Commit completed for: subactor119_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 125
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 121
+Commit completed for: subactor130_table
+The sourcelist for actor 131 updated by subactor 132 is 110
+addSourceBySubactor: 110 for subactor: 132
+Commit completed for: subactor125_table
+Commit completed for: actor96_table
+Returning aid: 134 for actor: vertex6version5 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 120
+Commit completed for: subactor121_table
+The sourcelist for actor 131 updated by subactor 133 is 110 96
+addSourceBySubactor: 96 for subactor: 133
+The sourcelist for actor 131 updated by subactor 132 is 110 96 23
+addSourceBySubactor: 23 for subactor: 132
+Commit completed for: actor120_table
+Returning aid: 137 for actor: vertex2version9 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 126
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 99
+The sourcelist for actor 134 updated by subactor 136 is 113
+addSourceBySubactor: 113 for subactor: 136
+Returning aid: 138 for actor: vertex4version4 with parent: 1
+Commit completed for: actor99_table
+The sourcelist for actor 134 updated by subactor 136 is 113 128
+addSourceBySubactor: 128 for subactor: 136
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 122
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 127
+Commit completed for: subactor126_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 129
+Commit completed for: subactor122_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 132
+Commit completed for: subactor127_table
+The sourcelist for actor 137 updated by subactor 141 is 131
+addSourceBySubactor: 131 for subactor: 141
+The sourcelist for actor 138 updated by subactor 140 is 120
+addSourceBySubactor: 120 for subactor: 140
+Commit completed for: subactor129_table
+The sourcelist for actor 137 updated by subactor 141 is 131 123
+addSourceBySubactor: 123 for subactor: 141
+Commit completed for: subactor132_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 131
+The sourcelist for actor 138 updated by subactor 142 is 120 98
+addSourceBySubactor: 98 for subactor: 142
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 136
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 133
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 135
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 142
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 140
+Commit completed for: subactor133_table
+Commit completed for: subactor135_table
+Commit completed for: actor131_table
+Returning aid: 143 for actor: vertex3version11 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 134
+Commit completed for: subactor136_table
+Commit completed for: subactor142_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 139
+Commit completed for: subactor140_table
+Commit completed for: actor134_table
+Returning aid: 145 for actor: vertex6version6 with parent: 1
+Commit completed for: subactor139_table
+The sourcelist for actor 143 updated by subactor 144 is 120
+addSourceBySubactor: 120 for subactor: 144
+The sourcelist for actor 143 updated by subactor 144 is 120 123
+addSourceBySubactor: 123 for subactor: 144
+The sourcelist for actor 145 updated by subactor 147 is 113
+addSourceBySubactor: 113 for subactor: 147
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 141
+The sourcelist for actor 145 updated by subactor 147 is 113 128
+addSourceBySubactor: 128 for subactor: 147
+Commit completed for: subactor141_table
+The sourcelist for actor 143 updated by subactor 148 is 120 123 134
+addSourceBySubactor: 134 for subactor: 148
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 137
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 113
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 144
+Commit completed for: actor113_table
+Returning aid: 149 for actor: vertex5version4 with parent: 1
+Commit completed for: actor137_table
+Returning aid: 151 for actor: vertex2version10 with parent: 1
+The sourcelist for actor 149 updated by subactor 150 is 98
+addSourceBySubactor: 98 for subactor: 150
+Commit completed for: subactor144_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 148
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 143
+The sourcelist for actor 149 updated by subactor 152 is 98 137
+addSourceBySubactor: 137 for subactor: 152
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 146
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 147
+Commit completed for: subactor148_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 98
+Commit completed for: subactor146_table
+Commit completed for: actor143_table
+Returning aid: 154 for actor: vertex3version12 with parent: 1
+Commit completed for: actor98_table
+Returning aid: 155 for actor: vertex9version4 with parent: 1
+Commit completed for: subactor147_table
+The sourcelist for actor 149 updated by subactor 156 is 98 137 138
+addSourceBySubactor: 138 for subactor: 156
+The sourcelist for actor 151 updated by subactor 158 is 143
+addSourceBySubactor: 143 for subactor: 158
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 128
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 156
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 150
+The sourcelist for actor 151 updated by subactor 158 is 143 123
+addSourceBySubactor: 123 for subactor: 158
+Commit completed for: actor128_table
+Returning aid: 160 for actor: vertex7version4 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 145
+Commit completed for: subactor156_table
+The sourcelist for actor 154 updated by subactor 159 is 137
+addSourceBySubactor: 137 for subactor: 159
+The sourcelist for actor 160 updated by subactor 161 is 149
+addSourceBySubactor: 149 for subactor: 161
+Commit completed for: actor145_table
+Returning aid: 162 for actor: vertex6version7 with parent: 1
+Commit completed for: subactor150_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 161
+The sourcelist for actor 154 updated by subactor 159 is 137 123
+addSourceBySubactor: 123 for subactor: 159
+The sourcelist for actor 162 updated by subactor 164 is 149
+addSourceBySubactor: 149 for subactor: 164
+Commit completed for: subactor161_table
+The sourcelist for actor 155 updated by subactor 165 is 124
+addSourceBySubactor: 124 for subactor: 165
+The sourcelist for actor 162 updated by subactor 164 is 149 160
+addSourceBySubactor: 160 for subactor: 164
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 124
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 152
+The sourcelist for actor 154 updated by subactor 166 is 137 123 145
+addSourceBySubactor: 145 for subactor: 166
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 153
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 164
+Commit completed for: actor124_table
+Returning aid: 167 for actor: vertex8version5 with parent: 1
+Commit completed for: subactor152_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 163
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 158
+Commit completed for: subactor153_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 151
+The sourcelist for actor 167 updated by subactor 168 is 149
+addSourceBySubactor: 149 for subactor: 168
+Commit completed for: subactor158_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 159
+Commit completed for: actor151_table
+Returning aid: 169 for actor: vertex2version11 with parent: 1
+Commit completed for: subactor164_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 166
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 157
+Commit completed for: subactor163_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 170
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 165
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 168
+Commit completed for: subactor159_table
+Commit completed for: subactor166_table
+Commit completed for: subactor157_table
+Commit completed for: subactor170_table
+Commit completed for: subactor165_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 154
+Commit completed for: subactor168_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 93
+The sourcelist for actor 169 updated by subactor 172 is 154
+addSourceBySubactor: 154 for subactor: 172
+Commit completed for: actor154_table
+Returning aid: 173 for actor: vertex3version13 with parent: 1
+The sourcelist for actor 169 updated by subactor 172 is 154 123
+addSourceBySubactor: 123 for subactor: 172
+Commit completed for: actor93_table
+Returning aid: 175 for actor: vertex0version5 with parent: 1
+The sourcelist for actor 173 updated by subactor 174 is 151
+addSourceBySubactor: 151 for subactor: 174
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 171
+The sourcelist for actor 173 updated by subactor 174 is 151 123
+addSourceBySubactor: 123 for subactor: 174
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 172
+Commit completed for: subactor171_table
+The sourcelist for actor 175 updated by subactor 178 is 167
+addSourceBySubactor: 167 for subactor: 178
+The sourcelist for actor 173 updated by subactor 177 is 151 123 162
+addSourceBySubactor: 162 for subactor: 177
+Commit completed for: subactor172_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 138
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 174
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 178
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 176
+Commit completed for: subactor174_table
+Commit completed for: actor138_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 169
+Commit completed for: subactor178_table
+Returning aid: 179 for actor: vertex4version5 with parent: 1
+Commit completed for: actor169_table
+Returning aid: 180 for actor: vertex2version12 with parent: 1
+Commit completed for: subactor176_table
+The sourcelist for actor 179 updated by subactor 181 is 155
+addSourceBySubactor: 155 for subactor: 181
+The sourcelist for actor 179 updated by subactor 184 is 155 169
+addSourceBySubactor: 169 for subactor: 184
+The sourcelist for actor 180 updated by subactor 183 is 173
+addSourceBySubactor: 173 for subactor: 183
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 177
+The sourcelist for actor 180 updated by subactor 183 is 173 123
+addSourceBySubactor: 123 for subactor: 183
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 183
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 182
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 181
+Commit completed for: subactor177_table
+Commit completed for: subactor183_table
+Commit completed for: subactor181_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 149
+Commit completed for: subactor182_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 184
+Commit completed for: actor149_table
+Returning aid: 185 for actor: vertex5version5 with parent: 1
+Commit completed for: subactor184_table
+The sourcelist for actor 185 updated by subactor 187 is 179
+addSourceBySubactor: 179 for subactor: 187
+The sourcelist for actor 185 updated by subactor 186 is 179 155
+addSourceBySubactor: 155 for subactor: 186
+The sourcelist for actor 185 updated by subactor 188 is 179 155 180
+addSourceBySubactor: 180 for subactor: 188
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 188
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 186
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 187
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 185
+Commit completed for: subactor186_table
+Commit completed for: subactor187_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 167
+Commit completed for: subactor188_table
+Commit completed for: actor185_table
+Returning aid: 189 for actor: vertex5version6 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 160
+Commit completed for: actor167_table
+Returning aid: 191 for actor: vertex8version6 with parent: 1
+The sourcelist for actor 189 updated by subactor 190 is 155
+addSourceBySubactor: 155 for subactor: 190
+The sourcelist for actor 191 updated by subactor 192 is 185
+addSourceBySubactor: 185 for subactor: 192
+Commit completed for: actor160_table
+Returning aid: 194 for actor: vertex7version5 with parent: 1
+The sourcelist for actor 189 updated by subactor 193 is 155 180
+addSourceBySubactor: 180 for subactor: 193
+The sourcelist for actor 189 updated by subactor 195 is 155 180 179
+addSourceBySubactor: 179 for subactor: 195
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 193
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 190
+The sourcelist for actor 194 updated by subactor 196 is 185
+addSourceBySubactor: 185 for subactor: 196
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 192
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 162
+Commit completed for: subactor193_table
+Commit completed for: subactor190_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 196
+Commit completed for: subactor192_table
+Commit completed for: actor162_table
+Returning aid: 198 for actor: vertex6version8 with parent: 1
+Commit completed for: subactor196_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 195
+Commit completed for: subactor195_table
+The sourcelist for actor 198 updated by subactor 200 is 189
+addSourceBySubactor: 189 for subactor: 200
+The sourcelist for actor 198 updated by subactor 200 is 189 194
+addSourceBySubactor: 194 for subactor: 200
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 200
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 173
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 199
+Commit completed for: actor173_table
+Returning aid: 201 for actor: vertex3version14 with parent: 1
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 197
+Commit completed for: subactor200_table
+The sourcelist for actor 201 updated by subactor 203 is 198
+addSourceBySubactor: 198 for subactor: 203
+The sourcelist for actor 201 updated by subactor 202 is 198 180
+addSourceBySubactor: 180 for subactor: 202
+Commit completed for: subactor199_table
+The sourcelist for actor 201 updated by subactor 202 is 198 180 123
+addSourceBySubactor: 123 for subactor: 202
+Commit completed for: subactor197_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 202
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 180
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 203
+Commit completed for: actor180_table
+Returning aid: 204 for actor: vertex2version13 with parent: 1
+Commit completed for: subactor202_table
+The sourcelist for actor 204 updated by subactor 206 is 201
+addSourceBySubactor: 201 for subactor: 206
+Commit completed for: subactor203_table
+The sourcelist for actor 204 updated by subactor 206 is 201 123
+addSourceBySubactor: 123 for subactor: 206
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 206
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 205
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 179
+Commit completed for: subactor205_table
+Commit completed for: subactor206_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 201
+Commit completed for: actor179_table
+Returning aid: 207 for actor: vertex4version6 with parent: 1
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 189
+The sourcelist for actor 207 updated by subactor 208 is 155
+addSourceBySubactor: 155 for subactor: 208
+Commit completed for: actor201_table
+Returning aid: 210 for actor: vertex3version15 with parent: 1
+Commit completed for: actor189_table
+Returning aid: 211 for actor: vertex5version7 with parent: 1
+The sourcelist for actor 207 updated by subactor 209 is 155 204
+addSourceBySubactor: 204 for subactor: 209
+The sourcelist for actor 210 updated by subactor 213 is 204
+addSourceBySubactor: 204 for subactor: 213
+The sourcelist for actor 211 updated by subactor 212 is 155
+addSourceBySubactor: 155 for subactor: 212
+The sourcelist for actor 210 updated by subactor 213 is 204 123
+addSourceBySubactor: 123 for subactor: 213
+The sourcelist for actor 210 updated by subactor 214 is 204 123 198
+addSourceBySubactor: 198 for subactor: 214
+The sourcelist for actor 211 updated by subactor 215 is 155 179
+addSourceBySubactor: 179 for subactor: 215
+The sourcelist for actor 211 updated by subactor 216 is 155 179 204
+addSourceBySubactor: 204 for subactor: 216
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 209
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 208
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 213
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 212
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 214
+Commit completed for: subactor208_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 215
+Commit completed for: subactor209_table
+Commit completed for: subactor212_table
+Commit completed for: subactor214_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 216
+Commit completed for: subactor213_table
+Commit completed for: subactor215_table
+Commit completed for: subactor216_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 194
+Commiting JobActor
+Loading data of all actors to database
+com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Table 'Newt.ActorInstances' doesn't exist
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:57)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:532)
+	at com.mysql.jdbc.Util.handleNewInstance(Util.java:411)
+	at com.mysql.jdbc.Util.getInstance(Util.java:386)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:1052)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3597)
+	at com.mysql.jdbc.MysqlIO.checkErrorPacket(MysqlIO.java:3529)
+	at com.mysql.jdbc.MysqlIO.sendCommand(MysqlIO.java:1990)
+	at com.mysql.jdbc.MysqlIO.sqlQueryDirect(MysqlIO.java:2151)
+	at com.mysql.jdbc.ConnectionImpl.execSQL(ConnectionImpl.java:2619)
+	at com.mysql.jdbc.ConnectionImpl.execSQL(ConnectionImpl.java:2569)
+	at com.mysql.jdbc.StatementImpl.executeQuery(StatementImpl.java:1510)
+	at newt.server.NewtMySql.executeQuery(NewtMySql.java:197)
+	at newt.server.NewtHandler.getAllActors(NewtHandler.java:676)
+	at newt.server.NewtHandler.loadData(NewtHandler.java:735)
+	at newt.server.NewtHandler.commit(NewtHandler.java:538)
+	at sun.reflect.GeneratedMethodAccessor5.invoke(Unknown Source)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:616)
+	at com.caucho.hessian.server.HessianSkeleton.invoke(HessianSkeleton.java:180)
+	at com.caucho.hessian.server.HessianSkeleton.invoke(HessianSkeleton.java:109)
+	at com.caucho.hessian.server.HessianServlet.service(HessianServlet.java:393)
+	at org.eclipse.jetty.servlet.ServletHolder.handle(ServletHolder.java:558)
+	at org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:488)
+	at org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:231)
+	at org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:973)
+	at org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:417)
+	at org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:192)
+	at org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:907)
+	at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:117)
+	at org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:110)
+	at org.eclipse.jetty.server.Server.handle(Server.java:346)
+	at org.eclipse.jetty.server.HttpConnection.handleRequest(HttpConnection.java:442)
+	at org.eclipse.jetty.server.HttpConnection$RequestHandler.content(HttpConnection.java:941)
+	at org.eclipse.jetty.http.HttpParser.parseNext(HttpParser.java:893)
+	at org.eclipse.jetty.http.HttpParser.parseAvailable(HttpParser.java:224)
+	at org.eclipse.jetty.server.AsyncHttpConnection.handle(AsyncHttpConnection.java:51)
+	at org.eclipse.jetty.io.nio.SelectChannelEndPoint.handle(SelectChannelEndPoint.java:586)
+	at org.eclipse.jetty.io.nio.SelectChannelEndPoint$1.run(SelectChannelEndPoint.java:44)
+	at org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:598)
+	at org.eclipse.jetty.util.thread.QueuedThreadPool$3.run(QueuedThreadPool.java:533)
+	at java.lang.Thread.run(Thread.java:679)
+Dec 11, 2013 7:27:14 PM com.caucho.hessian.server.HessianSkeleton invoke
+WARNING: java.lang.NullPointerException
+java.lang.NullPointerException
+	at newt.server.NewtHandler.loadData(NewtHandler.java:738)
+	at newt.server.NewtHandler.commit(NewtHandler.java:538)
+	at sun.reflect.GeneratedMethodAccessor5.invoke(Unknown Source)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:616)
+	at com.caucho.hessian.server.HessianSkeleton.invoke(HessianSkeleton.java:180)
+	at com.caucho.hessian.server.HessianSkeleton.invoke(HessianSkeleton.java:109)
+	at com.caucho.hessian.server.HessianServlet.service(HessianServlet.java:393)
+	at org.eclipse.jetty.servlet.ServletHolder.handle(ServletHolder.java:558)
+	at org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:488)
+	at org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:231)
+	at org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:973)
+	at org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:417)
+	at org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:192)
+	at org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:907)
+	at org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:117)
+	at org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:110)
+	at org.eclipse.jetty.server.Server.handle(Server.java:346)
+	at org.eclipse.jetty.server.HttpConnection.handleRequest(HttpConnection.java:442)
+	at org.eclipse.jetty.server.HttpConnection$RequestHandler.content(HttpConnection.java:941)
+	at org.eclipse.jetty.http.HttpParser.parseNext(HttpParser.java:893)
+	at org.eclipse.jetty.http.HttpParser.parseAvailable(HttpParser.java:224)
+	at org.eclipse.jetty.server.AsyncHttpConnection.handle(AsyncHttpConnection.java:51)
+	at org.eclipse.jetty.io.nio.SelectChannelEndPoint.handle(SelectChannelEndPoint.java:586)
+	at org.eclipse.jetty.io.nio.SelectChannelEndPoint$1.run(SelectChannelEndPoint.java:44)
+	at org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:598)
+	at org.eclipse.jetty.util.thread.QueuedThreadPool$3.run(QueuedThreadPool.java:533)
+	at java.lang.Thread.run(Thread.java:679)
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 210
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 175
+Commit completed for: actor175_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 123
+Commit completed for: actor194_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 198
+Commit completed for: actor210_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 191
+Commit completed for: actor123_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 155
+Commit completed for: actor155_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 207
+Commit completed for: actor198_table
+Assigned node: http://csag107.sysnet.ucsd.edu:8899/hessianrpc for actorID 204
+Commit completed for: actor191_table
+Commit completed for: actor207_table
+Assigned node: http://csag106.sysnet.ucsd.edu:8899/hessianrpc for actorID 211
+Commit completed for: actor204_table
+Commit completed for: actor211_table
