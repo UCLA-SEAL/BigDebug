@@ -1386,4 +1386,9 @@ abstract class RDD[T: ClassTag](
   def toJavaRDD() : JavaRDD[T] = {
     new JavaRDD(this)(elementClassTag)
   }
+
+  //TODO Ksh
+  def commitNewt() : Unit = {
+    //exception
+  }
 }

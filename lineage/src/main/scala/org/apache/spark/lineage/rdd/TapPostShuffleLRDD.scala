@@ -36,6 +36,8 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def tap(record: T) = {
     recordId = record._2
     addRecordInfo(recordId, tContext.currentRecordInfo)
+    //TODO Ksh
+    newt.add(recordId.toString())
     tContext.currentRecordInfo = Seq(recordId)
 
     record._1

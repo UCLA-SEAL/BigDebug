@@ -20,11 +20,12 @@ package org.apache.spark.lineage.rdd
 import java.util.concurrent.atomic.AtomicLong
 
 import org.apache.spark._
-import org.apache.spark.lineage.{LCacheManager, LineageContext}
+import org.apache.spark.lineage.{NewtWrapper, LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect._
+import scala.util.Random
 
 private[spark]
 class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -51,6 +52,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     value.foreach(v => recordInfo += key -> v)
   }
 
+  //TODO Ksh
+  var newt: NewtWrapper = null;
+
+
   /**
    * Compute an RDD partition or read it from a checkpoint if the RDD was checkpointed.
    */
@@ -72,9 +77,20 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
     splitId = split.index
 
+    //TODO Ksh
+    //Using Random Int to avoid same table names
+    val newtId:Int = splitId + Random.nextInt(Integer.MAX_VALUE);
+    newt = new NewtWrapper(newtId)
+    System.out.println("Compute "+ newtId)
+
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
-    firstParent[T].iterator(split, context).map(tap)
+    val iterator = firstParent[T].iterator(split, context).map(tap)
+
+    //TODO Ksh
+    System.out.println("End Compute "+ newtId)
+
+    iterator
   }
 
   override def filter(f: T => Boolean): Lineage[T] =

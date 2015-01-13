@@ -32,7 +32,8 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   override def tap(record: T) = {
     recordId = (id, splitId, newRecordId)
     addRecordInfo(recordId, tContext.currentRecordInfo)
-
+    //TODO Ksh
+    newt.add(recordId.toString())
     (record._1, (record._2, recordId)).asInstanceOf[T]
   }
 }

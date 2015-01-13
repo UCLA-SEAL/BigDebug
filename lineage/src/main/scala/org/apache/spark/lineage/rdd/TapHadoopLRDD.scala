@@ -35,6 +35,16 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
     tContext.currentRecordInfo = Seq(recordId)
     addRecordInfo(recordId, Seq((filePath, record._1.asInstanceOf[LongWritable].get)))
 
+    //TODO Ksh
+    //recordid is the output and seq is input
+    newt.add(recordId.toString())
+
+
     record
+  }
+
+  override def commitNewt(): Unit =
+  {
+    newt.commit()
   }
 }

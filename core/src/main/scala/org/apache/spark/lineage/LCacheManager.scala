@@ -49,6 +49,8 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
           blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
         logInfo(s"Trying to materialize Block $key")
       } finally {
+        //TODO Ksh
+        table._1.commitNewt();
         underMaterialization.remove(table)
         logInfo(s"Block $key materialized")
       }
