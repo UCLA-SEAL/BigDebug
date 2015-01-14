@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ScalaSbtSettings">
+    <option name="linkedExternalProjectsSettings">
+      <SbtProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="jdk" value="1.7" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/assembly" />
+            <option value="$PROJECT_DIR$/assembly/project" />
+            <option value="$PROJECT_DIR$/bagel" />
+            <option value="$PROJECT_DIR$/bagel/project" />
+            <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/core/project" />
+            <option value="$PROJECT_DIR$/dev" />
+            <option value="$PROJECT_DIR$/dev/project" />
+            <option value="$PROJECT_DIR$/examples" />
+            <option value="$PROJECT_DIR$/examples/project" />
+            <option value="$PROJECT_DIR$/external/flume" />
+            <option value="$PROJECT_DIR$/external/flume-sink" />
+            <option value="$PROJECT_DIR$/external/flume-sink/project" />
+            <option value="$PROJECT_DIR$/external/flume/project" />
+            <option value="$PROJECT_DIR$/external/kafka" />
+            <option value="$PROJECT_DIR$/external/kafka/project" />
+            <option value="$PROJECT_DIR$/external/mqtt" />
+            <option value="$PROJECT_DIR$/external/mqtt/project" />
+            <option value="$PROJECT_DIR$/external/twitter" />
+            <option value="$PROJECT_DIR$/external/twitter/project" />
+            <option value="$PROJECT_DIR$/external/zeromq" />
+            <option value="$PROJECT_DIR$/external/zeromq/project" />
+            <option value="$PROJECT_DIR$/graphx" />
+            <option value="$PROJECT_DIR$/graphx/project" />
+            <option value="$PROJECT_DIR$/lineage" />
+            <option value="$PROJECT_DIR$/lineage/project" />
+            <option value="$PROJECT_DIR$/mllib" />
+            <option value="$PROJECT_DIR$/mllib/project" />
+            <option value="$PROJECT_DIR$/project" />
+            <option value="$PROJECT_DIR$/repl" />
+            <option value="$PROJECT_DIR$/repl/project" />
+            <option value="$PROJECT_DIR$/sql/catalyst" />
+            <option value="$PROJECT_DIR$/sql/catalyst/project" />
+            <option value="$PROJECT_DIR$/sql/core" />
+            <option value="$PROJECT_DIR$/sql/core/project" />
+            <option value="$PROJECT_DIR$/sql/hive" />
+            <option value="$PROJECT_DIR$/sql/hive/project" />
+            <option value="$PROJECT_DIR$/streaming" />
+            <option value="$PROJECT_DIR$/streaming/project" />
+            <option value="$PROJECT_DIR$/tools" />
+            <option value="$PROJECT_DIR$/tools/project" />
+          </set>
+        </option>
+        <option name="useAutoImport" value="true" />
+      </SbtProjectSettings>
+    </option>
+  </component>
+</project>
+

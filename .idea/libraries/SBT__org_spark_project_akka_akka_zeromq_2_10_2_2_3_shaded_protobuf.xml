@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.spark-project.akka:akka-zeromq_2.10:2.2.3-shaded-protobuf">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/akka-zeromq_2.10-2.2.3-shaded-protobuf.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

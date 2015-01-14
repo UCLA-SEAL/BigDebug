@@ -1,0 +1,510 @@
+format version: 5
+output mode:
+1 items
+0 -> single
+output directories:
+1 items
+output dir -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes
+compile options:
+0 items
+javac options:
+0 items
+compiler version:
+1 items
+0 -> 2.10.4
+compile order:
+1 items
+0 -> Mixed
+name hashing:
+1 items
+0 -> false
+products:
+116 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$ignoredABIProblems$1.class
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$ignoredABIProblems$2.class
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$mimaSettings$1.class
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$mimaSettings$2.class
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$.class
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild.class
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaExcludes$.class
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaExcludes.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$11$$anonfun$apply$6.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$11.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$12$$anonfun$apply$7.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$12.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$$anonfun$settings$6$$anonfun$apply$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$$anonfun$settings$6.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Flume$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Flume.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$10.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$8.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$9$$anonfun$apply$5.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$9.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$5$$anonfun$apply$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$5.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL$$anonfun$settings$7.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$10.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$11.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$12.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$13.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$14.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$5.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$6.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$7.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$8.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$9.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$projectDefinitions$1$$anonfun$apply$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$projectDefinitions$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$2.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$4$$anonfun$apply$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$5.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$6.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$7.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$8.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$9.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$17.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$18.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$19.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$20.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$21.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22$$anonfun$apply$24.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22$$anonfun$apply$25.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$23.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$24.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$25.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$26.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$27.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$28.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$29.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$4.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$5.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$Unidoc$$packageList$1.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$13.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$14.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$10$$anonfun$apply$11.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$10.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$12$$anonfun$apply$13.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$12.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$14$$anonfun$apply$15.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$14.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$16$$anonfun$apply$17.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$16.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$18$$anonfun$apply$19.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$18.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$20$$anonfun$apply$21.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$20.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$22$$anonfun$apply$23.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$22.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$8$$anonfun$apply$9.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$8.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$16.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$3.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$.class
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc.class
+binary dependencies:
+30 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home/jre/lib/rt.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/com.typesafe/mima-core_2.10/jars/mima-core_2.10-0.1.6.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/collections/jars/collections-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/io/jars/io-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/ivy/jars/ivy-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/main-settings/jars/main-settings-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/main/jars/main-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/sbt/jars/sbt-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.typesafe/sbt-mima-plugin/jars/sbt-mima-plugin-0.1.6.jar
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/.sbt/boot/scala-2.10.4/lib/scala-library.jar
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home/jre/lib/rt.jar
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Users/inter/.ivy2/cache/com.typesafe/mima-core_2.10/jars/mima-core_2.10-0.1.6.jar
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Users/inter/.sbt/boot/scala-2.10.4/lib/scala-library.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home/jre/lib/rt.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/actions/jars/actions-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/apply-macro/jars/apply-macro-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/collections/jars/collections-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/incremental-compiler/jars/incremental-compiler-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/ivy/jars/ivy-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/main-settings/jars/main-settings-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/main/jars/main-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/sbt/jars/sbt-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/task-system/jars/task-system-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/org.scala-sbt/testing/jars/testing-0.13.5.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.cavorite/sbt-avro/jars/sbt-avro-0.3.2.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-assembly/jars/sbt-assembly-0.11.2.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-unidoc/jars/sbt-unidoc-0.3.1.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/net.virtual-void/sbt-dependency-graph/jars/sbt-dependency-graph-0.7.4.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/org.scalastyle/scalastyle-sbt-plugin/jars/scalastyle-sbt-plugin-0.4.0.jar
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/.sbt/boot/scala-2.10.4/lib/scala-library.jar
+direct source dependencies:
+3 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> /Users/inter/Develop/spark-bdd/project/MimaExcludes.scala
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> /Users/inter/Develop/spark-bdd/project/MimaBuild.scala
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> /Users/inter/Develop/spark-bdd/project/MimaBuild.scala
+direct external dependencies:
+2 items
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> com.typesafe.sbt.pom.PomBuild
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> com.typesafe.sbt.pom.SbtPomKeys$
+public inherited source dependencies:
+0 items
+public inherited external dependencies:
+1 items
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> com.typesafe.sbt.pom.PomBuild
+member reference internal dependencies:
+0 items
+member reference external dependencies:
+0 items
+inheritance internal dependencies:
+0 items
+inheritance external dependencies:
+0 items
+class names:
+116 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild$
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild$$anonfun$ignoredABIProblems$1
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild$$anonfun$ignoredABIProblems$2
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild$$anonfun$mimaSettings$1
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> MimaBuild$$anonfun$mimaSettings$2
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> MimaExcludes
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> MimaExcludes$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$$anonfun$settings$11
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$$anonfun$settings$11$$anonfun$apply$6
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$$anonfun$settings$12
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$$anonfun$settings$12$$anonfun$apply$7
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Assembly$$anonfun$settings$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> BuildCommons
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> BuildCommons$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> BuildCommons$$anonfun$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> BuildCommons$$anonfun$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> BuildCommons$$anonfun$3
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Catalyst
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Catalyst$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Catalyst$$anonfun$settings$6
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Catalyst$$anonfun$settings$6$$anonfun$apply$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Flume
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Flume$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$$anonfun$settings$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$$anonfun$settings$10
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$$anonfun$settings$8
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$$anonfun$settings$9
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Hive$$anonfun$settings$9$$anonfun$apply$5
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$3
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$5
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$oldDepsSettings$5$$anonfun$apply$3
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$project$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$project$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$project$3
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> OldDeps$$anonfun$project$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SQL
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SQL$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SQL$$anonfun$settings$7
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$10
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$11
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$12
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$13
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$14
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$5
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$6
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$7
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$8
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$9
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$projectDefinitions$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$projectDefinitions$1$$anonfun$apply$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$2
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$3
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$4$$anonfun$apply$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$5
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$6
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$7
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$8
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> SparkBuild$$anonfun$sharedSettings$9
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$17
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$18
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$19
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$20
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$21
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$22
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$22$$anonfun$apply$24
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$22$$anonfun$apply$25
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$23
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$24
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$25
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$26
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$27
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$28
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$29
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$4
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> TestSettings$$anonfun$settings$5
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$Unidoc$$packageList$1
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$13
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$14
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$10
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$10$$anonfun$apply$11
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$12
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$12$$anonfun$apply$13
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$14
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$14$$anonfun$apply$15
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$16
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$16$$anonfun$apply$17
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$18
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$18$$anonfun$apply$19
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$20
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$20$$anonfun$apply$21
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$22
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$22$$anonfun$apply$23
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$8
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$15$$anonfun$apply$8$$anonfun$apply$9
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$16
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> Unidoc$$anonfun$settings$3
+used names:
+0 items
+product stamps:
+116 items
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$11$$anonfun$apply$6.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$11.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$12$$anonfun$apply$7.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$12.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$$anonfun$settings$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Assembly.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$$anonfun$3.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/BuildCommons.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$$anonfun$settings$6$$anonfun$apply$4.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$$anonfun$settings$6.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Catalyst.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Flume$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Flume.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$10.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$8.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$9$$anonfun$apply$5.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$$anonfun$settings$9.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Hive.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$ignoredABIProblems$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$ignoredABIProblems$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$mimaSettings$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$$anonfun$mimaSettings$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaBuild.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaExcludes$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/MimaExcludes.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$3.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$4.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$5$$anonfun$apply$3.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$oldDepsSettings$5.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$3.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$$anonfun$project$4.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/OldDeps.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL$$anonfun$settings$7.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SQL.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$10.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$11.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$12.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$13.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$14.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$4.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$5.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$6.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$7.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$8.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$9.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$projectDefinitions$1$$anonfun$apply$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$projectDefinitions$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$2.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$3.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$4$$anonfun$apply$1.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$4.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$5.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$6.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$7.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$8.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$$anonfun$sharedSettings$9.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/SparkBuild.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$17.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$18.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$19.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$20.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$21.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22$$anonfun$apply$24.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22$$anonfun$apply$25.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$22.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$23.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$24.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$25.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$26.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$27.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$28.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$29.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$4.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$$anonfun$settings$5.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings$.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/TestSettings.class -> lastModified(1421195575000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$Unidoc$$packageList$1.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$13.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$14.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$10$$anonfun$apply$11.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$10.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$12$$anonfun$apply$13.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$12.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$14$$anonfun$apply$15.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$14.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$16$$anonfun$apply$17.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$16.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$18$$anonfun$apply$19.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$18.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$20$$anonfun$apply$21.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$20.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$22$$anonfun$apply$23.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$22.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$8$$anonfun$apply$9.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15$$anonfun$apply$8.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$15.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$16.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$$anonfun$settings$3.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc$.class -> lastModified(1421195576000)
+/Users/inter/Develop/spark-bdd/project/target/scala-2.10/sbt-0.13/classes/Unidoc.class -> lastModified(1421195576000)
+source stamps:
+3 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> hash(6a967635e0e11e6169d185bed132bc28b6e48e32)
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> hash(9f0d321f079a9b5f31d2b353b4ad25178bc0fb34)
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> hash(4031face62ff16a9eb24bd4479c789ed76e9eba6)
+binary stamps:
+20 items
+/Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home/jre/lib/rt.jar -> lastModified(1406304240000)
+/Users/inter/.ivy2/cache/com.typesafe/mima-core_2.10/jars/mima-core_2.10-0.1.6.jar -> lastModified(1380016242000)
+/Users/inter/.ivy2/cache/org.scala-sbt/actions/jars/actions-0.13.5.jar -> lastModified(1401198373000)
+/Users/inter/.ivy2/cache/org.scala-sbt/apply-macro/jars/apply-macro-0.13.5.jar -> lastModified(1401198213000)
+/Users/inter/.ivy2/cache/org.scala-sbt/collections/jars/collections-0.13.5.jar -> lastModified(1401198267000)
+/Users/inter/.ivy2/cache/org.scala-sbt/incremental-compiler/jars/incremental-compiler-0.13.5.jar -> lastModified(1401198351000)
+/Users/inter/.ivy2/cache/org.scala-sbt/io/jars/io-0.13.5.jar -> lastModified(1401198198000)
+/Users/inter/.ivy2/cache/org.scala-sbt/ivy/jars/ivy-0.13.5.jar -> lastModified(1401198279000)
+/Users/inter/.ivy2/cache/org.scala-sbt/main-settings/jars/main-settings-0.13.5.jar -> lastModified(1401198341000)
+/Users/inter/.ivy2/cache/org.scala-sbt/main/jars/main-0.13.5.jar -> lastModified(1401198381000)
+/Users/inter/.ivy2/cache/org.scala-sbt/sbt/jars/sbt-0.13.5.jar -> lastModified(1401198390000)
+/Users/inter/.ivy2/cache/org.scala-sbt/task-system/jars/task-system-0.13.5.jar -> lastModified(1401198283000)
+/Users/inter/.ivy2/cache/org.scala-sbt/testing/jars/testing-0.13.5.jar -> lastModified(1401198365000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.cavorite/sbt-avro/jars/sbt-avro-0.3.2.jar -> lastModified(1380486306000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-assembly/jars/sbt-assembly-0.11.2.jar -> lastModified(1395262337000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-unidoc/jars/sbt-unidoc-0.3.1.jar -> lastModified(1398266040000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.typesafe/sbt-mima-plugin/jars/sbt-mima-plugin-0.1.6.jar -> lastModified(1380016327000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/net.virtual-void/sbt-dependency-graph/jars/sbt-dependency-graph-0.7.4.jar -> lastModified(1374503279000)
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/org.scalastyle/scalastyle-sbt-plugin/jars/scalastyle-sbt-plugin-0.4.0.jar -> lastModified(1391687482000)
+/Users/inter/.sbt/boot/scala-2.10.4/lib/scala-library.jar -> lastModified(1395179187000)
+class names:
+20 items
+/Library/Java/JavaVirtualMachines/jdk1.7.0_67.jdk/Contents/Home/jre/lib/rt.jar -> java.lang.Comparable
+/Users/inter/.ivy2/cache/com.typesafe/mima-core_2.10/jars/mima-core_2.10-0.1.6.jar -> com.typesafe.tools.mima.core.MissingTypesProblem
+/Users/inter/.ivy2/cache/org.scala-sbt/actions/jars/actions-0.13.5.jar -> sbt.TestOption
+/Users/inter/.ivy2/cache/org.scala-sbt/apply-macro/jars/apply-macro-0.13.5.jar -> sbt.appmacro.Instance$
+/Users/inter/.ivy2/cache/org.scala-sbt/collections/jars/collections-0.13.5.jar -> sbt.LinePosition$
+/Users/inter/.ivy2/cache/org.scala-sbt/incremental-compiler/jars/incremental-compiler-0.13.5.jar -> sbt.inc.IncOptions
+/Users/inter/.ivy2/cache/org.scala-sbt/io/jars/io-0.13.5.jar -> sbt.IO$
+/Users/inter/.ivy2/cache/org.scala-sbt/ivy/jars/ivy-0.13.5.jar -> sbt.ModuleID
+/Users/inter/.ivy2/cache/org.scala-sbt/main-settings/jars/main-settings-0.13.5.jar -> sbt.ProjectRef
+/Users/inter/.ivy2/cache/org.scala-sbt/main/jars/main-0.13.5.jar -> sbt.Build
+/Users/inter/.ivy2/cache/org.scala-sbt/sbt/jars/sbt-0.13.5.jar -> sbt.package$
+/Users/inter/.ivy2/cache/org.scala-sbt/task-system/jars/task-system-0.13.5.jar -> sbt.Task
+/Users/inter/.ivy2/cache/org.scala-sbt/testing/jars/testing-0.13.5.jar -> sbt.TestFrameworks$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.cavorite/sbt-avro/jars/sbt-avro-0.3.2.jar -> sbtavro.SbtAvro$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-assembly/jars/sbt-assembly-0.11.2.jar -> sbtassembly.Plugin$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.eed3si9n/sbt-unidoc/jars/sbt-unidoc-0.3.1.jar -> sbtunidoc.Plugin$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/com.typesafe/sbt-mima-plugin/jars/sbt-mima-plugin-0.1.6.jar -> com.typesafe.tools.mima.plugin.MimaPlugin$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/net.virtual-void/sbt-dependency-graph/jars/sbt-dependency-graph-0.7.4.jar -> net.virtualvoid.sbt.graph.Plugin$
+/Users/inter/.ivy2/cache/scala_2.10/sbt_0.13/org.scalastyle/scalastyle-sbt-plugin/jars/scalastyle-sbt-plugin-0.4.0.jar -> org.scalastyle.sbt.ScalastylePlugin$
+/Users/inter/.sbt/boot/scala-2.10.4/lib/scala-library.jar -> scala.NotNull
+internal apis:
+3 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> 
+rO0ABXNyABB4c2J0aS5hcGkuU291cmNlFlpwRASfbtoCAAZJAAdhcGlIYXNoWgAIaGFzTWFjcm9MABhfaW50ZXJuYWxPbmx5X25hbWVIYXNoZXN0ACRMeHNidGkvYXBpL19pbnRlcm5hbE9ubHlfTmFtZUhhc2hlcztMAANhcGl0ABVMeHNidGkvYXBpL1NvdXJjZUFQSTtMAAtjb21waWxhdGlvbnQAF0x4c2J0aS9hcGkvQ29tcGlsYXRpb247WwAEaGFzaHQAAltCeHChGI1RAHNyACJ4c2J0aS5hcGkuX2ludGVybmFsT25seV9OYW1lSGFzaGVzVNq+mfrU7EwCAAJbAA9pbXBsaWNpdE1lbWJlcnN0ACNbTHhzYnRpL2FwaS9faW50ZXJuYWxPbmx5X05hbWVIYXNoO1sADnJlZ3VsYXJNZW1iZXJzcQB+AAd4cHVyACNbTHhzYnRpLmFwaS5faW50ZXJuYWxPbmx5X05hbWVIYXNoO0lagLbdlov0AgAAeHAAAAAAdXEAfgAJAAAAAHNyABN4c2J0aS5hcGkuU291cmNlQVBJuV6n+SkjOKQCAAJbAAtkZWZpbml0aW9uc3QAF1tMeHNidGkvYXBpL0RlZmluaXRpb247WwAIcGFja2FnZXN0ABRbTHhzYnRpL2FwaS9QYWNrYWdlO3hwdXIAF1tMeHNidGkuYXBpLkRlZmluaXRpb247iMlc57TjXg4CAAB4cAAAAAFzcgATeHNidGkuYXBpLkNsYXNzTGlrZYM0HKHfsJdsAgAETAAOZGVmaW5pdGlvblR5cGV0ABpMeHNidGkvYXBpL0RlZmluaXRpb25UeXBlO1sAEHNhdmVkQW5ub3RhdGlvbnN0ABNbTGphdmEvbGFuZy9TdHJpbmc7TAAIc2VsZlR5cGV0ABBMeHNidGkvYXBpL0xhenk7TAAJc3RydWN0dXJlcQB+ABV4cgAheHNidGkuYXBpLlBhcmFtZXRlcml6ZWREZWZpbml0aW9u+RFusdVQPOICAAFbAA50eXBlUGFyYW1ldGVyc3QAGltMeHNidGkvYXBpL1R5cGVQYXJhbWV0ZXI7eHIAFHhzYnRpLmFwaS5EZWZpbml0aW9uhyob6HFC40YCAARMAAZhY2Nlc3N0ABJMeHNidGkvYXBpL0FjY2VzcztbAAthbm5vdGF0aW9uc3QAF1tMeHNidGkvYXBpL0Fubm90YXRpb247TAAJbW9kaWZpZXJzdAAVTHhzYnRpL2FwaS9Nb2RpZmllcnM7TAAEbmFtZXQAEkxqYXZhL2xhbmcvU3RyaW5nO3hwc3IAEHhzYnRpLmFwaS5QdWJsaWO6WD2ubC1gQgIAAHhyABB4c2J0aS5hcGkuQWNjZXNz3WKa+B1jMUgCAAB4cHVyABdbTHhzYnRpLmFwaS5Bbm5vdGF0aW9uO+uX6xkQ9o1IAgAAeHAAAAAAc3IAE3hzYnRpLmFwaS5Nb2RpZmllcnPHERMhaZzcJAIAAUIABWZsYWdzeHAAdAAJTWltYUJ1aWxkdXIAGltMeHNidGkuYXBpLlR5cGVQYXJhbWV0ZXI72W0mDyid8rYCAAB4cAAAAAB+cgAYeHNidGkuYXBpLkRlZmluaXRpb25UeXBlAAAAAAAAAAASAAB4cgAOamF2YS5sYW5nLkVudW0AAAAAAAAAABIAAHhwdAAGTW9kdWxldXIAE1tMamF2YS5sYW5nLlN0cmluZzut0lbn6R17RwIAAHhwAAAAAHNyABN4c2J0aS5TYWZlTGF6eSRJbXBsUAIuk5eXQD8CAANaAAhiaXRtYXAkMEwAAl90dAASTGphdmEvbGFuZy9PYmplY3Q7TAAEZXZhbHQAEUxzY2FsYS9GdW5jdGlvbjA7eHIAFnhzYnRpLmFwaS5BYnN0cmFjdExhennTd7UBX7vnoAIAAHhwAXNyABN4c2J0aS5hcGkuRW1wdHlUeXBlvP2eRkk7iSQCAAB4cgAUeHNidGkuYXBpLlNpbXBsZVR5cGVyeGKIISO/QAIAAHhyAA54c2J0aS5hcGkuVHlwZT9q2SEWSarKAgAAeHBwc3EAfgAuAXNyABN4c2J0aS5hcGkuU3RydWN0dXJlqar5gJNv2AACAANMAAhkZWNsYXJlZHEAfgAVTAAJaW5oZXJpdGVkcQB+ABVMAAdwYXJlbnRzcQB+ABV4cQB+ADVzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXIAEVtMeHNidGkuYXBpLlR5cGU7dP+lWnv56UECAAB4cAAAAAJzcgAUeHNidGkuYXBpLlByb2plY3Rpb27z0o1U6UWkLQIAAkwAAmlkcQB+ABxMAAZwcmVmaXh0ABZMeHNidGkvYXBpL1NpbXBsZVR5cGU7eHEAfgA0dAAGT2JqZWN0c3IAE3hzYnRpLmFwaS5TaW5nbGV0b278p1/4z1bkRgIAAUwABHBhdGh0ABBMeHNidGkvYXBpL1BhdGg7eHEAfgA0c3IADnhzYnRpLmFwaS5QYXRomz1cCM6lJ4QCAAFbAApjb21wb25lbnRzdAAaW0x4c2J0aS9hcGkvUGF0aENvbXBvbmVudDt4cHVyABpbTHhzYnRpLmFwaS5QYXRoQ29tcG9uZW50O0PaCXQtZxZ0AgAAeHAAAAADc3IADHhzYnRpLmFwaS5JZJgybIs3U8RAAgABTAACaWRxAH4AHHhyABd4c2J0aS5hcGkuUGF0aENvbXBvbmVudF+aIlsuhp+8AgAAeHB0AARqYXZhc3EAfgBNdAAEbGFuZ3NyAA54c2J0aS5hcGkuVGhpc9sJ7abMWkBcAgAAeHEAfgBOc3EAfgBBdAADQW55c3EAfgBFc3EAfgBIdXEAfgBLAAAAAnNxAH4ATXQABXNjYWxhcQB+AFRwcHVyABRbTHhzYnRpLmFwaS5QYWNrYWdlO1sTGTdwpyehAgAAeHAAAAAAc3IAFXhzYnRpLmFwaS5Db21waWxhdGlvbu364MNq6KBCAgACSgAJc3RhcnRUaW1lWwAHb3V0cHV0c3QAGltMeHNidGkvYXBpL091dHB1dFNldHRpbmc7eHAAAAFK5dtuTXVyABpbTHhzYnRpLmFwaS5PdXRwdXRTZXR0aW5nO39qwvOnh6VCAgAAeHAAAAABc3IAF3hzYnRpLmFwaS5PdXRwdXRTZXR0aW5netmaR3T7HXsCAAJMAA9vdXRwdXREaXJlY3RvcnlxAH4AHEwAD3NvdXJjZURpcmVjdG9yeXEAfgAceHB0AEkvVXNlcnMvaW50ZXIvRGV2ZWxvcC9zcGFyay1iZGQvcHJvamVjdC90YXJnZXQvc2NhbGEtMi4xMC9zYnQtMC4xMy9jbGFzc2VzdAABL3VyAAJbQqzzF/gGCFTgAgAAeHAAAAAUapZ2NeDhHmFp0YW+0TK8KLbkjjI=
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> 
+rO0ABXNyABB4c2J0aS5hcGkuU291cmNlFlpwRASfbtoCAAZJAAdhcGlIYXNoWgAIaGFzTWFjcm9MABhfaW50ZXJuYWxPbmx5X25hbWVIYXNoZXN0ACRMeHNidGkvYXBpL19pbnRlcm5hbE9ubHlfTmFtZUhhc2hlcztMAANhcGl0ABVMeHNidGkvYXBpL1NvdXJjZUFQSTtMAAtjb21waWxhdGlvbnQAF0x4c2J0aS9hcGkvQ29tcGlsYXRpb247WwAEaGFzaHQAAltCeHBLAgzXAHNyACJ4c2J0aS5hcGkuX2ludGVybmFsT25seV9OYW1lSGFzaGVzVNq+mfrU7EwCAAJbAA9pbXBsaWNpdE1lbWJlcnN0ACNbTHhzYnRpL2FwaS9faW50ZXJuYWxPbmx5X05hbWVIYXNoO1sADnJlZ3VsYXJNZW1iZXJzcQB+AAd4cHVyACNbTHhzYnRpLmFwaS5faW50ZXJuYWxPbmx5X05hbWVIYXNoO0lagLbdlov0AgAAeHAAAAAAdXEAfgAJAAAAAHNyABN4c2J0aS5hcGkuU291cmNlQVBJuV6n+SkjOKQCAAJbAAtkZWZpbml0aW9uc3QAF1tMeHNidGkvYXBpL0RlZmluaXRpb247WwAIcGFja2FnZXN0ABRbTHhzYnRpL2FwaS9QYWNrYWdlO3hwdXIAF1tMeHNidGkuYXBpLkRlZmluaXRpb247iMlc57TjXg4CAAB4cAAAAAFzcgATeHNidGkuYXBpLkNsYXNzTGlrZYM0HKHfsJdsAgAETAAOZGVmaW5pdGlvblR5cGV0ABpMeHNidGkvYXBpL0RlZmluaXRpb25UeXBlO1sAEHNhdmVkQW5ub3RhdGlvbnN0ABNbTGphdmEvbGFuZy9TdHJpbmc7TAAIc2VsZlR5cGV0ABBMeHNidGkvYXBpL0xhenk7TAAJc3RydWN0dXJlcQB+ABV4cgAheHNidGkuYXBpLlBhcmFtZXRlcml6ZWREZWZpbml0aW9u+RFusdVQPOICAAFbAA50eXBlUGFyYW1ldGVyc3QAGltMeHNidGkvYXBpL1R5cGVQYXJhbWV0ZXI7eHIAFHhzYnRpLmFwaS5EZWZpbml0aW9uhyob6HFC40YCAARMAAZhY2Nlc3N0ABJMeHNidGkvYXBpL0FjY2VzcztbAAthbm5vdGF0aW9uc3QAF1tMeHNidGkvYXBpL0Fubm90YXRpb247TAAJbW9kaWZpZXJzdAAVTHhzYnRpL2FwaS9Nb2RpZmllcnM7TAAEbmFtZXQAEkxqYXZhL2xhbmcvU3RyaW5nO3hwc3IAEHhzYnRpLmFwaS5QdWJsaWO6WD2ubC1gQgIAAHhyABB4c2J0aS5hcGkuQWNjZXNz3WKa+B1jMUgCAAB4cHVyABdbTHhzYnRpLmFwaS5Bbm5vdGF0aW9uO+uX6xkQ9o1IAgAAeHAAAAAAc3IAE3hzYnRpLmFwaS5Nb2RpZmllcnPHERMhaZzcJAIAAUIABWZsYWdzeHAAdAAMTWltYUV4Y2x1ZGVzdXIAGltMeHNidGkuYXBpLlR5cGVQYXJhbWV0ZXI72W0mDyid8rYCAAB4cAAAAAB+cgAYeHNidGkuYXBpLkRlZmluaXRpb25UeXBlAAAAAAAAAAASAAB4cgAOamF2YS5sYW5nLkVudW0AAAAAAAAAABIAAHhwdAAGTW9kdWxldXIAE1tMamF2YS5sYW5nLlN0cmluZzut0lbn6R17RwIAAHhwAAAAAHNyABN4c2J0aS5TYWZlTGF6eSRJbXBsUAIuk5eXQD8CAANaAAhiaXRtYXAkMEwAAl90dAASTGphdmEvbGFuZy9PYmplY3Q7TAAEZXZhbHQAEUxzY2FsYS9GdW5jdGlvbjA7eHIAFnhzYnRpLmFwaS5BYnN0cmFjdExhennTd7UBX7vnoAIAAHhwAXNyABN4c2J0aS5hcGkuRW1wdHlUeXBlvP2eRkk7iSQCAAB4cgAUeHNidGkuYXBpLlNpbXBsZVR5cGVyeGKIISO/QAIAAHhyAA54c2J0aS5hcGkuVHlwZT9q2SEWSarKAgAAeHBwc3EAfgAuAXNyABN4c2J0aS5hcGkuU3RydWN0dXJlqar5gJNv2AACAANMAAhkZWNsYXJlZHEAfgAVTAAJaW5oZXJpdGVkcQB+ABVMAAdwYXJlbnRzcQB+ABV4cQB+ADVzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXIAEVtMeHNidGkuYXBpLlR5cGU7dP+lWnv56UECAAB4cAAAAAJzcgAUeHNidGkuYXBpLlByb2plY3Rpb27z0o1U6UWkLQIAAkwAAmlkcQB+ABxMAAZwcmVmaXh0ABZMeHNidGkvYXBpL1NpbXBsZVR5cGU7eHEAfgA0dAAGT2JqZWN0c3IAE3hzYnRpLmFwaS5TaW5nbGV0b278p1/4z1bkRgIAAUwABHBhdGh0ABBMeHNidGkvYXBpL1BhdGg7eHEAfgA0c3IADnhzYnRpLmFwaS5QYXRomz1cCM6lJ4QCAAFbAApjb21wb25lbnRzdAAaW0x4c2J0aS9hcGkvUGF0aENvbXBvbmVudDt4cHVyABpbTHhzYnRpLmFwaS5QYXRoQ29tcG9uZW50O0PaCXQtZxZ0AgAAeHAAAAADc3IADHhzYnRpLmFwaS5JZJgybIs3U8RAAgABTAACaWRxAH4AHHhyABd4c2J0aS5hcGkuUGF0aENvbXBvbmVudF+aIlsuhp+8AgAAeHB0AARqYXZhc3EAfgBNdAAEbGFuZ3NyAA54c2J0aS5hcGkuVGhpc9sJ7abMWkBcAgAAeHEAfgBOc3EAfgBBdAADQW55c3EAfgBFc3EAfgBIdXEAfgBLAAAAAnNxAH4ATXQABXNjYWxhcQB+AFRwcHVyABRbTHhzYnRpLmFwaS5QYWNrYWdlO1sTGTdwpyehAgAAeHAAAAAAc3IAFXhzYnRpLmFwaS5Db21waWxhdGlvbu364MNq6KBCAgACSgAJc3RhcnRUaW1lWwAHb3V0cHV0c3QAGltMeHNidGkvYXBpL091dHB1dFNldHRpbmc7eHAAAAFK5dtuTXVyABpbTHhzYnRpLmFwaS5PdXRwdXRTZXR0aW5nO39qwvOnh6VCAgAAeHAAAAABc3IAF3hzYnRpLmFwaS5PdXRwdXRTZXR0aW5netmaR3T7HXsCAAJMAA9vdXRwdXREaXJlY3RvcnlxAH4AHEwAD3NvdXJjZURpcmVjdG9yeXEAfgAceHB0AEkvVXNlcnMvaW50ZXIvRGV2ZWxvcC9zcGFyay1iZGQvcHJvamVjdC90YXJnZXQvc2NhbGEtMi4xMC9zYnQtMC4xMy9jbGFzc2VzdAABL3VyAAJbQqzzF/gGCFTgAgAAeHAAAAAUnw0yHweam18x0rNTtK0lF4vA+zQ=
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> 
+rO0ABXNyABB4c2J0aS5hcGkuU291cmNlFlpwRASfbtoCAAZJAAdhcGlIYXNoWgAIaGFzTWFjcm9MABhfaW50ZXJuYWxPbmx5X25hbWVIYXNoZXN0ACRMeHNidGkvYXBpL19pbnRlcm5hbE9ubHlfTmFtZUhhc2hlcztMAANhcGl0ABVMeHNidGkvYXBpL1NvdXJjZUFQSTtMAAtjb21waWxhdGlvbnQAF0x4c2J0aS9hcGkvQ29tcGlsYXRpb247WwAEaGFzaHQAAltCeHAbsfmJAHNyACJ4c2J0aS5hcGkuX2ludGVybmFsT25seV9OYW1lSGFzaGVzVNq+mfrU7EwCAAJbAA9pbXBsaWNpdE1lbWJlcnN0ACNbTHhzYnRpL2FwaS9faW50ZXJuYWxPbmx5X05hbWVIYXNoO1sADnJlZ3VsYXJNZW1iZXJzcQB+AAd4cHVyACNbTHhzYnRpLmFwaS5faW50ZXJuYWxPbmx5X05hbWVIYXNoO0lagLbdlov0AgAAeHAAAAAAdXEAfgAJAAAAAHNyABN4c2J0aS5hcGkuU291cmNlQVBJuV6n+SkjOKQCAAJbAAtkZWZpbml0aW9uc3QAF1tMeHNidGkvYXBpL0RlZmluaXRpb247WwAIcGFja2FnZXN0ABRbTHhzYnRpL2FwaS9QYWNrYWdlO3hwdXIAF1tMeHNidGkuYXBpLkRlZmluaXRpb247iMlc57TjXg4CAAB4cAAAAApzcgATeHNidGkuYXBpLkNsYXNzTGlrZYM0HKHfsJdsAgAETAAOZGVmaW5pdGlvblR5cGV0ABpMeHNidGkvYXBpL0RlZmluaXRpb25UeXBlO1sAEHNhdmVkQW5ub3RhdGlvbnN0ABNbTGphdmEvbGFuZy9TdHJpbmc7TAAIc2VsZlR5cGV0ABBMeHNidGkvYXBpL0xhenk7TAAJc3RydWN0dXJlcQB+ABV4cgAheHNidGkuYXBpLlBhcmFtZXRlcml6ZWREZWZpbml0aW9u+RFusdVQPOICAAFbAA50eXBlUGFyYW1ldGVyc3QAGltMeHNidGkvYXBpL1R5cGVQYXJhbWV0ZXI7eHIAFHhzYnRpLmFwaS5EZWZpbml0aW9uhyob6HFC40YCAARMAAZhY2Nlc3N0ABJMeHNidGkvYXBpL0FjY2VzcztbAAthbm5vdGF0aW9uc3QAF1tMeHNidGkvYXBpL0Fubm90YXRpb247TAAJbW9kaWZpZXJzdAAVTHhzYnRpL2FwaS9Nb2RpZmllcnM7TAAEbmFtZXQAEkxqYXZhL2xhbmcvU3RyaW5nO3hwc3IAEHhzYnRpLmFwaS5QdWJsaWO6WD2ubC1gQgIAAHhyABB4c2J0aS5hcGkuQWNjZXNz3WKa+B1jMUgCAAB4cHVyABdbTHhzYnRpLmFwaS5Bbm5vdGF0aW9uO+uX6xkQ9o1IAgAAeHAAAAAAc3IAE3hzYnRpLmFwaS5Nb2RpZmllcnPHERMhaZzcJAIAAUIABWZsYWdzeHAAdAAMQnVpbGRDb21tb25zdXIAGltMeHNidGkuYXBpLlR5cGVQYXJhbWV0ZXI72W0mDyid8rYCAAB4cAAAAAB+cgAYeHNidGkuYXBpLkRlZmluaXRpb25UeXBlAAAAAAAAAAASAAB4cgAOamF2YS5sYW5nLkVudW0AAAAAAAAAABIAAHhwdAAGTW9kdWxldXIAE1tMamF2YS5sYW5nLlN0cmluZzut0lbn6R17RwIAAHhwAAAAAHNyABN4c2J0aS5TYWZlTGF6eSRJbXBsUAIuk5eXQD8CAANaAAhiaXRtYXAkMEwAAl90dAASTGphdmEvbGFuZy9PYmplY3Q7TAAEZXZhbHQAEUxzY2FsYS9GdW5jdGlvbjA7eHIAFnhzYnRpLmFwaS5BYnN0cmFjdExhennTd7UBX7vnoAIAAHhwAXNyABN4c2J0aS5hcGkuRW1wdHlUeXBlvP2eRkk7iSQCAAB4cgAUeHNidGkuYXBpLlNpbXBsZVR5cGVyeGKIISO/QAIAAHhyAA54c2J0aS5hcGkuVHlwZT9q2SEWSarKAgAAeHBwc3EAfgAuAXNyABN4c2J0aS5hcGkuU3RydWN0dXJlqar5gJNv2AACAANMAAhkZWNsYXJlZHEAfgAVTAAJaW5oZXJpdGVkcQB+ABVMAAdwYXJlbnRzcQB+ABV4cQB+ADVzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXEAfgAQAAAAAHBzcQB+AC4BdXIAEVtMeHNidGkuYXBpLlR5cGU7dP+lWnv56UECAAB4cAAAAAJzcgAUeHNidGkuYXBpLlByb2plY3Rpb27z0o1U6UWkLQIAAkwAAmlkcQB+ABxMAAZwcmVmaXh0ABZ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
+external apis:
+2 items
+com.typesafe.sbt.pom.PomBuild -> 
+rO0ABXNyABB4c2J0aS5hcGkuU291cmNlFlpwRASfbtoCAAZJAAdhcGlIYXNoWgAIaGFzTWFjcm9MABhfaW50ZXJuYWxPbmx5X25hbWVIYXNoZXN0ACRMeHNidGkvYXBpL19pbnRlcm5hbE9ubHlfTmFtZUhhc2hlcztMAANhcGl0ABVMeHNidGkvYXBpL1NvdXJjZUFQSTtMAAtjb21waWxhdGlvbnQAF0x4c2J0aS9hcGkvQ29tcGlsYXRpb247WwAEaGFzaHQAAltCeHAcgi0mAHNyACJ4c2J0aS5hcGkuX2ludGVybmFsT25seV9OYW1lSGFzaGVzVNq+mfrU7EwCAAJbAA9pbXBsaWNpdE1lbWJlcnN0ACNbTHhzYnRpL2FwaS9faW50ZXJuYWxPbmx5X05hbWVIYXNoO1sADnJlZ3VsYXJNZW1iZXJzcQB+AAd4cHVyACNbTHhzYnRpLmFwaS5faW50ZXJuYWxPbmx5X05hbWVIYXNoO0lagLbdlov0AgAAeHAAAAAAdXEAfgAJAAAAAHNyABN4c2J0aS5hcGkuU291cmNlQVBJuV6n+SkjOKQCAAJbAAtkZWZpbml0aW9uc3QAF1tMeHNidGkvYXBpL0RlZmluaXRpb247WwAIcGFja2FnZXN0ABRbTHhzYnRpL2FwaS9QYWNrYWdlO3hwdXIAF1tMeHNidGkuYXBpLkRlZmluaXRpb247iMlc57TjXg4CAAB4cAAAAAFzcgATeHNidGkuYXBpLkNsYXNzTGlrZYM0HKHfsJdsAgAETAAOZGVmaW5pdGlvblR5cGV0ABpMeHNidGkvYXBpL0RlZmluaXRpb25UeXBlO1sAEHNhdmVkQW5ub3RhdGlvbnN0ABNbTGphdmEvbGFuZy9TdHJpbmc7TAAIc2VsZlR5cGV0ABBMeHNidGkvYXBpL0xhenk7TAAJc3RydWN0dXJlcQB+ABV4cgAheHNidGkuYXBpLlBhcmFtZXRlcml6ZWREZWZpbml0aW9u+RFusdVQPOICAAFbAA50eXBlUGFyYW1ldGVyc3QAGltMeHNidGkvYXBpL1R5cGVQYXJhbWV0ZXI7eHIAFHhzYnRpLmFwaS5EZWZpbml0aW9uhyob6HFC40YCAARMAAZhY2Nlc3N0ABJMeHNidGkvYXBpL0FjY2VzcztbAAthbm5vdGF0aW9uc3QAF1tMeHNidGkvYXBpL0Fubm90YXRpb247TAAJbW9kaWZpZXJzdAAVTHhzYnRpL2FwaS9Nb2RpZmllcnM7TAAEbmFtZXQAEkxqYXZhL2xhbmcvU3RyaW5nO3hwc3IAEHhzYnRpLmFwaS5QdWJsaWO6WD2ubC1gQgIAAHhyABB4c2J0aS5hcGkuQWNjZXNz3WKa+B1jMUgCAAB4cHVyABdbTHhzYnRpLmFwaS5Bbm5vdGF0aW9uO+uX6xkQ9o1IAgAAeHAAAAAAc3IAE3hzYnRpLmFwaS5Nb2RpZmllcnPHERMhaZzcJAIAAUIABWZsYWdzeHABdAAdY29tLnR5cGVzYWZlLnNidC5wb20uUG9tQnVpbGR1cgAaW0x4c2J0aS5hcGkuVHlwZVBhcmFtZXRlcjvZbSYPKJ3ytgIAAHhwAAAAAH5yABh4c2J0aS5hcGkuRGVmaW5pdGlvblR5cGUAAAAAAAAAABIAAHhyAA5qYXZhLmxhbmcuRW51bQAAAAAAAAAAEgAAeHB0AAVUcmFpdHVyABNbTGphdmEubGFuZy5TdHJpbmc7rdJW5+kde0cCAAB4cAAAAABzcgATeHNidGkuU2FmZUxhenkkSW1wbFACLpOXl0A/AgADWgAIYml0bWFwJDBMAAJfdHQAEkxqYXZhL2xhbmcvT2JqZWN0O0wABGV2YWx0ABFMc2NhbGEvRnVuY3Rpb24wO3hyABZ4c2J0aS5hcGkuQWJzdHJhY3RMYXp503e1AV+756ACAAB4cAFzcgATeHNidGkuYXBpLkVtcHR5VHlwZbz9nkZJO4kkAgAAeHIAFHhzYnRpLmFwaS5TaW1wbGVUeXBlcnhiiCEjv0ACAAB4cgAOeHNidGkuYXBpLlR5cGU/atkhFkmqygIAAHhwcHNxAH4ALgFzcgATeHNidGkuYXBpLlN0cnVjdHVyZamq+YCTb9gAAgADTAAIZGVjbGFyZWRxAH4AFUwACWluaGVyaXRlZHEAfgAVTAAHcGFyZW50c3EAfgAVeHEAfgA1c3EAfgAuAXVxAH4AEAAAAABwc3EAfgAuAXVxAH4AEAAAAABwc3EAfgAuAXVyABFbTHhzYnRpLmFwaS5UeXBlO3T/pVp7+elBAgAAeHAAAAADc3IAFHhzYnRpLmFwaS5Qcm9qZWN0aW9u89KNVOlFpC0CAAJMAAJpZHEAfgAcTAAGcHJlZml4dAAWTHhzYnRpL2FwaS9TaW1wbGVUeXBlO3hxAH4ANHQABUJ1aWxkc3IAE3hzYnRpLmFwaS5TaW5nbGV0b278p1/4z1bkRgIAAUwABHBhdGh0ABBMeHNidGkvYXBpL1BhdGg7eHEAfgA0c3IADnhzYnRpLmFwaS5QYXRomz1cCM6lJ4QCAAFbAApjb21wb25lbnRzdAAaW0x4c2J0aS9hcGkvUGF0aENvbXBvbmVudDt4cHVyABpbTHhzYnRpLmFwaS5QYXRoQ29tcG9uZW50O0PaCXQtZxZ0AgAAeHAAAAACc3IADHhzYnRpLmFwaS5JZJgybIs3U8RAAgABTAACaWRxAH4AHHhyABd4c2J0aS5hcGkuUGF0aENvbXBvbmVudF+aIlsuhp+8AgAAeHB0AANzYnRzcgAOeHNidGkuYXBpLlRoaXPbCe2mzFpAXAIAAHhxAH4ATnNxAH4AQXQABk9iamVjdHNxAH4ARXNxAH4ASHVxAH4ASwAAAANzcQB+AE10AARqYXZhc3EAfgBNdAAEbGFuZ3EAfgBSc3EAfgBBdAADQW55c3EAfgBFc3EAfgBIdXEAfgBLAAAAAnNxAH4ATXQABXNjYWxhcQB+AFJwcHVyABRbTHhzYnRpLmFwaS5QYWNrYWdlO1sTGTdwpyehAgAAeHAAAAAEc3IAEXhzYnRpLmFwaS5QYWNrYWdlflmP9q7OOVgCAAFMAARuYW1lcQB+ABx4cHQAEGNvbS50eXBlc2FmZS5zYnRzcQB+AGV0AAxjb20udHlwZXNhZmVzcQB+AGV0ABRjb20udHlwZXNhZmUuc2J0LnBvbXNxAH4AZXQAA2NvbXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuXbRNt1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5cQB+ABxMAA9zb3VyY2VEaXJlY3RvcnlxAH4AHHhwdABlL1VzZXJzL2ludGVyLy5zYnQvMC4xMy9zdGFnaW5nL2VjM2FhOGYzOTExMTk0NGNjNWYyL3NidC1wb20tcmVhZGVyL3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEvdXIAAltCrPMX+AYIVOACAAB4cAAAABTX/3PMa1WvHcmT99Cf40alA8opUw==
+com.typesafe.sbt.pom.SbtPomKeys$ -> 
+rO0ABXNyABB4c2J0aS5hcGkuU291cmNlFlpwRASfbtoCAAZJAAdhcGlIYXNoWgAIaGFzTWFjcm9MABhfaW50ZXJuYWxPbmx5X25hbWVIYXNoZXN0ACRMeHNidGkvYXBpL19pbnRlcm5hbE9ubHlfTmFtZUhhc2hlcztMAANhcGl0ABVMeHNidGkvYXBpL1NvdXJjZUFQSTtMAAtjb21waWxhdGlvbnQAF0x4c2J0aS9hcGkvQ29tcGlsYXRpb247WwAEaGFzaHQAAltCeHClHJL0AHNyACJ4c2J0aS5hcGkuX2ludGVybmFsT25seV9OYW1lSGFzaGVzVNq+mfrU7EwCAAJbAA9pbXBsaWNpdE1lbWJlcnN0ACNbTHhzYnRpL2FwaS9faW50ZXJuYWxPbmx5X05hbWVIYXNoO1sADnJlZ3VsYXJNZW1iZXJzcQB+AAd4cHVyACNbTHhzYnRpLmFwaS5faW50ZXJuYWxPbmx5X05hbWVIYXNoO0lagLbdlov0AgAAeHAAAAAAdXEAfgAJAAAAAHNyABN4c2J0aS5hcGkuU291cmNlQVBJuV6n+SkjOKQCAAJbAAtkZWZpbml0aW9uc3QAF1tMeHNidGkvYXBpL0RlZmluaXRpb247WwAIcGFja2FnZXN0ABRbTHhzYnRpL2FwaS9QYWNrYWdlO3hwdXIAF1tMeHNidGkuYXBpLkRlZmluaXRpb247iMlc57TjXg4CAAB4cAAAAAFzcgATeHNidGkuYXBpLkNsYXNzTGlrZYM0HKHfsJdsAgAETAAOZGVmaW5pdGlvblR5cGV0ABpMeHNidGkvYXBpL0RlZmluaXRpb25UeXBlO1sAEHNhdmVkQW5ub3RhdGlvbnN0ABNbTGphdmEvbGFuZy9TdHJpbmc7TAAIc2VsZlR5cGV0ABBMeHNidGkvYXBpL0xhenk7TAAJc3RydWN0dXJlcQB+ABV4cgAheHNidGkuYXBpLlBhcmFtZXRlcml6ZWREZWZpbml0aW9u+RFusdVQPOICAAFbAA50eXBlUGFyYW1ldGVyc3QAGltMeHNidGkvYXBpL1R5cGVQYXJhbWV0ZXI7eHIAFHhzYnRpLmFwaS5EZWZpbml0aW9uhyob6HFC40YCAARMAAZhY2Nlc3N0ABJMeHNidGkvYXBpL0FjY2VzcztbAAthbm5vdGF0aW9uc3QAF1tMeHNidGkvYXBpL0Fubm90YXRpb247TAAJbW9kaWZpZXJzdAAVTHhzYnRpL2FwaS9Nb2RpZmllcnM7TAAEbmFtZXQAEkxqYXZhL2xhbmcvU3RyaW5nO3hwc3IAEHhzYnRpLmFwaS5QdWJsaWO6WD2ubC1gQgIAAHhyABB4c2J0aS5hcGkuQWNjZXNz3WKa+B1jMUgCAAB4cHVyABdbTHhzYnRpLmFwaS5Bbm5vdGF0aW9uO+uX6xkQ9o1IAgAAeHAAAAAAc3IAE3hzYnRpLmFwaS5Nb2RpZmllcnPHERMhaZzcJAIAAUIABWZsYWdzeHAAdAAfY29tLnR5cGVzYWZlLnNidC5wb20uU2J0UG9tS2V5c3VyABpbTHhzYnRpLmFwaS5UeXBlUGFyYW1ldGVyO9ltJg8onfK2AgAAeHAAAAAAfnIAGHhzYnRpLmFwaS5EZWZpbml0aW9uVHlwZQAAAAAAAAAAEgAAeHIADmphdmEubGFuZy5FbnVtAAAAAAAAAAASAAB4cHQABk1vZHVsZXVyABNbTGphdmEubGFuZy5TdHJpbmc7rdJW5+kde0cCAAB4cAAAAABzcgATeHNidGkuU2FmZUxhenkkSW1wbFACLpOXl0A/AgADWgAIYml0bWFwJDBMAAJfdHQAEkxqYXZhL2xhbmcvT2JqZWN0O0wABGV2YWx0ABFMc2NhbGEvRnVuY3Rpb24wO3hyABZ4c2J0aS5hcGkuQWJzdHJhY3RMYXp503e1AV+756ACAAB4cAFzcgATeHNidGkuYXBpLkVtcHR5VHlwZbz9nkZJO4kkAgAAeHIAFHhzYnRpLmFwaS5TaW1wbGVUeXBlcnhiiCEjv0ACAAB4cgAOeHNidGkuYXBpLlR5cGU/atkhFkmqygIAAHhwcHNxAH4ALgFzcgATeHNidGkuYXBpLlN0cnVjdHVyZamq+YCTb9gAAgADTAAIZGVjbGFyZWRxAH4AFUwACWluaGVyaXRlZHEAfgAVTAAHcGFyZW50c3EAfgAVeHEAfgA1c3EAfgAuAXVxAH4AEAAAAABwc3EAfgAuAXVxAH4AEAAAAABwc3EAfgAuAXVyABFbTHhzYnRpLmFwaS5UeXBlO3T/pVp7+elBAgAAeHAAAAACc3IAFHhzYnRpLmFwaS5Qcm9qZWN0aW9u89KNVOlFpC0CAAJMAAJpZHEAfgAcTAAGcHJlZml4dAAWTHhzYnRpL2FwaS9TaW1wbGVUeXBlO3hxAH4ANHQABk9iamVjdHNyABN4c2J0aS5hcGkuU2luZ2xldG9u/Kdf+M9W5EYCAAFMAARwYXRodAAQTHhzYnRpL2FwaS9QYXRoO3hxAH4ANHNyAA54c2J0aS5hcGkuUGF0aJs9XAjOpSeEAgABWwAKY29tcG9uZW50c3QAGltMeHNidGkvYXBpL1BhdGhDb21wb25lbnQ7eHB1cgAaW0x4c2J0aS5hcGkuUGF0aENvbXBvbmVudDtD2gl0LWcWdAIAAHhwAAAAA3NyAAx4c2J0aS5hcGkuSWSYMmyLN1PEQAIAAUwAAmlkcQB+ABx4cgAXeHNidGkuYXBpLlBhdGhDb21wb25lbnRfmiJbLoafvAIAAHhwdAAEamF2YXNxAH4ATXQABGxhbmdzcgAOeHNidGkuYXBpLlRoaXPbCe2mzFpAXAIAAHhxAH4ATnNxAH4AQXQAA0FueXNxAH4ARXNxAH4ASHVxAH4ASwAAAAJzcQB+AE10AAVzY2FsYXEAfgBUcHB1cgAUW0x4c2J0aS5hcGkuUGFja2FnZTtbExk3cKcnoQIAAHhwAAAABHNyABF4c2J0aS5hcGkuUGFja2FnZX5Zj/auzjlYAgABTAAEbmFtZXEAfgAceHB0ABBjb20udHlwZXNhZmUuc2J0c3EAfgBedAAMY29tLnR5cGVzYWZlc3EAfgBedAAUY29tLnR5cGVzYWZlLnNidC5wb21zcQB+AF50AANjb21zcgAVeHNidGkuYXBpLkNvbXBpbGF0aW9u7frgw2rooEICAAJKAAlzdGFydFRpbWVbAAdvdXRwdXRzdAAaW0x4c2J0aS9hcGkvT3V0cHV0U2V0dGluZzt4cAAAAUrl20TbdXIAGltMeHNidGkuYXBpLk91dHB1dFNldHRpbmc7f2rC86eHpUICAAB4cAAAAAFzcgAXeHNidGkuYXBpLk91dHB1dFNldHRpbmd62ZpHdPsdewIAAkwAD291dHB1dERpcmVjdG9yeXEAfgAcTAAPc291cmNlRGlyZWN0b3J5cQB+ABx4cHQAZS9Vc2Vycy9pbnRlci8uc2J0LzAuMTMvc3RhZ2luZy9lYzNhYThmMzkxMTE5NDRjYzVmMi9zYnQtcG9tLXJlYWRlci90YXJnZXQvc2NhbGEtMi4xMC9zYnQtMC4xMy9jbGFzc2VzdAABL3VyAAJbQqzzF/gGCFTgAgAAeHAAAAAUfiRMsYAB8qU9GWiRMdTMtkpj5f4=
+source infos:
+3 items
+/Users/inter/Develop/spark-bdd/project/MimaBuild.scala -> 
+AAAAAAAAAAA=
+/Users/inter/Develop/spark-bdd/project/MimaExcludes.scala -> 
+AAAAAAAAAAA=
+/Users/inter/Develop/spark-bdd/project/SparkBuild.scala -> 
+AAAAAAAAAAEAAAEAAAC+ADogIGRlZiBvbGREZXBzU2V0dGluZ3MoKSA9IERlZmF1bHRzLmRlZmF1bHRTZXR0aW5ncyArKyBTZXEoAQAAHYwBAAAAIwEAIyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgAQA3L1VzZXJzL2ludGVyL0RldmVsb3Avc3BhcmstYmRkL3Byb2plY3QvU3BhcmtCdWlsZC5zY2FsYQEANy9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L1NwYXJrQnVpbGQuc2NhbGEAPnZhbHVlIGRlZmF1bHRTZXR0aW5ncyBpbiBvYmplY3QgRGVmYXVsdHMgaXMgZGVwcmVjYXRlZDogMC4xMy4yAQ==
+compilations:
+7 items
+0 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuUvpp91cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+1 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuW6DpV1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+2 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuW6Udp1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+3 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuW7OAt1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+4 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuXGecV1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+5 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuXHljF1cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv
+6 -> rO0ABXNyABV4c2J0aS5hcGkuQ29tcGlsYXRpb27t+uDDauigQgIAAkoACXN0YXJ0VGltZVsAB291dHB1dHN0ABpbTHhzYnRpL2FwaS9PdXRwdXRTZXR0aW5nO3hwAAABSuXbbk11cgAaW0x4c2J0aS5hcGkuT3V0cHV0U2V0dGluZzt/asLzp4elQgIAAHhwAAAAAXNyABd4c2J0aS5hcGkuT3V0cHV0U2V0dGluZ3rZmkd0+x17AgACTAAPb3V0cHV0RGlyZWN0b3J5dAASTGphdmEvbGFuZy9TdHJpbmc7TAAPc291cmNlRGlyZWN0b3J5cQB+AAZ4cHQASS9Vc2Vycy9pbnRlci9EZXZlbG9wL3NwYXJrLWJkZC9wcm9qZWN0L3RhcmdldC9zY2FsYS0yLjEwL3NidC0wLjEzL2NsYXNzZXN0AAEv

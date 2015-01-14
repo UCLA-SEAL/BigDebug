@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.spark:spark-streaming-zeromq_2.10:1.0.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/spark-streaming-zeromq_2.10-1.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

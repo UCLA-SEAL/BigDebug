@@ -1,0 +1,100 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.spark.examples.lineage
+
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkConf, SparkContext}
+
+import scala.collection.mutable
+import scala.util.Random
+
+/**
+ * Transitive closure on a graph.
+ */
+object SparkTC {
+  val numEdges = 20
+  val numVertices = 10
+  val rand = new Random(42)
+
+  def generateGraph = {
+    val edges: mutable.Set[(Int, Int)] = mutable.Set.empty
+    while (edges.size < numEdges) {
+      val from = rand.nextInt(numVertices)
+      val to = rand.nextInt(numVertices)
+      if (from != to) edges.+=((from, to))
+    }
+    edges.toSeq
+  }
+
+  def main(args: Array[String]) {
+    val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkTC")
+    val sc = new SparkContext(sparkConf)
+    val slices = if (args.length > 0) args(0).toInt else 2
+    sc.setCheckpointDir("./tmp/")
+    val lc = new LineageContext(sc)
+    lc.setCaptureLineage(true)
+
+    var tc = lc.parallelize(generateGraph, slices)
+
+    // Linear transitive closure: each round grows paths by one edge,
+    // by joining the graph's edges with the already-discovered paths.
+    // e.g. join the path (y, z) from the TC with the edge (x, y) from
+    // the graph to obtain the path (x, z).
+
+    // Because join() joins on keys, the edges are stored in reversed order.
+    val edges = tc.map(x => (x._2, x._1))
+
+    // This join is iterated until a fixed point is reached.
+    var oldCount = 0L
+    var nextCount = tc.count()
+    var count = 0
+    do {
+      oldCount = nextCount
+//    // Perform the join, obtaining an RDD of (y, (z, x)) pairs,
+//    // then project the result to obtain the new (x, z) paths.
+      tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1))).distinct()
+      nextCount = tc.count()
+      count = count + 1
+    } while (nextCount != oldCount)
+
+    println("TC has " + nextCount + " edges.")
+    lc.setCaptureLineage(false)
+
+    var lineage = tc.getLineage()
+    lineage.collect().foreach(println)
+
+    for(i<-1 to count-1) {
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+      var show = lineage.show
+      lineage = show.getLineage()
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+      show = lineage.show
+      lineage = show.getLineage()
+      lineage = lineage.goBack()
+      lineage.collect().foreach(println)
+    }
+
+    var show = lineage.show
+    lineage = show.getLineage()
+    lineage.collect().foreach(println)
+    sc.stop()
+  }
+}
