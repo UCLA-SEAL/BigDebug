@@ -1389,6 +1389,7 @@ abstract class RDD[T: ClassTag](
 
   //TODO Ksh
   def commitNewt() : Unit = {
-    //exception
+     //System.out.println("RDD commit")
+     //exception
   }
 }

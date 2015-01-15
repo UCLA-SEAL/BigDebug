@@ -21,6 +21,7 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.Dependency
 
 import scala.reflect.ClassTag
+import scala.collection.JavaConversions._
 
 private[spark]
 class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
@@ -33,7 +34,13 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     recordId = (id, splitId, newRecordId)
     addRecordInfo(recordId, tContext.currentRecordInfo)
     //TODO Ksh
-    newt.add(recordId.toString())
+    newt.add(recordId.toString(),tContext.currentRecordInfo.map(_.toString()))
     (record._1, (record._2, recordId)).asInstanceOf[T]
+  }
+
+  //TODO Ksh
+  override def commitNewt(): Unit =
+  {
+    newt.commit()
   }
 }

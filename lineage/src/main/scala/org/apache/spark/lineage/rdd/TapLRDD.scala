@@ -81,14 +81,11 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     //Using Random Int to avoid same table names
     val newtId:Int = splitId + Random.nextInt(Integer.MAX_VALUE);
     newt = new NewtWrapper(newtId)
-    System.out.println("Compute "+ newtId)
+
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
     val iterator = firstParent[T].iterator(split, context).map(tap)
-
-    //TODO Ksh
-    System.out.println("End Compute "+ newtId)
 
     iterator
   }

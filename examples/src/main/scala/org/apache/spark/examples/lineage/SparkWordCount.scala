@@ -23,9 +23,10 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object SparkWordCount {
   def main(args: Array[String]) {
-    val logFile = "README.md"
+    //val logFile = "README.md"
+    val logFile = "small-data.txt"
     val conf = new SparkConf()
-      .setMaster("local[3]")
+      .setMaster("local[1]")
       //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
       //.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
       .setAppName("Simple Scala Application")
@@ -37,7 +38,9 @@ object SparkWordCount {
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    counts.collect().foreach(println)
+    //TODO Ksh
+    //counts.collect().foreach(println)
+    counts.collect()
 
     // Get the lineage
     lc.setCaptureLineage(false)
@@ -56,13 +59,16 @@ object SparkWordCount {
     //lineage = show.getLineage.goNext()
     //lineage.show
     lineage = lineage.goBack()
-    lineage.collect.foreach(println)
+    //TODO Ksh
+    //lineage.collect.foreach(println)
     show = lineage.show
     lineage = show.getLineage()
     lineage = lineage.goNext()
-    lineage.collect.foreach(println)
+    //TODO Ksh
+    //lineage.collect.foreach(println)
     lineage = lineage.goNext()
-    lineage.collect.foreach(println)
+    //TODO Ksh
+    //lineage.collect.foreach(println)
     show = lineage.show
     lineage = show.getLineage()
   }

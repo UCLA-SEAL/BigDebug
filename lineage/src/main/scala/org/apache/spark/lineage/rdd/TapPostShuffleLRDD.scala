@@ -23,6 +23,7 @@ import org.apache.spark.lineage.LineageContext._
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.collection.JavaConversions._
 
 private[spark]
 class TapPostShuffleLRDD[T: ClassTag](
@@ -37,9 +38,15 @@ class TapPostShuffleLRDD[T: ClassTag](
     recordId = record._2
     addRecordInfo(recordId, tContext.currentRecordInfo)
     //TODO Ksh
-    newt.add(recordId.toString())
+    newt.add(recordId.toString(),tContext.currentRecordInfo.map(_.toString()))
     tContext.currentRecordInfo = Seq(recordId)
 
     record._1
+  }
+
+  //TODO Ksh
+  override def commitNewt(): Unit =
+  {
+    newt.commit()
   }
 }
