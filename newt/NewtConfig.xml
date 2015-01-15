@@ -6,8 +6,8 @@
         <Password value="root"/>
     </Mysql>
     <Nodes>
-      <Master value="131.179.49.97"/>
-      <Slave value="131.179.49.97"/>
+      <Master value="131.179.49.204"/>
+      <Slave value="131.179.49.204"/>
     </Nodes>
     <LogDir value="/tmp/Newt/"/>
 </Configuration>
