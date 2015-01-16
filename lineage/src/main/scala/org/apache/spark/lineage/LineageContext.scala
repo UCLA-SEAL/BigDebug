@@ -252,6 +252,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def setCaptureLineage(newLineage: Boolean) = {
     if(newLineage == false && captureLineage == true) {
       getLineage(lastLineagePosition.get)
+      NewtWrapper.finalCommit()
     }
     captureLineage = newLineage
   }
