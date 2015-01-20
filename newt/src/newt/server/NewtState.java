@@ -78,7 +78,7 @@ public class NewtState {
     String                                      master = null;
     String                                      logdir = null;
     String                                      newtHome = null;
-    boolean                                     isMaster = false;
+    boolean                                     isMaster = Configuration.isMaster;
     Vector<String>                              slaves = null;
     static int                                  nextSlave = 0;
     String                                      selfName = null;
@@ -134,9 +134,11 @@ public class NewtState {
         completedTraces = new HashMap<Integer, Vector<String>>();
 
         NewtMySql newtMysql = new NewtMySql( user, password );
-        isMaster = true;newt.common.Configuration.cleanDB= true;
+        //isMaster = true;newt.common.Configuration.cleanDB= true;
         //Configuration.cleanDB = false; 	//<----------------------------- Needed for running locally. Set when running peer
-        
+        //TODO Ksh
+        isMaster = Configuration.isMaster;
+
         newtMysql.init( isMaster, "Newt" );
         
         if( isMaster ) {

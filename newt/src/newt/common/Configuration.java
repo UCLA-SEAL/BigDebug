@@ -30,8 +30,9 @@ public class Configuration {
     public static boolean doServerCalls = true;
     public static String newtPath = ".";
     public static String masterHostName = "localhost";
-	public static int masterPort = 8899; //8899 for master //<----------------------------- Needed for running locally. Set when running peer
-    //public static int masterPort = 8898; //8898 for peer //<----------------------------- Needed for running locally. Set when running peer
+	public static boolean isMaster = false;
+	//public static int masterPort = 8899; //8899 for master //<----------------------------- Needed for running locally. Set when running peer
+    public static int masterPort = 8898; //8898 for peer //<----------------------------- Needed for running locally. Set when running peer
     public static String rsrcFileName = "/conf/resources.cfg"; // all 3 relative to newt.cfg values
     public static String logFileName = "/log/newt.log";
     public static String tempDir = Utilities.GetTempDirectory();

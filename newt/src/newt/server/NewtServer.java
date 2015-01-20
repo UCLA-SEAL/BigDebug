@@ -1,17 +1,15 @@
 package newt.server;
 
-import java.net.InetAddress;
-
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
 import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 
 import newt.common.*;
 
 public class NewtServer {
 
     private Server server;
+
 
     public NewtServer() {
         server = new Server( port );
@@ -38,7 +36,21 @@ public class NewtServer {
         return server.isStopped();
     }
 
-    private static final int    port = Configuration.masterPort;
+    private static  int    port = -1; //Configuration.masterPort;
+
+    //TODO Ksh
+    private static void UpdateConfig(String mode) {
+        Configuration.masterPort = 8898;
+        Configuration.isMaster = false;
+        if(mode.equals("master"))
+        {
+            Configuration.masterPort = 8899;
+            Configuration.isMaster = true;
+        }
+        port = Configuration.masterPort;
+        //return Configuration.masterPort;
+    }
+
     private static NewtState    newtState = null;
 
     protected static void initNewtServer() throws Exception
@@ -46,21 +58,33 @@ public class NewtServer {
         newtState = NewtState.getInstance();
     }
 
+    protected static void initNewtServer(String mode) throws Exception
+    {
+        UpdateConfig(mode);
+        newtState = NewtState.getInstance();
+    }
+
     public static void main( String[] args )
     {
         try {
             if( args.length > 0 ) {
+
                 if( args[ 0 ].equals( "clean" ) ) {
                     Configuration.cleanDB = true;
                 }
-            } else {
-                Configuration.cleanDB = false;
+                else {
+                    Configuration.cleanDB = false;
+                }
+
             }
-            NewtServer.initNewtServer();
+
+            //TODO Ksh Added logic to control master and peer mode via argument
+            if(args.length > 1)
+                NewtServer.initNewtServer(args[1]);
             NewtServer webServer = new NewtServer();
             ServletContextHandler context = new ServletContextHandler( ServletContextHandler.SESSIONS );
             context.setContextPath( "/" );
-            context.addServlet( "newt.server.NewtHandler","/hessianrpc" );
+            context.addServlet("newt.server.NewtHandler", "/hessianrpc");
             webServer.server.setHandler( context );
             webServer.start();
         } catch( Exception e ) {
