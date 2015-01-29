@@ -178,6 +178,8 @@ public class VickyCaptureTest {
         
         newtClient.rootCommit();
         System.out.println("Root commit done");
+
+
     }
         
 }

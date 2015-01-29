@@ -130,8 +130,10 @@ public class VickyTraceTest {
 		
 //		ResultSet rs = mySql.executeQuery("Select output from Newt.first_table limit 1");
 //		ResultSet rs = mySql.executeQuery("Select output from Newt.MRTRedTable_0_2 limit 1");
-		ResultSet rs = mySql.executeQuery("Select output from Newt.OJTab_0_97678a4e_6429_4c82_9a49_6e3393e5f7b9 limit 1");
-		
+		//ResultSet rs = mySql.executeQuery("Select output from Newt.HadoopActorTable501 limit 1");//OJTab_0_97678a4e_6429_4c82_9a49_6e3393e5f7b9 limit 1");
+        String tableName = "PregelOJTab_2_fa4bb9dd_5c13_4961_af6c_27bd6bdb99f4";
+        ResultSet rs = mySql.executeQuery("Select output from Newt."+tableName+" limit 1");
+
 		try {
 			while(rs.next())
 			{
@@ -145,9 +147,9 @@ public class VickyTraceTest {
 		
 //		int replayTraceID = NewtClient.trace(data, "backward", 1, 44, "VertexActor");
 //		int replayTraceID = NewtClient.trace(data, "backward", 977, 978, "TestActor");
-		int replayTraceID = NewtClient.trace(data, "backward", 1, 13, "PregelActor");
+		int replayTraceID = NewtClient.trace(data, "backward", 1, 3, "TestActor");
 		
-		NewtClient.printTraceResults( replayTraceID, "OJAct_0_97678a4e_6429_4c82_9a49_6e3393e5f7b9" );
+		NewtClient.printTraceResults( replayTraceID, "actorX" );
 //		NewtClient.printTraceResults( replayTraceID, "MRTRedAct_0_2" );
 //		int replayTraceID = NewtClient.trace(data, "backward", 1, 2, "TestActor");
 //		NewtClient.printTraceResults( replayTraceID, "first" );
