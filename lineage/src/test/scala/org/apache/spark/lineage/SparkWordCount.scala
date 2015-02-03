@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lineage.rdd
+package org.apache.spark.lineage
 
-import org.apache.hadoop.io.LongWritable
-import org.apache.spark._
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkConf, SparkContext}
 
-private[spark]
-class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[(K, V)](lc, deps)
-{
-  def this(@transient prev: HadoopLRDD[_, _]) =
-    this(prev.lineageContext, List(new OneToOneDependency(prev)))
-
-  private[spark] val filePath = firstParent[(K, V)].asInstanceOf[HadoopLRDD[K, V]].getFilePath
-
-  override def tap(record: (K, V)) = {
-    recordIdShort = (splitId, newRecordId)
-    tContext.currentRecordInfo = recordIdShort
-    addRecordInfo(recordIdShort, (filePath, record._1.asInstanceOf[LongWritable].get))
-
-    record
+object WordCount {
+  def main(args: Array[String]) {
+    val logFile = args(0)
+    val conf = new SparkConf()
+      .setMaster("local[2]")
+      //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
+      //.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      .setAppName("WordCount")
+    val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
+    lc.setCaptureLineage(args(1).toBoolean)
+    val file = lc.textFile(logFile, 2)
+    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    val counts = pairs.reduceByKey(_ + _)
+    counts.collect().foreach(println)
+    print(counts.collect().size)
   }
 }

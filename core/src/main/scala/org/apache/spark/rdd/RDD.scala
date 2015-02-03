@@ -106,7 +106,9 @@ abstract class RDD[T: ClassTag](
     dependencies_ = deps
   }
 
-  def getRecordInfos: ArrayBuffer[(Any, Any)] =  null
+  def materializeRecordInfo: Array[Any] =  Array[Any]()
+
+  def cleanTable: Unit = throw new UnsupportedOperationException("Not available for RDDs")
 
   /** ########################################################################################## */
 

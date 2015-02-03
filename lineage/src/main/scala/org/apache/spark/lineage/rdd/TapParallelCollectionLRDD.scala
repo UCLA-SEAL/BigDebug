@@ -31,8 +31,8 @@ class TapParallelCollectionLRDD[T: ClassTag](
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
   override def tap(record: T) = {
-    recordId = (id, splitId, newRecordId)
-    tContext.currentRecordInfo = Seq(recordId)
+    recordId = (id.toShort, splitId, newRecordId)
+    //tContext.currentRecordInfos = Seq(recordId)
     addRecordInfo(recordId, Seq(record))
 
     record

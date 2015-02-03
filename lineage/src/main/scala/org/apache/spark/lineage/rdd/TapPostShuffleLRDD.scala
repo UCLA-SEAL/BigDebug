@@ -29,14 +29,22 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps)
 {
-  implicit def fromTtoProduct2[T](record: T) = record.asInstanceOf[Product2[T, RecordId]]
+  implicit def fromTtoProduct2[T](record: T) = record.asInstanceOf[Product2[T, (Short, Int)]]
 
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
+  private[spark] def unroll(h: RecordId, t: List[RecordId]): List[(RecordId, RecordId)] =
+    if(t.isEmpty) Nil else (h, t.head) :: unroll(h, t.tail)
+
+  override def materializeRecordInfo: Array[Any] =
+    tContext.currentRecordInfos.flatMap(r => unroll(r._2.head, r._2.tail)).toArray
+
   override def tap(record: T) = {
-    recordId = record._2
-    addRecordInfo(recordId, tContext.currentRecordInfo)
-    tContext.currentRecordInfo = Seq(recordId)
+    tContext.currentRecordInfos.changeValue(
+      record._1._1,
+      List((id.toShort, splitId, record._2._2)),
+      (id.toShort, splitId, record._2._2) :: _)
+    tContext.currentRecordInfo = record._2
 
     record._1
   }

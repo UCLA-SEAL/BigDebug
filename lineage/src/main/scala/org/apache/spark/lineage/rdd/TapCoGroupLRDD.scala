@@ -37,9 +37,9 @@ class TapCoGroupLRDD[T: ClassTag](
         r.asInstanceOf[(T, (Int, Int, Long))]._1
       })
     })
-    recordId = (id, splitId, newRecordId)
+    recordId = (id.toShort, splitId, newRecordId)
     addRecordInfo(recordId, trace)
-    tContext.currentRecordInfo = Seq(recordId)
+    //tContext.currentRecordInfos = Seq(recordId)
 
     (record.asInstanceOf[(T, Array[Iterable[_]])]._1, iters).asInstanceOf[T]
   }

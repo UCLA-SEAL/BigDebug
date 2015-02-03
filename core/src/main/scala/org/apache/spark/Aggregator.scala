@@ -62,7 +62,15 @@ case class Aggregator[K, V, C] (
         c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
         c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
       }
-      combiners.iterator
+
+      // If currentRecordInfo is zero then no lineage is active. Added by Matteo
+      if(context.currentRecordInfo._2.equals(0)) {
+        combiners.iterator
+      } else {
+        combiners.iterator.zipWithIndex.map(r => {
+          (r._1._1, (r._1._2, (context.stageId.toShort, context.partitionId.toShort, r._2))).asInstanceOf[(K, C)]
+        })
+      }
     }
   }
 

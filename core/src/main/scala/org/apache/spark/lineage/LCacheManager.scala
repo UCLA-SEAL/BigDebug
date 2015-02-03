@@ -17,9 +17,9 @@
 
 package org.apache.spark.lineage
 
+import org.apache.spark._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
-import org.apache.spark.{CacheManager, Partition, TaskContext}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -33,31 +33,49 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   private var underMaterialization = new mutable.HashSet[(RDD[_], Int, StorageLevel)]
 
   def initMaterialization[T](
-      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_ONLY
-    ) = underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
+      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_AND_DISK
+    ) = underMaterialization.synchronized {
+    underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
+  }
 
   def materialize(
       split: Int,
       context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_ONLY)) = {
+      effectiveStorageLevel: Option[StorageLevel]) = {
     val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
-    underMaterialization.filter(r => r._2 == split).foreach(table => {
-      val key = RDDBlockId(table._1.id, split)
-      val arr = table._1.getRecordInfos.toArray.asInstanceOf[Array[Any]]
-      try {
-        updatedBlocks ++=
-          blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-        logInfo(s"Trying to materialize Block $key")
-      } finally {
-        underMaterialization.remove(table)
-        logInfo(s"Block $key materialized")
-      }
-    })
+      underMaterialization.filter(r => r._2 == split).foreach(table => {
+        println(underMaterialization.foreach(println))
+         val t = new Runnable() {
+           override def run() {
+        val key = RDDBlockId(table._1.id, split)
+        println(key)
+        val arr = table._1.materializeRecordInfo
+        try {
+          updatedBlocks ++=
+            blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
+          logInfo(s"Trying to materialize Block $key")
+        } finally {
+          underMaterialization.synchronized {
+            underMaterialization.remove(table)
+          }
+          logInfo(s"Block $key materialized")
+        }
+         }
+        }
+
+         context.pool.synchronized {
+           context.pool.execute(t)
+         }
+
+      })
     val metrics = context.taskMetrics
     val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
     metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
   }
 
-  override def finalizeTaskCache(rdd: RDD[_], split: Int, context: TaskContext) =
-    materialize(split, context)
+  override def finalizeTaskCache(
+      rdd: RDD[_],
+      split: Int, context: TaskContext,
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
+    materialize(split, context, effectiveStorageLevel)
 }

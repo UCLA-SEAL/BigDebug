@@ -7,7 +7,7 @@ class LocalityAwarePartitioner(partitions: Int) extends Partitioner
 {
   def numPartitions = partitions
 
-  def getPartition(key: Any): Int = key.asInstanceOf[RecordId]._2
+  def getPartition(key: Any): Int = key.asInstanceOf[RecordId]._2.toInt
 
   override def equals(other: Any): Boolean = other match {
     case h: LocalityAwarePartitioner =>
