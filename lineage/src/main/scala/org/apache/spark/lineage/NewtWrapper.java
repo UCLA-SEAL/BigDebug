@@ -26,6 +26,14 @@ public class NewtWrapper {
     NewtStageClient HadoopRDDActor_stage;
     int instanceId = -1;
 
+    static{
+
+        //TODO Ksh to ensure client is initialised only once
+        if(++initCount == 1)
+        {
+            SingleInit();
+        }
+    }
     public NewtWrapper(int id)
     {
         //TODO Ksh to ensure client is initialised only once
@@ -112,23 +120,28 @@ public class NewtWrapper {
     {
         //HadoopRDDActor_stage.addInput(new KeyValuePair<String, String>(output.toString(), output.toString()));
         //HadoopRDDActor_stage.addOutput(new KeyValuePair<String,String>(output.toString(),output.toString()));
+        //long start=System.currentTimeMillis();
         for(String item : input)
         {
             HadoopRDDActor_stage.addInput(new StringProvenance(item));
             HadoopRDDActor_stage.addOutput(new StringProvenance(output));
         }
-
+        //System.out.println("Time by "+instanceId+" : "+(System.currentTimeMillis()-start)/1000);
         //System.out.println("Added " + output + " using Actor : "+ this.getId());
     }
 
-    public void commit()
+    public synchronized void commit()
     {
+        System.out.println("Starting with commit : "+instanceId);
+        long start=System.currentTimeMillis();
         HadoopRDDActor.commit();
         System.out.println("Hadoop Actor Commit complete : "+instanceId);
+        System.out.println("Time by "+instanceId+" : "+(System.currentTimeMillis()-start)/1000);
     }
 
-    public static void finalCommit()
+    public static synchronized void finalCommit()
     {
+        System.out.println("Starting with final commit");
         parent_actor.commit();
         newtClient.rootCommit();
         System.out.println("Final Commit complete");
