@@ -323,44 +323,53 @@ class DiffReduceByKeyGenerator[K: ClassTag, V: ClassTag]
   override def assembleThisIncrComputation(): Unit =
   {
     //get a common key between orig and changes
-    val changesRDD = this.liftKeys(prev.incrRDD)
+    val changes = this.liftKeys(prev.incrRDD)
+    val additions = changes.flatMap({
+      case (key, Added(x)) => List((key, x))
+      case _ => List()
+    })
+    val removals = changes.flatMap({
+      case (key, Removed(x)) => List((key, x))
+      case _ => List()
+    })
 
-    def computeChanges[VV](origValues: Iterable[VV], changedValues: Iterable[Diff[VV]], f: ((VV, VV) => VV), finv: ((VV, VV) => VV)): Iterable[VV] =
+    val totalAdditions = additions.reduceByKey(f)
+    val totalRemovals = removals.reduceByKey(f)
+
+    def computeChanges(key: K, origValueList: Iterable[V], additions: Iterable[V], removals: Iterable[V]): Iterable[Diff[(K, V)]] =
     {
-      assert(!(origValues.isEmpty && changedValues.isEmpty))
-      val startingValue = if (origValues.isEmpty) changedValues.head.element else origValues.head
-      val values = if (origValues.isEmpty) changedValues.tail else changedValues
+      val newValue: V =
+        (origValueList.nonEmpty, additions.nonEmpty, removals.nonEmpty) match {
+          case (true, true, true) => finv(f(origValueList.head, additions.head), removals.head)
+          case (true, true, false) => f(origValueList.head, additions.head)
+          case (true, false, true) => finv(origValueList.head, removals.head)
+          case (true, false, false) => origValueList.head
+          case (false, true, true) => finv(additions.head, removals.head)
+          case (false, true, false) => additions.head
+          case _ => assert(assertion = false)
+            origValueList.head //to satisfy the type system
+        }
 
-      List(values.foldLeft(startingValue)((acc, change) => change match {
-        case Added(x) => f(acc, x)
-        case Removed(x) => finv(acc, x)
-      }))
-    }
-
-    val newReducedRDD = origRDD.cogroup(changesRDD).flatMapValues(pair => computeChanges(pair._1, pair._2, f, finv))
-
-    def includeRelevantChanges(key: K, newValue: Iterable[V], oldValue: Iterable[V]): Iterable[Diff[(K, V)]] =
-    {
       var changes: List[Diff[(K, V)]] = List()
-      if (oldValue.isEmpty) {
-        changes = Added((key, newValue.head)) :: changes
+      if (origValueList.isEmpty) {
+        changes = Added((key, newValue)) :: changes
       }
-      else if (oldValue.head != newValue.head) {
-        changes = Removed((key, oldValue.head)) :: changes
+      else if (origValueList.head != newValue) {
+        changes = Removed((key, origValueList.head)) :: changes
         //if the change didn't make it zero
-        if(!fzero(newValue.head)) {
-          changes = Added((key, newValue.head)) :: changes
+        if(!fzero(newValue)) {
+          changes = Added((key, newValue)) :: changes
         }
       }
       changes
     }
 
-    val incrementalReduceRDD: RDD[Diff[(K, V)]] = newReducedRDD.cogroup(origRDD).flatMap(
-    { case (key: K, (newValue: Iterable[V], oldValue: Iterable[V])) =>
-      includeRelevantChanges(key, newValue, oldValue)
+    val reducedRDD = origRDD.cogroup(totalAdditions, totalRemovals).flatMap({
+      case (key: K, (origValueList: Iterable[V], additions: Iterable[V], removals: Iterable[V])) =>
+        computeChanges(key, origValueList, additions, removals)
     })
 
-    incrRDD = incrementalReduceRDD
+    incrRDD = reducedRDD
   }
 }
 
@@ -428,18 +437,15 @@ object DiffTest
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
     val origResults = workflow.collect()
 
-    filter.incrementallySetNewFilter(_.length() > 4)
+    filter.incrementallySetNewFilter(_ != "can")
     val incrResults = workflow.incrCollect()
 
-    origResults.foreach(println)
+    //origResults.foreach(println)
     incrResults.foreach(println)
   }
 
-  def main(args: Array[String]): Unit =
+  def joinTest(spark:SparkContext) =
   {
-    val conf = new SparkConf().setAppName("DiffTest")
-    val spark = new SparkContext(conf)
-
     val inputLeft = List((1, 'a'), (2, 'b'), (3, 'c'), (100, 'z'))
     val inputRight = List((1, 'A'), (2, 'B'), (4, 'D'), (1, 'X'), (100, 'Z'))
     val dInputLeft = List(Added(2, 'e'), Removed(100, 'z'), Added(101, 'm'))
@@ -451,11 +457,20 @@ object DiffTest
 
     val origResults = workflow.collect()
     val incrResults = workflow.incrCollect()
-    spark.stop()
 
     println("orig results")
     origResults.foreach(println)
     println("incr results")
     incrResults.foreach(println)
+  }
+
+  def main(args: Array[String]): Unit =
+  {
+    val conf = new SparkConf().setAppName("DiffTest")
+    val spark = new SparkContext(conf)
+
+    changeFilterTest(spark)
+    readLine()
+    spark.stop()
   }
 }
