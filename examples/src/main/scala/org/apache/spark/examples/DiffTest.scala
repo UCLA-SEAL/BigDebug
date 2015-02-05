@@ -275,20 +275,38 @@ class DiffFilterGenerator[A: ClassTag]
    prev: DiffRDDGenerator[A])
   extends DiffRDDGenerator[A](prev)
 {
-  var filterChanged: Boolean = false
+  var entireFilterChanged: Boolean = false
+  
+  var incrementalFilterChanged: Boolean = false
+  var incrementalAdditionsFunction: (A => Boolean) = null
+  var incrementalRemovalsFunction: (A => Boolean) = null
 
-  def incrementallySetNewFilter(f1: A => Boolean): Unit =
+  def setNewFilter(f1: A => Boolean): Unit =
   {
     assert(origComputationRan)
     f = f1
-    filterChanged = true
+    entireFilterChanged = true
+  }
+
+  def incrementallySetNewFilter(additions: A => Boolean = null, removals: A => Boolean = null) =
+  {
+    assert(origComputationRan)
+    assert(additions != null || removals != null)
+    incrementalFilterChanged = true
+    incrementalAdditionsFunction = if(additions == null) {_ => false} else additions
+    incrementalRemovalsFunction = if(removals == null) {_ => false} else removals
   }
 
   override def assembleIncrComputation(): Unit =
   {
-    if(filterChanged) {
+    if(entireFilterChanged) {
       val newFilter = prev.origRDD.filter(f)
       incrRDD = generateDiff(newFilter, origRDD)
+    }
+    else if(incrementalFilterChanged) {
+      val additions: RDD[Diff[A]] = prev.origRDD.filter(incrementalAdditionsFunction).map(Added(_))
+      val removals: RDD[Diff[A]] = prev.origRDD.filter(incrementalRemovalsFunction).map(Removed(_))
+      incrRDD = additions ++ removals
     }
     else {
       super.assembleIncrComputation()
@@ -437,7 +455,21 @@ object DiffTest
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
     val origResults = workflow.collect()
 
-    filter.incrementallySetNewFilter(_ != "can")
+    filter.setNewFilter(_ != "can")
+    val incrResults = workflow.incrCollect()
+
+    //origResults.foreach(println)
+    incrResults.foreach(println)
+  }
+
+  def incrementalFilterTest(spark:SparkContext) =
+  {
+    val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' '))
+    val filter = input.filter(_.length() >= 3)
+    val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
+    val origResults = workflow.collect()
+
+    filter.incrementallySetNewFilter(removals = _.length() == 3)
     val incrResults = workflow.incrCollect()
 
     //origResults.foreach(println)
@@ -469,7 +501,7 @@ object DiffTest
     val conf = new SparkConf().setAppName("DiffTest")
     val spark = new SparkContext(conf)
 
-    changeFilterTest(spark)
+    incrementalFilterTest(spark)
     readLine()
     spark.stop()
   }
