@@ -1,8 +1,9 @@
-export NEWT_HOME=/home/zhy001/test_gl_jni/newt 
+export NEWT_HOME=/Users/kshitij/GitRepo/spark-lineage/newt
 
-cd $NEWT_HOME
-./bin/start-local-newt.sh $@
+#cd $NEWT_HOME
+#./bin/start-local-newt.sh $@
 
-for slave in `cat ./bin/slaves|sed  "s/#.*$//;/^$/d"`; do
-    ssh $slave $NEWT_HOME/bin/start-local-newt.sh $@;
+for slave in `cat slaves |sed  "s/#.*$//;/^$/d"`; do
+    #ssh $slave $NEWT_HOME/bin/start-local-newt.sh $@;
+   echo $slave
 done

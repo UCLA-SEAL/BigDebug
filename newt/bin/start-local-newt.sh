@@ -1,6 +1,6 @@
-export NEWT_HOME=/home/zhy001/test_gl_jni/newt
-export CLASSPATH=/home/zhy001/test_gl_jni/newt/newt.jar
-cd $NEWT_HOME
+#export NEWT_HOME=/home/zhy001/test_gl_jni/newt
+#export CLASSPATH=/home/zhy001/test_gl_jni/newt/newt.jar
+#cd $NEWT_HOME
 
 echo "hostname = "$HOSTNAME
 
