@@ -33,7 +33,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   private var underMaterialization = new mutable.HashSet[(RDD[_], Int, StorageLevel)]
 
   def initMaterialization[T](
-      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_AND_DISK
+      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
     ) = underMaterialization.synchronized {
     underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
   }
@@ -44,12 +44,10 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       effectiveStorageLevel: Option[StorageLevel]) = {
     val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
       underMaterialization.filter(r => r._2 == split).foreach(table => {
-        println(underMaterialization.foreach(println))
          val t = new Runnable() {
            override def run() {
         val key = RDDBlockId(table._1.id, split)
-        println(key)
-        val arr = table._1.materializeRecordInfo
+        val arr = table._1.materializeRecordInfo.clone()
         try {
           updatedBlocks ++=
             blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
@@ -58,14 +56,15 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
           underMaterialization.synchronized {
             underMaterialization.remove(table)
           }
+          table._1.cleanTable
           logInfo(s"Block $key materialized")
         }
          }
         }
 
-         context.pool.synchronized {
+         //context.pool.synchronized {
            context.pool.execute(t)
-         }
+         //}
 
       })
     val metrics = context.taskMetrics
@@ -76,6 +75,10 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   override def finalizeTaskCache(
       rdd: RDD[_],
       split: Int, context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
     materialize(split, context, effectiveStorageLevel)
+//    underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.synchronized {
+//      underMaterialization.remove(table)
+//    })
+  }
 }

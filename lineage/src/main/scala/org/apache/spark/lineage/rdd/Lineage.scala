@@ -62,7 +62,7 @@ trait Lineage[T] extends RDD[T] {
     if(getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(getTap())
       return getTap().get match {
-        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] => new LineageRDD(getTap().get)
+        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] => new LineageRDD(getTap().get.map(r => ((0:Short, 0:Short, r.asInstanceOf[(Int, (_))]._1), r.asInstanceOf[(Int, (_))]._2)))
         case tap: TapLRDD[_] => new LineageRDD(tap.map(r => ((0:Short, r.asInstanceOf[((Short, Int), (_))]._1._1, r.asInstanceOf[((Short, Int), (_))]._1._2), (0:Short, r.asInstanceOf[((_), (Short, Int))]._2._1, r.asInstanceOf[((_), (Short, Int))]._2._2))))
       }
     }
@@ -80,6 +80,26 @@ trait Lineage[T] extends RDD[T] {
   }
 
   private[spark] def rightJoin(prev: Lineage[(RecordId, Any)], next: Lineage[(RecordId, Any)]) = {
+    prev.zipPartitions(next) {
+      (buildIter, streamIter) =>
+        val hashSet = new java.util.HashSet[RecordId]()
+        var rowKey: RecordId = null
+
+
+        // Create a Hash set of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()._1
+          val keyExists = hashSet.contains(rowKey)
+          if (!keyExists) {
+            hashSet.add(rowKey)
+          }
+        }
+
+        streamIter.filter(current => { hashSet.contains(current._1) })
+    }
+  }
+
+  private[spark] def bitmapJoin(prev: Lineage[(RecordId, Any)], next: Lineage[(RecordId, Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[RecordId]()
@@ -119,15 +139,15 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[((Short, Int), Any)],
-      next1: Lineage[((Short, Int), (String, Long))],
+  private[spark] def join3Way(prev: Lineage[(Int, Any)],
+      next1: Lineage[(Int, Long)],
       next2: Lineage[(Long, String)]
     ) = {
     prev.zipPartitions(next1,next2) {
       (buildIter, streamIter1, streamIter2) =>
-        val hashSet = new java.util.HashSet[(Short, Int)]()
-        val hashMap = new java.util.HashMap[Long, CompactBuffer[(Short, Int)]]()
-        var rowKey: (Short, Int) = null
+        val hashSet = new java.util.HashSet[Int]()
+        val hashMap = new java.util.HashMap[Long, CompactBuffer[Int]]()
+        var rowKey: Int = 0
 
         while (buildIter.hasNext) {
           rowKey = buildIter.next()._1
@@ -142,17 +162,17 @@ trait Lineage[T] extends RDD[T] {
           if(hashSet.contains(current._1)) {
             var values = hashMap.get(current._2)
             if(values == null) {
-              values = new CompactBuffer[(Short, Int)]()
+              values = new CompactBuffer[Int]()
             }
             values += current._1
-            hashMap.put(current._2._2, values)
+            hashMap.put(current._2, values)
           }
         }
         streamIter2.flatMap(current => {
           val values = if(hashMap.get(current._1) != null) {
             hashMap.get(current._1)
           } else {
-            new CompactBuffer[(Short, Int)]()
+            new CompactBuffer[Int]()
           }
           values.map(record => (record, current._2))
         })

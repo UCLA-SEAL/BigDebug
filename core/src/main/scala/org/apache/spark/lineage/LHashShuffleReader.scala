@@ -20,8 +20,10 @@ package org.apache.spark.lineage
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.BaseShuffleHandle
 import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReader}
-import org.apache.spark.util.collection.{ExternalSorter, OpenHashMap}
+import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap, ExternalSorter}
 import org.apache.spark.{InterruptibleIterator, TaskContext}
+
+import scala.collection.mutable.ListBuffer
 
 private[spark] class LHashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
@@ -49,15 +51,15 @@ private[spark] class LHashShuffleReader[K, C](
       }
     }
 
-    context.currentRecordInfos = new OpenHashMap[Any, List[(Short, Short, Int)]]
+    context.currentRecordInfos = new PrimitiveKeyOpenHashMap[Int, CompactBuffer[(Short, Short, Int)]]
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
-      val iter = untap(tappedIter)
+      context.currentRecordInfo = 1 // TODO
       if (dep.mapSideCombine) {
-        tap(new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context)))
+        new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(tappedIter, context))
       } else {
-        tap(new InterruptibleIterator(context,
-          dep.aggregator.get.combineValuesByKey(iter, context)))
+        new InterruptibleIterator(context,
+          dep.aggregator.get.combineValuesByKey(tappedIter, context))
       }
     } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
       throw new IllegalStateException("Aggregator is empty for map-side combine")
@@ -81,22 +83,26 @@ private[spark] class LHashShuffleReader[K, C](
     }
   }
 
-  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Short, Short, Int)]]]) = {
-    if(lineage) {
-      iter.map(r => {
-        context.currentRecordInfos.changeValue(r._1, List(r._2._2), r._2._2 :: _)
-        (r._1, r._2._1).asInstanceOf[T]
-      })
-    } else {
-      iter.asInstanceOf[Iterator[T]]
-    }
+  private[spark] def update(value: (Short, Short, Int)) = (hadValue: Boolean, oldValue: ListBuffer[(Short, Short, Int)]) => {
+    if (hadValue) oldValue += value else new ListBuffer += value
   }
 
-  def tap(iter: Iterator[Product2[K, C]]): Iterator[Product2[K, C]] = {
-    if(lineage) {
-      iter.zipWithIndex.map(r => (r._1, (startPartition.toShort, r._2))).asInstanceOf[Iterator[Product2[K, C]]]
-    } else {
-      iter
-    }
-  }
+//  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Short, Short, Int)]]]) = {
+//    if(lineage) {
+//      iter.map(r => {
+//        context.currentRecordInfos.changeValue(r._1.hashCode(),update(r._2._2))
+//        (r._1, r._2._1).asInstanceOf[T]
+//      })
+//    } else {
+//      iter.asInstanceOf[Iterator[T]]
+//    }
+//  }
+//
+//  def tap(iter: Iterator[Product2[K, C]]): Iterator[Product2[K, C]] = {
+//    if(lineage) {
+//      iter.zipWithIndex.asInstanceOf[Iterator[Product2[K, C]]]
+//    } else {
+//      iter
+//    }
+//  }
 }

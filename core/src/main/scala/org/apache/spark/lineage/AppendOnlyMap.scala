@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.util.collection
-
-import java.util.Comparator
+package org.apache.spark.lineage
 
 import com.google.common.hash.Hashing
 import org.apache.spark.annotation.DeveloperApi
@@ -34,8 +32,8 @@ import org.apache.spark.annotation.DeveloperApi
  * TODO: Cache the hash values of each key? java.util.HashMap does that.
  */
 @DeveloperApi
-class AppendOnlyMap[K, V](initialCapacity: Int = 64)
-  extends Iterable[(K, V)] with Serializable {
+class AppendOnlyMap[V](initialCapacity: Int = 64)
+  extends Iterable[(Int, V)] with Serializable {
   require(initialCapacity <= (1 << 29), "Can't make capacity bigger than 2^29 elements")
   require(initialCapacity >= 1, "Invalid initial capacity")
 
@@ -68,13 +66,13 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
   }
 
   /** Get the value for a given key */
-  def apply(key: K): V = {
+  def apply(key: Int): V = {
     assert(!destroyed, destructionMessage)
     val k = key.asInstanceOf[AnyRef]
     if (k.eq(null)) {
       return nullValue
     }
-    var pos = rehash(k.hashCode) & mask
+    var pos = rehash(key) & mask
     var i = 1
     while (true) {
       val curKey = data(2 * pos)
@@ -92,7 +90,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
   }
 
   /** Set the value for a key */
-  def update(key: K, value: V): Unit = {
+  def update(key: Int, value: V): Unit = {
     assert(!destroyed, destructionMessage)
     val k = key.asInstanceOf[AnyRef]
     if (k.eq(null)) {
@@ -103,7 +101,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
       haveNullValue = true
       return
     }
-    var pos = rehash(key.hashCode) & mask
+    var pos = rehash(key) & mask
     var i = 1
     while (true) {
       val curKey = data(2 * pos)
@@ -127,7 +125,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
    * Set the value for key to updateFunc(hadValue, oldValue), where oldValue will be the old value
    * for key, if any, or null otherwise. Returns the newly updated value.
    */
-  def changeValue(key: K, updateFunc: (Boolean, V) => V): V = {
+  def changeValue(key: Int, updateFunc: (Boolean, V) => V): V = {
     assert(!destroyed, destructionMessage)
     val k = key.asInstanceOf[AnyRef]
     if (k.eq(null)) {
@@ -138,7 +136,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
       haveNullValue = true
       return nullValue
     }
-    var pos = rehash(k.hashCode) & mask
+    var pos = rehash(key) & mask
     var i = 1
     while (true) {
       val curKey = data(2 * pos)
@@ -162,22 +160,22 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
   }
 
   /** Iterator method from Iterable */
-  override def iterator: Iterator[(K, V)] = {
+  override def iterator: Iterator[(Int, V)] = {
     assert(!destroyed, destructionMessage)
-    new Iterator[(K, V)] {
+    new Iterator[(Int, V)] {
       var pos = -1
 
       /** Get the next value we should return from next(), or null if we're finished iterating */
-      def nextValue(): (K, V) = {
+      def nextValue(): (Int, V) = {
         if (pos == -1) {    // Treat position -1 as looking at the null value
           if (haveNullValue) {
-            return (null.asInstanceOf[K], nullValue)
+            return (null.asInstanceOf[Int], nullValue)
           }
           pos += 1
         }
         while (pos < capacity) {
           if (!data(2 * pos).eq(null)) {
-            return (data(2 * pos).asInstanceOf[K], data(2 * pos + 1).asInstanceOf[V])
+            return (data(2 * pos).asInstanceOf[Int], data(2 * pos + 1).asInstanceOf[V])
           }
           pos += 1
         }
@@ -186,7 +184,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
 
       override def hasNext: Boolean = nextValue() != null
 
-      override def next(): (K, V) = {
+      override def next(): (Int, V) = {
         val value = nextValue()
         if (value == null) {
           throw new NoSuchElementException("End of iterator")
@@ -229,7 +227,7 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
       if (!data(2 * oldPos).eq(null)) {
         val key = data(2 * oldPos)
         val value = data(2 * oldPos + 1)
-        var newPos = rehash(key.hashCode) & newMask
+        var newPos = rehash(key.asInstanceOf[Int]) & newMask
         var i = 1
         var keepGoing = true
         while (keepGoing) {
@@ -256,43 +254,6 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
   private def nextPowerOf2(n: Int): Int = {
     val highBit = Integer.highestOneBit(n)
     if (highBit == n) n else highBit << 1
-  }
-
-  /**
-   * Return an iterator of the map in sorted order. This provides a way to sort the map without
-   * using additional memory, at the expense of destroying the validity of the map.
-   */
-  def destructiveSortedIterator(keyComparator: Comparator[K]): Iterator[(K, V)] = {
-    destroyed = true
-    // Pack KV pairs into the front of the underlying array
-    var keyIndex, newIndex = 0
-    while (keyIndex < capacity) {
-      if (data(2 * keyIndex) != null) {
-        data(2 * newIndex) = data(2 * keyIndex)
-        data(2 * newIndex + 1) = data(2 * keyIndex + 1)
-        newIndex += 1
-      }
-      keyIndex += 1
-    }
-    assert(curSize == newIndex + (if (haveNullValue) 1 else 0))
-
-    new Sorter(new KVArraySortDataFormat[K, AnyRef]).sort(data, 0, newIndex, keyComparator)
-
-    new Iterator[(K, V)] {
-      var i = 0
-      var nullValueReady = haveNullValue
-      def hasNext: Boolean = (i < newIndex || nullValueReady)
-      def next(): (K, V) = {
-        if (nullValueReady) {
-          nullValueReady = false
-          (null.asInstanceOf[K], nullValue)
-        } else {
-          val item = (data(2 * i).asInstanceOf[K], data(2 * i + 1).asInstanceOf[V])
-          i += 1
-          item
-        }
-      }
-    }
   }
 
   /**

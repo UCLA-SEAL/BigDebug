@@ -18,7 +18,9 @@
 package org.apache.spark
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
+import org.apache.spark.util.collection.{CompactBuffer, AppendOnlyMap, ExternalAppendOnlyMap}
+
+import scala.collection.mutable.ListBuffer
 
 /**
  * :: DeveloperApi ::
@@ -55,7 +57,16 @@ case class Aggregator[K, V, C] (
       combiners.iterator
     } else {
       val combiners = new ExternalAppendOnlyMap[K, V, C](createCombiner, mergeValue, mergeCombiners)
-      combiners.insertAll(iter)
+      //if(context.currentRecordInfo._2.equals(0)) {
+        combiners.insertAll(iter)
+//      } else {
+//        var kv: Product2[K, V] = null
+//        while (iter.hasNext) {
+//          kv = iter.next()
+//          combiners.insert(kv._1, kv._2)
+//          //context.currentRecordInfos.asInstanceOf[ExternalAppendOnlyMap[Int, Int, _]].insert(kv._1.hashCode(), context.currentRecordInfo._2) // Matteo
+//        }
+//      }
       // Update task metrics if context is not null
       // TODO: Make context non optional in a future release
       Option(context).foreach { c =>
@@ -64,7 +75,7 @@ case class Aggregator[K, V, C] (
       }
 
       // If currentRecordInfo is zero then no lineage is active. Added by Matteo
-      if(context.currentRecordInfo._2.equals(0)) {
+      if(context.currentRecordInfo.equals(0)) {
         combiners.iterator
       } else {
         combiners.iterator.zipWithIndex.map(r => {
@@ -77,6 +88,16 @@ case class Aggregator[K, V, C] (
   @deprecated("use combineCombinersByKey with TaskContext argument", "0.9.0")
   def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]]) : Iterator[(K, C)] =
     combineCombinersByKey(iter, null)
+
+  private[spark] def update(value: (Short, Short, Int)) = (hadValue: Boolean, oldValue: ListBuffer[(Short, Short, Int)]) => {
+    if (hadValue) oldValue += value else ListBuffer(value)
+  }
+
+      def mergeCombiners(c1: ListBuffer[(Short, Short, Int)], c2: ListBuffer[(Short, Short, Int)]):  ListBuffer[(Short, Short, Int)] = c1 ++= c2
+
+      def mergeValues(c: ListBuffer[(Short, Short, Int)], e: (Short, Short, Int)):  ListBuffer[(Short, Short, Int)] = {
+        c += (e)
+      }
 
   def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext)
       : Iterator[(K, C)] =
@@ -94,9 +115,22 @@ case class Aggregator[K, V, C] (
       combiners.iterator
     } else {
       val combiners = new ExternalAppendOnlyMap[K, C, C](identity, mergeCombiners, mergeCombiners)
-      while (iter.hasNext) {
-        val pair = iter.next()
-        combiners.insert(pair._1, pair._2)
+
+      if(context.currentRecordInfo.equals(0)) { // Matteo
+        while (iter.hasNext) {
+          val pair = iter.next()
+          combiners.insert(pair._1, pair._2)
+        }
+      } else {
+        System.gc()
+        println(Runtime.getRuntime.freeMemory())
+        var pair: Product2[K, Product2[C, (Short, Short, Int)]] = null
+        while (iter.hasNext) {
+          pair = iter.next().asInstanceOf[Product2[K, Product2[C, (Short, Short, Int)]]]
+          combiners.insert(pair._1, pair._2._1)
+          context.currentRecordInfos.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[(Short, Short, Int)]) => old += pair._2._2)
+          //context.tmp += ((pair._2._2, pair._1.hashCode()))
+        }
       }
       // Update task metrics if context is not null
       // TODO: Make context non-optional in a future release
@@ -104,7 +138,7 @@ case class Aggregator[K, V, C] (
         c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
         c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
       }
-      combiners.iterator
+      combiners.iterator.zipWithIndex.asInstanceOf[Iterator[(K, C)]]
     }
   }
 }

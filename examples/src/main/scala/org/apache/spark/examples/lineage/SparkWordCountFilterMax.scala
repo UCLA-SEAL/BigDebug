@@ -37,8 +37,8 @@ object SparkWordCountFilterMax {
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    val filter = counts.filter(r => r._1.contains("ar"))
-    val max = filter.map(r => (r._2, r._1)).reduceByKey(_ + _)
+    //val filter = counts.filter(r => r._1.contains("ar"))
+    val max = counts.map(r => (r._2, r._1)).reduceByKey(_ + _)
     max.collect.foreach(println)
 
     // Get the lineage

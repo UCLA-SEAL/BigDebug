@@ -172,7 +172,7 @@ abstract class DiffRDDGenerator[A: ClassTag]
   }
 }
 
-class PairDiffGeneratorFunctions[K, V](self: DiffRDDGenerator[(K, V)])
+class PairDiffGeneratorFunctions[K, V](@transient self: DiffRDDGenerator[(K, V)])
                             (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null)
 {
   def liftKeys[KK, VV](rdd: RDD[Diff[(KK, VV)]]): RDD[(KK, Diff[VV])] =
@@ -323,7 +323,11 @@ class DiffReduceByKeyGenerator[K: ClassTag, V: ClassTag]
   override def assembleThisIncrComputation(): Unit =
   {
     //get a common key between orig and changes
-    val changesRDD = this.liftKeys(prev.incrRDD)
+    //val changesRDD = this.liftKeys(prev.incrRDD)
+    val changesRDD = prev.incrRDD.map({
+      case Added((k, v)) => (k, Added(v))
+      case Removed((k, v)) => (k, Removed(v))
+    })
 
     def computeChanges[VV](origValues: Iterable[VV], changedValues: Iterable[Diff[VV]], f: ((VV, VV) => VV), finv: ((VV, VV) => VV)): Iterable[VV] =
     {
@@ -423,7 +427,7 @@ object DiffTest
 
   def changeFilterTest(spark:SparkContext) =
   {
-    val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' '))
+    val input = new DiffTextFileGenerator("../README.md", null, spark).flatMap(line => line.trim().split(' '))
     val filter = input.filter({_ => true})
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
     val origResults = workflow.collect()

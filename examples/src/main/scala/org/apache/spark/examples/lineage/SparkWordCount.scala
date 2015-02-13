@@ -21,9 +21,12 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.{SparkConf, SparkContext}
 
+
 object SparkWordCount {
   def main(args: Array[String]) {
-    val logFile = "README.md"
+    val logFile = "../../datasets/size-4000000000"
+    //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
+    //val logFile = "README.md"
     val conf = new SparkConf()
       .setMaster("local[2]")
       //.setMaster("mesos://SCAI01.CS.UCLA.EDU:5050")
@@ -31,7 +34,7 @@ object SparkWordCount {
       .setAppName("WordCount")
     val sc = new SparkContext(conf)
     //sc.setCheckpointDir("./tmp/")
-    //sc.setCheckpointDir("hdfs://scai01.cs.ucla.edu:9000/clash/tmp/spark")
+    //sc.setCheckpointDir("hdfs://scai01.cs.ucla.edu:9000/clash/output40.txt)
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(true)
     val file = lc.textFile(logFile, 2)
@@ -41,33 +44,36 @@ object SparkWordCount {
     print(counts.collect().size)
 
     // Get the lineage
-    lc.setCaptureLineage(false)
-    var lineage = counts.getLineage()
-    lineage.collect.foreach(println)
-    lineage = lineage.filter(r => r.equals(7,1,95))
-    lineage.collect.foreach(println)
-    lineage.show
-    //lineage = show.getLineage()
-    lineage = lineage.goBack()
-    lineage.collect.foreach(println)
-    lineage.show
-    //lineage = show.getLineage()
-    //var show = lineage.show().filter(r => r.equals("(programs,1)"))
-    //show.collect.foreach(println)
-    //lineage = show.getLineage.goNext()
-    //lineage.show
-    lineage = lineage.goBack()
-    lineage.collect.foreach(println)
-    lineage.show
-    //lineage = show.getLineage()
-    lineage.collect.foreach(println)
-    lineage = lineage.goNext()
-    lineage.collect.foreach(println)
-    lineage.show
-    lineage = lineage.goNext()
-    lineage.collect.foreach(println)
-    lineage.show
-    //lineage = show.getLineage()
-    sc.stop()
+//    lc.setCaptureLineage(false)
+//    var lineage = counts.getLineage()
+//    lineage.collect.foreach(println)
+//    //lineage.dumpTrace
+//    lineage = lineage.filter(r => r.equals(0,0,95))
+//    lineage.collect.foreach(println)
+//    lineage.show
+//    //lineage = show.getLineage()
+//    lineage = lineage.goBack()
+//    lineage.collect.foreach(println)
+//    lineage.show
+//    //lineage = show.getLineage()
+//    //var show = lineage.show().filter(r => r.equals("(programs,1)"))
+//    //show.collect.foreach(println)
+//    //lineage = show.getLineage.goNext()
+//    //lineage.show
+//    lineage = lineage.goBack()
+//    lineage.collect.foreach(println)
+//    lineage.show
+//    //lineage = show.getLineage()
+//    lineage.collect.foreach(println)
+//    lineage = lineage.goNext()
+//    lineage.collect.foreach(println)
+//    lineage.show
+//    lineage = lineage.goNext()
+//    lineage.collect.foreach(println)
+//    lineage.show
+//    //lineage = show.getLineage()
+//    sc.stop()
+
+//    Thread sleep 100000
   }
 }

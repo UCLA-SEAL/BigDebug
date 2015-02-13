@@ -69,7 +69,7 @@ class ExternalAppendOnlyMap[K, V, C](
   extends Iterable[(K, C)] with Serializable with Logging {
 
   private var currentMap = new SizeTrackingAppendOnlyMap[K, C]
-  private val spilledMaps = new ArrayBuffer[DiskMapIterator]
+  private var spilledMaps = new ArrayBuffer[DiskMapIterator]
   private val sparkConf = SparkEnv.get.conf
   private val diskBlockManager = blockManager.diskBlockManager
   private val shuffleMemoryManager = SparkEnv.get.shuffleMemoryManager
@@ -263,6 +263,13 @@ class ExternalAppendOnlyMap[K, V, C](
 
   def memoryBytesSpilled: Long = _memoryBytesSpilled
   def diskBytesSpilled: Long = _diskBytesSpilled
+
+  def clean = {
+    currentMap = null
+    spilledMaps.clear()
+    spilledMaps = null
+    shuffleMemoryManager.release(myMemoryThreshold)
+  }
 
   /**
    * Return an iterator that merges the in-memory map with the spilled maps.

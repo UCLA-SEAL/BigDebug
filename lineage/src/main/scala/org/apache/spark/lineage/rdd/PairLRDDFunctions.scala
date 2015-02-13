@@ -64,7 +64,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       mergeValue: (C, V) => C,
       mergeCombiners: (C, C) => C,
       partitioner: Partitioner,
-      mapSideCombine: Boolean = false,
+      mapSideCombine: Boolean = true,
       serializer: Serializer = null): Lineage[(K, C)] = {
     require(mergeCombiners != null, "mergeCombiners must be defined") // required as of Spark 0.9.0
     if (keyClass.isArray) {

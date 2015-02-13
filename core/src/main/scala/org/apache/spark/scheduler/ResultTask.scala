@@ -61,7 +61,7 @@ private[spark] class ResultTask[T, U](
     try {
       func(context, rdd.iterator(partition, context))
     } finally {
-      SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context, Some(StorageLevel.MEMORY_ONLY)) // Added by Matteo
+      SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context, Some(StorageLevel.DISK_ONLY)) // Added by Matteo
 
       context.markTaskCompleted()
     }

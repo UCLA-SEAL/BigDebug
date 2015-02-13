@@ -54,6 +54,16 @@
       <artifactId>scalacheck_${scala.binary.version}</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>com.googlecode.javaewah</groupId>
+          <artifactId>JavaEWAH</artifactId>
+          <version>1.0.0</version>
+      </dependency>
+          <dependency>
+              <groupId>org.roaringbitmap</groupId>
+              <artifactId>RoaringBitmap</artifactId>
+              <version>0.4.8</version>
+          </dependency>
   </dependencies>
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>

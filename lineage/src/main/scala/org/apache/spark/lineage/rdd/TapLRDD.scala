@@ -21,7 +21,7 @@ import org.apache.spark._
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
 import scala.reflect._
 
 private[spark]
@@ -39,7 +39,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   @transient private[spark] var recordIdShort: (Short, Int) = (0, 0)
 
   // TODO make recordInfo grow in memory and spill to disk if needed
-  @transient private[spark] var recordInfo: ArrayBuffer[(Any, Any)] = null
+  @transient private[spark] var recordInfo: ListBuffer[(Any, Any)] = null
 
   @transient private[spark] var nextRecord: Int = 0
 
@@ -79,7 +79,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
     splitId = split.index.toShort
 
-    recordInfo = new ArrayBuffer[(Any, Any)]()
+    recordInfo = new ListBuffer[(Any, Any)]()
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
@@ -87,6 +87,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   }
 
   override def cleanTable = {
+    if(recordInfo != null)
     recordInfo.clear()
     recordInfo = null
   }
@@ -103,8 +104,8 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def tap(record: T) = {
     recordIdShort = (splitId, newRecordId)
-    addRecordInfo(recordIdShort, tContext.currentRecordInfo)
-    tContext.currentRecordInfo = recordIdShort
+    //addRecordInfo(recordIdShort, tContext.currentRecordInfo)
+    tContext.currentRecordInfo = recordIdShort._2
 
     record
   }

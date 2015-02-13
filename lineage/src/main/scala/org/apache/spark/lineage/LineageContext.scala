@@ -282,7 +282,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
     }
   }
 
-  def getForward: Lineage[((Int, Int, Long), Any)] = {
+  def getForward: Lineage[((Short, Int), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -294,7 +294,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
     currentLineagePosition
       .get
-      .asInstanceOf[Lineage[((Int, Int, Long), (Int, Int, Long))]]
+      .asInstanceOf[Lineage[((Short, Short, Int), (Short, Int))]]
       .map(r => (r._2, r._1))
   }
 }

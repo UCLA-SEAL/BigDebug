@@ -19,7 +19,8 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LCacheManager, LineageContext}
+import org.apache.spark.util.collection.PrimitiveVector
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -30,10 +31,36 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   private[spark] val filePath = firstParent[(K, V)].asInstanceOf[HadoopLRDD[K, V]].getFilePath
 
+  private[spark] def addRecordInfo(key: Int, value: Long) = {
+    recordInfo += key -> value
+  }
+
+  @transient private[spark] var recordInfo1: PrimitiveVector[Int] = null
+
+  @transient private[spark] var recordInfo2: PrimitiveVector[Long] = null
+
+  override def compute(split: Partition, context: TaskContext) = {
+    if(tContext == null) {
+      tContext = context
+    }
+    splitId = split.index.toShort
+
+    recordInfo1 = new PrimitiveVector[Int]()
+
+    recordInfo2 = new PrimitiveVector[Long]()
+
+    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
+
+    firstParent[(K, V)].iterator(split, context).map(tap)
+  }
+
+  override def materializeRecordInfo: Array[Any] = recordInfo1.array.zip(recordInfo2.array)
+
   override def tap(record: (K, V)) = {
-    recordIdShort = (splitId, newRecordId)
-    tContext.currentRecordInfo = recordIdShort
-    addRecordInfo(recordIdShort, (filePath, record._1.asInstanceOf[LongWritable].get))
+    tContext.currentRecordInfo = newRecordId
+    recordInfo1 += tContext.currentRecordInfo
+    recordInfo2 += record._1.asInstanceOf[LongWritable].get
+    //addRecordInfo(tContext.currentRecordInfo, record._1.asInstanceOf[LongWritable].get)
 
     record
   }
