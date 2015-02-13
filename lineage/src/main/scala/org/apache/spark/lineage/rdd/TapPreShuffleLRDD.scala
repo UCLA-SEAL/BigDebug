@@ -17,7 +17,6 @@
 
 package org.apache.spark.lineage.rdd
 
-import com.google.common.hash.Hashing
 import org.apache.spark.lineage.{AppendOnlyMap, LCacheManager, LineageContext}
 import org.apache.spark.{Dependency, Partition, SparkEnv, TaskContext}
 import org.roaringbitmap.RoaringBitmap
@@ -116,7 +115,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     //addRecordInfo((splitId, newRecordId), tContext.currentRecordInfo)
 //    tmp.insert(record._1.hashCode(), tContext.currentRecordInfo)
     //tmp.changeValue(record._1.hashCode(), update(tContext.currentRecordInfo))
-    tmp.changeValue(Hashing.murmur3_32().hashInt(record._1.hashCode()).asInt(), update(tContext.currentRecordInfo)) //null, (c: RoaringBitmap) => c)//{c.add(tContext.currentRecordInfo); c})
+ //   tmp.changeValue(Hashing.murmur3_32().hashInt(record._1.hashCode()).asInt(), update(tContext.currentRecordInfo)) //null, (c: RoaringBitmap) => c)//{c.add(tContext.currentRecordInfo); c})
     //tmp.put(Hashing.murmur3_32().hashInt(record._1.hashCode()).asInt(), tContext.currentRecordInfo)
     record
   }
