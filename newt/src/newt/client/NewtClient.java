@@ -28,7 +28,7 @@ public class NewtClient<I extends ProvenanceDataType, O extends ProvenanceDataTy
     }
     
     Mode                    clientMode = Mode.NONE;
-    public static String    DEFAULT_MASTER_IP = "131.179.49.97";//"192.168.1.76";//"csag105.sysnet.ucsd.edu"; //"csag101.sysnet.ucsd.edu";
+    public static String    DEFAULT_MASTER_IP = "131.179.49.1";//"192.168.1.76";//"csag105.sysnet.ucsd.edu"; //"csag101.sysnet.ucsd.edu";
     private static String   masterUrl = "http://" + DEFAULT_MASTER_IP + ":8899/hessianrpc";
     NewtService             masterClient = null;
     NewtService             peerClient = null;

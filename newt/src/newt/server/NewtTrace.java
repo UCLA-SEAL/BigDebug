@@ -496,10 +496,13 @@ public class NewtTrace extends Thread {
                     }
                 } else if( !((String)actorDetails.get( DESTINATIONACTORTYPE_INDEX )).toLowerCase().equals( "filelocatable" ) ) {
                     Vector<Integer> transitiveTypeActors = (Vector<Integer>)typeActors.get( (String)actorDetails.get( DESTINATIONACTORTYPE_INDEX ) );
-                    for( Object o: transitiveTypeActors ) {
-                        Integer i = (Integer) o;
-                        if( (Integer)((Vector)allActors.get( i )).get( PARENTID_INDEX ) == (Integer)actorDetails.get( PARENTID_INDEX ) ) {
-                            transitiveActorIDs.add( i );
+                   //TODO Ksh possible bug?
+                    if(transitiveTypeActors != null) {
+                        for (Object o : transitiveTypeActors) {
+                            Integer i = (Integer) o;
+                            if ((Integer) ((Vector) allActors.get(i)).get(PARENTID_INDEX) == (Integer) actorDetails.get(PARENTID_INDEX)) {
+                                transitiveActorIDs.add(i);
+                            }
                         }
                     }
                 }
@@ -533,7 +536,7 @@ public class NewtTrace extends Thread {
                 }
             }
 
-            constructQuery( transitiveActorIDs, (String)actorDetails.get( ACTORTABLE_INDEX ), false );
+            constructQuery(transitiveActorIDs, (String) actorDetails.get(ACTORTABLE_INDEX), false);
         }
 
         completedTables.add( sourceTable );

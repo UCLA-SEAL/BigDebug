@@ -106,17 +106,27 @@ public class NewtWrapper {
         System.out.println("Created Actor : "+ id);
     }
 
-    public void add(String output,final List<String> input)
+    public void add(String output,List<String> input)
     {
         //HadoopRDDActor_stage.addInput(new KeyValuePair<String, String>(output.toString(), output.toString()));
         //HadoopRDDActor_stage.addOutput(new KeyValuePair<String,String>(output.toString(),output.toString()));
         for(String item : input)
         {
             HadoopRDDActor_stage.addInput(new StringProvenance(item));
-            HadoopRDDActor_stage.addOutput(new StringProvenance(output));
+            HadoopRDDActor_stage.addOutputAndFlush(new StringProvenance(output));
         }
 
         //System.out.println("Added " + output + " using Actor : "+ this.getId());
+    }
+
+    public void addLink(int sourceId,boolean source)
+    {
+        this.HadoopRDDActor.addSourceOrDestinationActor(sourceId,source);
+    }
+
+    public int getActorID()
+    {
+        return this.HadoopRDDActor.getActorID();
     }
 
     public void commit()
