@@ -4,8 +4,12 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
+import scala.collection.mutable
+import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.util.Random
+import scala.reflect._
 
 abstract class Diff[+A] extends Serializable
 {
@@ -46,47 +50,18 @@ abstract class Diff[+A] extends Serializable
 case class Added[A](element: A) extends Diff[A]
 case class Removed[A](element: A) extends Diff[A]
 
-abstract class DiffRDDGenerator[A: ClassTag]
-  (@transient var prev:Seq[DiffRDDGenerator[_]],
-   @transient val spark:SparkContext) extends Serializable
+class Multiset[A: ClassTag](@transient val multiset: RDD[(A, Int)]) extends Serializable
 {
-  @transient var origRDD: RDD[A] = null
-  @transient var incrRDD: RDD[Diff[A]] = null
-  @transient var origComputationRan = false
-
-  def this(@transient onePrev: DiffRDDGenerator[_]) = this(List(onePrev), onePrev.spark)
-
-  implicit def diffGeneratorToPairRDDFunctions[K, V]
-  (diff: DiffRDDGenerator[(K, V)])
-  (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null): PairDiffGeneratorFunctions[K, V] =
+  def flattenMultiset(): RDD[A] =
   {
-    new PairDiffGeneratorFunctions(diff)
+    multiset.flatMap({case (value, count) =>
+      List.fill(count)(value)
+    })
   }
 
-  def setDifference[B: ClassTag](rdd1: RDD[B], rdd2: RDD[B]): RDD[B] =
+  def difference(multiset2: Multiset[A]): Multiset[A] =
   {
-    rdd1.map((_, null)).cogroup(rdd2.map((_, null))).filter({
-      case (_, (left, right)) => left.nonEmpty && right.isEmpty}).keys
-  }
-
-  def multiSetDifference[B: ClassTag](rdd1: RDD[B], rdd2: RDD[B]): RDD[B] =
-  {
-    def makeMultiset(rdd: RDD[B]): RDD[(B, Int)] =
-    {
-      rdd.map((_, 1)).reduceByKey(_ + _)
-    }
-
-    def flattenMultiSet(rdd: RDD[(B, Int)]): RDD[B] =
-    {
-      rdd.flatMap({case (value, count) =>
-        List.fill(count)(value)
-      })
-    }
-
-    val multiset1 = makeMultiset(rdd1)
-    val multiset2 = makeMultiset(rdd2)
-
-    def countsDifference(value: B, count1List: Iterable[Int], count2List: Iterable[Int]): List[(B, Int)] =
+    def countsDifference(value: A, count1List: Iterable[Int], count2List: Iterable[Int]): List[(A, Int)] =
     {
       (count1List.isEmpty, count2List.isEmpty) match {
         case (true, _) => List()
@@ -101,16 +76,115 @@ abstract class DiffRDDGenerator[A: ClassTag]
       }
     }
 
-    flattenMultiSet(multiset1.cogroup(multiset2).flatMap({case (value, (count1List, count2List)) =>
+    new Multiset(multiset.cogroup(multiset2.multiset).flatMap({case (value, (count1List, count2List)) =>
       countsDifference(value, count1List, count2List)
     }))
   }
 
+  def union(multiset2: Multiset[A]): Multiset[A] =
+  {
+    def countsSum(count1List: Iterable[Int], count2List: Iterable[Int]): Int =
+    {
+      (count1List.nonEmpty, count2List.nonEmpty) match {
+        case (true, true) => count1List.head + count2List.head
+        case (true, false) => count1List.head
+        case (false, true) => count2List.head
+        case (false, false) => assert(assertion = false, message = "Cannot have both keys with no values")
+          0
+      }
+    }
+
+    new Multiset(multiset.cogroup(multiset2.multiset).mapValues(pair => countsSum(pair._1, pair._2)))
+  }
+
+  //the boolean flag indicates whether the element was introduced into the multiset due to the diff
+  //this flag is used for distinct operator
+  def applyDiff(diff: RDD[Diff[A]]): RDD[(A, (Int, Boolean))] =
+  {
+    val additions = diff.filter({
+      case Added(_) => true
+      case Removed(_) => false
+    }).map(_.element)
+
+    val additionsSet = Multiset.makeMultiset(additions).multiset
+
+    val removals = diff.filter({
+      case Added(_) => false
+      case Removed(_) => true
+    }).map(_.element)
+
+    val removalsSet = Multiset.makeMultiset(removals).multiset.map(pair => (pair._1, -1 * pair._2))
+    val diffMultiset = additionsSet ++ removalsSet
+
+    def countsSum(count1List: Iterable[Int], count2List: Iterable[Int]): (Int, Boolean) =
+    {
+      (count1List.nonEmpty, count2List.nonEmpty) match {
+        case (true, true) => (count1List.head + count2List.head, false)
+        case (true, false) => (count1List.head, false)
+        case (false, true) => (count2List.head, true)
+        case (false, false) => assert(assertion = false, message = "Cannot have both keys with no values")
+          (0, false)
+      }
+    }
+
+    multiset.cogroup(diffMultiset).mapValues(pair => countsSum(pair._1, pair._2))
+  }
+}
+
+object Multiset
+{
+  def makeMultiset[A: ClassTag](@transient baseRDD: RDD[A]): Multiset[A] = new Multiset(baseRDD.map((_, 1)).reduceByKey(_ + _))
+}
+
+abstract class DiffRDDGenerator[A: ClassTag]
+  (@transient var parents:Seq[DiffRDDGenerator[_]],
+   @transient val spark:SparkContext) extends Serializable
+{
+  @transient var origRDD: RDD[A] = null
+  @transient var incrRDD: RDD[Diff[A]] = null
+  @transient var origComputationRan = false
+
+  def this(@transient onePrev: DiffRDDGenerator[_]) = this(List(onePrev), onePrev.spark)
+
+  def setDifference[B: ClassTag](rdd1: RDD[B], rdd2: RDD[B]): RDD[B] =
+  {
+    rdd1.map((_, null)).cogroup(rdd2.map((_, null))).filter({
+      case (_, (left, right)) => left.nonEmpty && right.isEmpty}).keys
+  }
+
+  def multiSetDifference[B: ClassTag](rdd1: RDD[B], rdd2: RDD[B]): RDD[B] =
+  {
+    val multiset1 = Multiset.makeMultiset(rdd1)
+    val multiset2 = Multiset.makeMultiset(rdd2)
+
+    multiset1.difference(multiset2).flattenMultiset()
+  }
+
+  def additions[AA: ClassTag](diff: RDD[Diff[AA]]): RDD[AA] = diff.flatMap({
+    case Added(x: AA) => List(x)
+    case _ => List()
+  })
+
+  def removals[AA: ClassTag](diff: RDD[Diff[AA]]): RDD[AA] = diff.flatMap({
+    case Removed(x: AA) => List(x)
+    case _ => List()
+  })
+
+  def additionsInPairs[K: ClassTag, V: ClassTag](diff: RDD[(K, Diff[V])]): RDD[(K, V)] = diff.flatMap({
+    case (key, Added(x)) => List((key, x))
+    case _ => List()
+  })
+
+  def removalsInPairs[K: ClassTag, V: ClassTag](diff: RDD[(K, Diff[V])]): RDD[(K, V)] = diff.flatMap({
+    case (key, Removed(x)) => List((key, x))
+    case _ => List()
+  })
+
   def iterateUpstream(f: (DiffRDDGenerator[_] => Unit)): Unit =
   {
     f(this)
-    if(prev != null)
-      for (p <- prev) p.iterateUpstream(f)
+    if(parents != null)
+      for (p <- parents) p.iterateUpstream(f)
   }
 
   def assembleThisOrigComputation(): Unit
@@ -118,19 +192,21 @@ abstract class DiffRDDGenerator[A: ClassTag]
 
   def assembleOrigComputation(): Unit =
   {
-    if(prev != null) {
-      for (p <- prev) p.assembleOrigComputation()
+    if(parents != null) {
+      for (p <- parents) p.assembleOrigComputation()
     }
     this.assembleThisOrigComputation()
+    this.origRDD.cache()
   }
 
   def assembleIncrComputation(): Unit =
   {
     assert(this.origComputationRan)
-    if(prev != null) {
-      for (p <- prev) p.assembleIncrComputation()
+    if(parents != null) {
+      for (p <- parents) p.assembleIncrComputation()
     }
     this.assembleThisIncrComputation()
+    this.incrRDD.cache()
   }
 
   def setOrigComputationRan(): Unit = iterateUpstream(_.origComputationRan = true)
@@ -142,12 +218,29 @@ abstract class DiffRDDGenerator[A: ClassTag]
     (additions.map(Added(_)): RDD[Diff[B]]) ++ removals.map(Removed(_))
   }
 
+  def liftKeys[K, V](rdd: RDD[Diff[(K, V)]]): RDD[(K, Diff[V])] =
+  {
+    rdd.map({
+      case Added((k, v)) => (k, Added(v))
+      case Removed((k, v)) => (k, Removed(v))
+    })
+  }
+
+  def flattenKeys[K, V](rdd: RDD[(K, Diff[V])]): RDD[Diff[(K, V)]] =
+  {
+    rdd.map({
+      case (key, Added(x)) => Added(key, x)
+      case (key, Removed(x)) => Removed(key, x)
+    })
+  }
+
   def flatMap[B: ClassTag](f: A => Iterable[B]): DiffFlatMapGenerator[A, B] =
   {
     new DiffFlatMapGenerator(f, this)
   }
 
-  def map[B: ClassTag](f: A => B): DiffMapGenerator[A, B] =
+  //def map[B: ClassTag](f: A => B): DiffMapGenerator[A, B] =
+  def map[B: ClassTag](f: A => B): DiffRDDGenerator[B] =
   {
     new DiffMapGenerator(f, this)
   }
@@ -155,6 +248,18 @@ abstract class DiffRDDGenerator[A: ClassTag]
   def filter(f: A => Boolean): DiffFilterGenerator[A] =
   {
     new DiffFilterGenerator(f, this)
+  }
+
+  def union(other: DiffRDDGenerator[A]): DiffUnionGenerator[A] =
+  {
+    new DiffUnionGenerator(this, other)
+  }
+
+  def ++(other: DiffRDDGenerator[A]): DiffRDDGenerator[A] = this.union(other)
+
+  def distinct() =
+  {
+    new DiffDistinctGenerator(this)
   }
 
   def collect() =
@@ -167,30 +272,36 @@ abstract class DiffRDDGenerator[A: ClassTag]
 
   def incrCollect() =
   {
-    assembleIncrComputation()
+    this.assembleIncrComputation()
     incrRDD.collect()
+  }
+
+  def fixPoint[B: ClassTag](dagForIteration: (DiffRDDGenerator[A], Int) => DiffRDDGenerator[A],
+                            resultForIteration: (DiffRDDGenerator[A], Int, Boolean) => B): DiffFixPoint[A, B] =
+  {
+    new DiffFixPoint(this, dagForIteration, resultForIteration)
+  }
+
+  def count(): Long =
+  {
+    assembleOrigComputation()
+    setOrigComputationRan()
+    this.origRDD.count()
+  }
+
+  def incrCount(): Long =
+  {
+    assembleIncrComputation()
+    val additions = this.additions(this.incrRDD)
+    val removals = this.removals(this.incrRDD)
+
+    this.origRDD.count() + additions.count() - removals.count()
   }
 }
 
-class PairDiffGeneratorFunctions[K, V](self: DiffRDDGenerator[(K, V)])
+class PairDiffGeneratorFunctions[K, V](@transient self: DiffRDDGenerator[(K, V)])
                             (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null)
 {
-  def liftKeys[KK, VV](rdd: RDD[Diff[(KK, VV)]]): RDD[(KK, Diff[VV])] =
-  {
-    rdd.map({
-      case Added((k, v)) => (k, Added(v))
-      case Removed((k, v)) => (k, Removed(v))
-    })
-  }
-
-  def flattenKeys[KK, VV](rdd: RDD[(KK, Diff[VV])]): RDD[Diff[(KK, VV)]] =
-  {
-    rdd.map({
-      case (key, Added(x)) => Added(key, x)
-      case (key, Removed(x)) => Removed(key, x)
-    })
-  }
-
   def reduceByKey(f: (V, V) => V, finv: (V, V) => V): DiffRDDGenerator[(K, V)] =
   {
     new DiffReduceByKeyGenerator(f, finv, self)
@@ -226,7 +337,7 @@ class DiffTextFileGenerator(path: String, diffPath: String, spark: SparkContext)
 {
   override def assembleThisOrigComputation(): Unit =
   {
-    origRDD = spark.textFile(path).cache()
+    origRDD = spark.textFile(path)
   }
 
   override def assembleThisIncrComputation(): Unit =
@@ -385,9 +496,45 @@ class DiffReduceByKeyGenerator[K: ClassTag, V: ClassTag]
     val reducedRDD = origRDD.cogroup(totalAdditions, totalRemovals).flatMap({
       case (key: K, (origValueList: Iterable[V], additions: Iterable[V], removals: Iterable[V])) =>
         computeChanges(key, origValueList, additions, removals)
+      case (x, (a: Iterable[V], b: Iterable[V], c: Iterable[V])) => throw new Exception("Unexpected case " + x.getClass + " expected: " + classTag[K])
     })
 
     incrRDD = reducedRDD
+  }
+}
+
+class DiffUnionGenerator[A: ClassTag] (left: DiffRDDGenerator[A], right: DiffRDDGenerator[A])
+  extends DiffRDDGenerator[A](List(left, right), left.spark)
+{
+  override def assembleThisOrigComputation(): Unit =
+  {
+    origRDD = left.origRDD ++ right.origRDD
+  }
+
+  override def assembleThisIncrComputation(): Unit =
+  {
+    incrRDD = left.incrRDD ++ right.incrRDD
+  }
+}
+
+class DiffDistinctGenerator[A: ClassTag](prev: DiffRDDGenerator[A])
+  extends DiffRDDGenerator[A](prev)
+{
+  var multiset: Multiset[A] = null
+
+  override def assembleThisOrigComputation(): Unit =
+  {
+    multiset = Multiset.makeMultiset(prev.origRDD)
+    this.origRDD = multiset.multiset.map(_._1)
+  }
+
+  override def assembleThisIncrComputation(): Unit =
+  {
+    this.incrRDD = multiset.applyDiff(prev.incrRDD).flatMap({
+      case (k, (0, _)) => List(Removed(k))
+      case (k, (count, true)) => List(Added(k))
+      case(_, (_, false)) => List()
+    })
   }
 }
 
@@ -429,6 +576,48 @@ class DiffJoinGenerator[K: ClassTag, V: ClassTag, W: ClassTag]
   }
 }
 
+class DiffFixPoint[A: ClassTag, B: ClassTag](initialDag: DiffRDDGenerator[A],
+                                             dagForIteration: (DiffRDDGenerator[A], Int) => DiffRDDGenerator[A],
+                                             resultForIteration: (DiffRDDGenerator[A], Int, Boolean) => B)
+{
+  val dagsForOrigIteration: scala.collection.mutable.ListBuffer[DiffRDDGenerator[A]] = new scala.collection.mutable.ListBuffer()
+
+  def fixPoint(): DiffRDDGenerator[A] =
+  {
+    var dag = initialDag
+    var iter = 0
+    var result = resultForIteration(dag, iter, false)
+
+    var prev_result = result
+    var prev_dag = dag
+
+    do {
+      iter = iter + 1
+      prev_result = result
+      prev_dag = dag
+      dag = dagForIteration(prev_dag, iter)
+      result = resultForIteration(dag, iter, false)
+      dagsForOrigIteration += dag
+    } while(prev_result != result)
+
+    dag
+  }
+
+  def incrFixPoint(): Unit =
+  {
+    var origDags = dagsForOrigIteration.reverse
+    var iter = 0
+    var result = resultForIteration(initialDag, iter, true)
+    var prev_result = result
+    do {
+      iter = iter + 1
+      prev_result = result
+      result = resultForIteration(origDags.head, iter, true)
+      origDags = origDags.tail
+    } while (prev_result != result)
+  }
+}
+
 object DiffTest
 {
   implicit def diffGeneratorToPairRDDFunctions[K, V]
@@ -444,12 +633,16 @@ object DiffTest
     val origResults = workflow.collect()
     val incrResults = workflow.incrCollect()
 
+    println("Orig results")
     origResults.foreach(println)
+    println("Incr results")
     incrResults.foreach(println)
   }
 
   def changeFilterTest(spark:SparkContext) =
   {
+    //val input = new DiffTextFileGenerator("hdfs://scai01.cs.ucla.edu:9000/clash/output20.txt", null, spark).flatMap(line => line.trim().split(' '))
+
     val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' '))
     val filter = input.filter({_ => true})
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
@@ -476,6 +669,13 @@ object DiffTest
     incrResults.foreach(println)
   }
 
+  def distinctTest(spark: SparkContext) =
+  {
+    val workflow = new DiffSeqGenerator(List("a","b","c","b","a"), List(Added("d"), Removed("b"), Removed("b"), Added("c")), spark).distinct()
+    workflow.collect()
+    workflow.incrCollect().foreach(println)
+  }
+
   def joinTest(spark:SparkContext) =
   {
     val inputLeft = List((1, 'a'), (2, 'b'), (3, 'c'), (100, 'z'))
@@ -496,13 +696,46 @@ object DiffTest
     incrResults.foreach(println)
   }
 
+  def TCTest(spark: SparkContext) =
+  {
+    val tc: DiffSeqGenerator[(Int, Int)] = new DiffSeqGenerator(List((1,2), (2,3), (3, 4), (100, 101), (101, 102)), List(Removed((2,3))), spark)
+    val edges: DiffRDDGenerator[(Int, Int)] = tc.map(x => (x._2, x._1))
+
+    def resultForIteration(dag: DiffRDDGenerator[(Int, Int)], iter: Int, incr: Boolean) =
+    {
+      println(s"Doing iteration: $iter, incrementally? $incr")
+      if(incr) { dag.incrCount() }
+      else { dag.count() }
+    }
+
+    val fix = tc.fixPoint(dagForIteration = (dag, iter) => dag.union(dag.join(edges).map(x => (x._2._2, x._2._1))).distinct(),
+      resultForIteration = resultForIteration)
+
+    val resultRDD = fix.fixPoint()
+    val result = resultRDD.collect()
+    fix.incrFixPoint()
+    val incrResult = resultRDD.incrCollect()
+
+    println("orig tc result")
+    result.foreach(println)
+    println("incr tc result")
+    incrResult.foreach(println)
+  }
+
   def main(args: Array[String]): Unit =
   {
     val conf = new SparkConf().setAppName("DiffTest")
     val spark = new SparkContext(conf)
 
-    incrementalFilterTest(spark)
+    //incrementalFilterTest(spark)
+    //deltaDataTest(spark)
+    //changeFilterTest(spark)
+    //joinTest(spark)
+    //distinctTest(spark)
+    TCTest(spark)
+
     readLine()
+
     spark.stop()
   }
 }
