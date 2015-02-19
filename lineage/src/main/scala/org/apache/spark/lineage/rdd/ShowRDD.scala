@@ -56,12 +56,12 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
         val shuffled: Lineage[(RecordId, Any)] = position match {
           case _: TapPreShuffleLRDD[_] =>
             val part = new LocalityAwarePartitioner(position.partitions.size)
-            new ShuffledLRDD[RecordId, Any, Any](prev, part)
+            new ShuffledLRDD[RecordId, Any, Any](prev, part).setMapSideCombine(false)
           case _: TapCoGroupLRDD[_] =>
             val part = new LocalityAwarePartitioner(position.partitions.size)
             right = new ShuffledLRDD[RecordId, Any, Any](position.map {
                 case (a, b) => (b.asInstanceOf[RecordId], a)
-              }, part)
+              }, part).setMapSideCombine(false)
             prev
           case _ => prev
         }
@@ -78,4 +78,6 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
       }
     }
   }
+
+  def dump: RDD[(RecordId, String)] = prev
 }

@@ -36,6 +36,7 @@ class ShuffledLRDD[K, V, C](
     @transient var previous: Lineage[_ <: Product2[K, V]],
     part: Partitioner
   ) extends ShuffledRDD[K, V, C](previous, part) with Lineage[(K, C)] {
+  self =>
 
   override def ttag = classTag[(K, C)]
 
@@ -47,6 +48,12 @@ class ShuffledLRDD[K, V, C](
     .getReader(dep.shuffleHandle, split.index, split.index + 1, context, Some(isLineageActive))
       .read(isPreShuffleCache, id)
       .asInstanceOf[Iterator[(K, C)]]
+  }
+
+  /** Set mapSideCombine flag for RDD's shuffle. */
+  override def setMapSideCombine(mapSideCombine: Boolean): ShuffledLRDD[K, V, C] = {
+    this.mapSideCombine = mapSideCombine
+    this
   }
 
   override def tapRight(): TapLRDD[(K, C)] = {

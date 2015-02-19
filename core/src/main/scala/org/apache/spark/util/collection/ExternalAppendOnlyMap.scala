@@ -111,10 +111,29 @@ class ExternalAppendOnlyMap[K, V, C](
   private val ser = serializer.newInstance()
 
   /**
-   * Insert the given key and value into the map.
+   * Insert the given key and value into the map. Modified by Matteo
    */
   def insert(key: K, value: V): Unit = {
-    insertAll(Iterator((key, value)))
+    val update: (Boolean, C) => C = (hadVal, oldVal) => {
+      if (hadVal) mergeValue(oldVal, value) else createCombiner(value)
+    }
+
+    if (elementsRead > trackMemoryThreshold && elementsRead % 32 == 0 &&
+      currentMap.estimateSize() >= myMemoryThreshold)
+    {
+      // Claim up to double our current memory from the shuffle memory pool
+      val currentMemory = currentMap.estimateSize()
+      val amountToRequest = 2 * currentMemory - myMemoryThreshold
+      val granted = shuffleMemoryManager.tryToAcquire(amountToRequest)
+      myMemoryThreshold += granted
+      if (myMemoryThreshold <= currentMemory) {
+        // We were granted too little memory to grow further (either tryToAcquire returned 0,
+        // or we already had more memory than myMemoryThreshold); spill the current collection
+        spill(currentMemory)  // Will also release memory back to ShuffleMemoryManager
+      }
+    }
+    currentMap.changeValue(key, update)
+    elementsRead += 1
   }
 
   /**

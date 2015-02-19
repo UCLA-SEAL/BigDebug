@@ -19,6 +19,7 @@ package org.apache.spark.scheduler
 
 import java.io.{ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
+import java.util.concurrent.ExecutorService
 
 import scala.collection.mutable.HashMap
 
@@ -47,6 +48,7 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
   final def run(attemptId: Long): T = {
     context = new TaskContext(stageId, partitionId, attemptId, runningLocally = false)
     context.taskMetrics.hostname = Utils.localHostName()
+    context.setPool(pool)
     taskThread = Thread.currentThread()
     if (_killed) {
       kill(interruptThread = false)
@@ -77,6 +79,10 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
    * Whether the task has been killed.
    */
   def killed: Boolean = _killed
+
+  var pool: ExecutorService = null // Matteo
+
+  def setPool(pool: ExecutorService) = this.pool = pool // Matteo
 
   /**
    * Kills a task by setting the interrupted flag to true. This relies on the upper level Spark

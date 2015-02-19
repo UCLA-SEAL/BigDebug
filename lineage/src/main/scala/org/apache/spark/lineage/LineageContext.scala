@@ -30,7 +30,7 @@ import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 object LineageContext {
-  type RecordId = (Int, Int, Long)
+  type RecordId = (Short, Short, Int)
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
@@ -252,7 +252,6 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def setCaptureLineage(newLineage: Boolean) = {
     if(newLineage == false && captureLineage == true) {
       getLineage(lastLineagePosition.get)
-      NewtWrapper.finalCommit()
     }
     captureLineage = newLineage
   }

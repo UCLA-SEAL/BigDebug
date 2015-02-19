@@ -103,6 +103,8 @@ private[spark] class Executor(
   // Maintains the list of running tasks.
   private val runningTasks = new ConcurrentHashMap[Long, TaskRunner]
 
+  val pool: ExecutorService = Executors.newCachedThreadPool() //Matteo
+
   startDriverHeartbeater()
 
   def launchTask(
@@ -122,6 +124,7 @@ private[spark] class Executor(
   def stop() {
     env.metricsSystem.report()
     isStopped = true
+    pool.shutdown()
     threadPool.shutdown()
     if (!isLocal) {
       env.stop()
@@ -175,6 +178,8 @@ private[spark] class Executor(
         attemptedTask = Some(task)
         logDebug("Task " + taskId + "'s epoch is " + task.epoch)
         env.mapOutputTracker.updateEpoch(task.epoch)
+
+        task.setPool(pool) // Matteo
 
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()

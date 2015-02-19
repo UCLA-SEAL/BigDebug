@@ -136,7 +136,7 @@ public class NewtWrapper {
         long start=System.currentTimeMillis();
         HadoopRDDActor.commit();
         System.out.println("Hadoop Actor Commit complete : "+instanceId);
-        System.out.println("Time by "+instanceId+" : "+(System.currentTimeMillis()-start)/1000);
+        //System.out.println("Time by "+instanceId+" : "+(System.currentTimeMillis()-start)/1000);
     }
 
     public static synchronized void finalCommit()

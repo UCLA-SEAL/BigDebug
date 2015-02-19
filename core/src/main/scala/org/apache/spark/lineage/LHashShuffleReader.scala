@@ -17,13 +17,11 @@
 
 package org.apache.spark.lineage
 
-import java.util.concurrent.atomic.AtomicLong
-
-import org.apache.spark.{InterruptibleIterator, TaskContext}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.BaseShuffleHandle
 import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReader}
-import org.apache.spark.util.collection.{ExternalSorter, AppendOnlyMap}
+import org.apache.spark.util.collection.{ExternalSorter, OpenHashMap}
+import org.apache.spark.{InterruptibleIterator, TaskContext}
 
 private[spark] class LHashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
@@ -38,12 +36,6 @@ private[spark] class LHashShuffleReader[K, C](
 
   private val dep = handle.dependency
 
-  private var recordInfo: (Int, Int, Long) = (0, 0, 0L)
-
-  private val nextRecord: AtomicLong = new AtomicLong(0)
-
-  private def newRecordId = nextRecord.getAndIncrement
-
   /** Read the combined key-values for this reduce task */
   override def read(isCache: Option[Boolean] = None, shuffId: Int = 0): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
@@ -57,14 +49,18 @@ private[spark] class LHashShuffleReader[K, C](
       }
     }
 
-    val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
+    context.currentRecordInfos = new OpenHashMap[Any, List[(Short, Short, Int)]]
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
-      val iter = untap(tappedIter, trace)
-
-      tap(new InterruptibleIterator(context,
-        dep.aggregator.get.combineValuesByKey(iter, context)),
-        trace, context, startPartition, shuffId)
+      val iter = untap(tappedIter)
+      if (dep.mapSideCombine) {
+        tap(new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context)))
+      } else {
+        tap(new InterruptibleIterator(context,
+          dep.aggregator.get.combineValuesByKey(iter, context)))
+      }
+    } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
+      throw new IllegalStateException("Aggregator is empty for map-side combine")
     } else {
       // Convert the Product2s to pairs since this is what downstream RDDs currently expect
       tappedIter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
@@ -85,15 +81,10 @@ private[spark] class LHashShuffleReader[K, C](
     }
   }
 
-  def untap[T](
-      iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
-      trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
+  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Short, Short, Int)]]]) = {
     if(lineage) {
       iter.map(r => {
-        val update = (hadValue: Boolean, oldValue: List[(Int, Int, Long)]) => {
-          if (hadValue) r._2._2 :: oldValue else List(r._2._2)
-        }
-        trace.changeValue(r._1, update)
+        context.currentRecordInfos.changeValue(r._1, List(r._2._2), r._2._2 :: _)
         (r._1, r._2._1).asInstanceOf[T]
       })
     } else {
@@ -101,19 +92,9 @@ private[spark] class LHashShuffleReader[K, C](
     }
   }
 
-  def tap(
-      iter: Iterator[Product2[K, C]],
-      trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
-      context : TaskContext,
-      splitId: Int,
-      shuffleId: Int) = {
+  def tap(iter: Iterator[Product2[K, C]]): Iterator[Product2[K, C]] = {
     if(lineage) {
-      iter.map(r => {
-        val id = trace(r._1)
-        context.currentRecordInfo = id.toSeq
-        var recordInfo = (shuffleId, splitId, newRecordId)
-        ((r._1, r._2), (shuffleId, splitId, newRecordId)).asInstanceOf[Product2[K, C]]
-      })
+      iter.zipWithIndex.map(r => (r._1, (startPartition.toShort, r._2))).asInstanceOf[Iterator[Product2[K, C]]]
     } else {
       iter
     }

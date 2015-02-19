@@ -20,7 +20,6 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-
 import scala.collection.JavaConversions._
 
 private[spark]
@@ -33,17 +32,15 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   private[spark] val filePath = firstParent[(K, V)].asInstanceOf[HadoopLRDD[K, V]].getFilePath
 
   override def tap(record: (K, V)) = {
-    recordId = (id, splitId, newRecordId)
-    tContext.currentRecordInfo = Seq(recordId)
-    val input = Seq((filePath, record._1.asInstanceOf[LongWritable].get))
-    addRecordInfo(recordId, input)
+    recordIdShort = (splitId, newRecordId)
+    tContext.currentRecordInfo = recordIdShort
+    addRecordInfo(recordIdShort, (filePath, record._1.asInstanceOf[LongWritable].get))
 
     //TODO Ksh
     //recordid is the output and seq is input
-    newt.add(recordId.toString(), input.map(_.toString()))
+    newt.add(recordIdShort.toString(), List((filePath, record._1.asInstanceOf[LongWritable].get).toString()))
 
-
-    record
+      record
   }
 
   //TODO Ksh

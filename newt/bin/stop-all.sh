@@ -8,12 +8,13 @@ NEWT_HOME="$BASE/newt"
 
 for mst in $MASTER; do #`cat master |sed  "s/#.*$//;/^$/d"`; do
     echo "Starting Master on $mst"
-    ssh clash@$mst ". $NEWT_HOME/bin/start-master.sh";
+    ssh clash@$mst ". $NEWT_HOME/bin/stop-newt.sh";
     echo $?
 done
 
 for slave in $SLAVES; do #`cat slaves |sed  "s/#.*$//;/^$/d"`; do
-    echo "Starting Peer on $slave"
-    ssh clash@$slave ". $NEWT_HOME/bin/start-peer.sh" ;
+    echo "Stopping Peer on $slave"
+    ssh clash@$slave ". $NEWT_HOME/bin/stop-newt.sh" ;
     echo $?
 done
+

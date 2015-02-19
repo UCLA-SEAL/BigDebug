@@ -17,11 +17,14 @@
 
 package org.apache.spark
 
-import scala.collection.mutable.ArrayBuffer
+import java.util.concurrent.ExecutorService
 
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.util.TaskCompletionListener
+import org.apache.spark.util.collection.OpenHashMap
+
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -44,7 +47,14 @@ class TaskContext(
   extends Serializable {
 
   // Used to pipeline records through taps inside the same stage
-  @transient var currentRecordInfo: Seq[(Int, Int, Long)] = Seq((0, 0, 0L)) // Added by Matteo
+  @transient var currentRecordInfo: (Short, Int) = (0, 0) // Added by Matteo
+
+  // Used to pipeline records through taps inside the same stage
+  @transient var currentRecordInfos: OpenHashMap[Any, List[(Short, Short, Int)]] = null // Added by Matteo
+
+  @transient var pool: ExecutorService = null // Matteo
+
+  def setPool(pool: ExecutorService) = this.pool = pool
 
   @deprecated("use partitionId", "0.8.1")
   def splitId = partitionId

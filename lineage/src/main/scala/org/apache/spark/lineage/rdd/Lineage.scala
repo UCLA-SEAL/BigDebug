@@ -61,7 +61,10 @@ trait Lineage[T] extends RDD[T] {
   def getLineage(): LineageRDD = {
     if(getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(getTap())
-      return new LineageRDD(getTap().get)
+      return getTap().get match {
+        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] => new LineageRDD(getTap().get)
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => ((0:Short, r.asInstanceOf[((Short, Int), (_))]._1._1, r.asInstanceOf[((Short, Int), (_))]._1._2), (0:Short, r.asInstanceOf[((_), (Short, Int))]._2._1, r.asInstanceOf[((_), (Short, Int))]._2._2))))
+      }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
   }
@@ -96,15 +99,35 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[(RecordId, Any)],
-      next1: Lineage[(RecordId, (String, Long))],
+  private[spark] def rightJoinShort(prev: Lineage[((Short, Int), Any)], next: Lineage[((Short, Int), Any)]) = {
+    prev.zipPartitions(next) {
+      (buildIter, streamIter) =>
+        val hashSet = new java.util.HashSet[(Short, Int)]()
+        var rowKey: (Short, Int) = null
+
+
+        // Create a Hash set of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()._1
+          val keyExists = hashSet.contains(rowKey)
+          if (!keyExists) {
+            hashSet.add(rowKey)
+          }
+        }
+
+        streamIter.filter(current => { hashSet.contains(current._1) })
+    }
+  }
+
+  private[spark] def join3Way(prev: Lineage[((Short, Int), Any)],
+      next1: Lineage[((Short, Int), (String, Long))],
       next2: Lineage[(Long, String)]
     ) = {
     prev.zipPartitions(next1,next2) {
       (buildIter, streamIter1, streamIter2) =>
-        val hashSet = new java.util.HashSet[RecordId]()
-        val hashMap = new java.util.HashMap[Long, CompactBuffer[RecordId]]()
-        var rowKey: RecordId = null
+        val hashSet = new java.util.HashSet[(Short, Int)]()
+        val hashMap = new java.util.HashMap[Long, CompactBuffer[(Short, Int)]]()
+        var rowKey: (Short, Int) = null
 
         while (buildIter.hasNext) {
           rowKey = buildIter.next()._1
@@ -119,7 +142,7 @@ trait Lineage[T] extends RDD[T] {
           if(hashSet.contains(current._1)) {
             var values = hashMap.get(current._2)
             if(values == null) {
-              values = new CompactBuffer[RecordId]()
+              values = new CompactBuffer[(Short, Int)]()
             }
             values += current._1
             hashMap.put(current._2._2, values)
@@ -129,7 +152,7 @@ trait Lineage[T] extends RDD[T] {
           val values = if(hashMap.get(current._1) != null) {
             hashMap.get(current._1)
           } else {
-            new CompactBuffer[RecordId]()
+            new CompactBuffer[(Short, Int)]()
           }
           values.map(record => (record, current._2))
         })
@@ -144,7 +167,7 @@ trait Lineage[T] extends RDD[T] {
    * Return an array that contains all of the elements in this RDD.
    */
   override def collect(): Array[T] = {
-    val results = lineageContext.runJob(this, (_: Iterator[T]).toArray)
+    val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
 
     if(lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap())
@@ -181,51 +204,56 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage containing only the elements that satisfy a predicate.
    */
   override def filter(f: T => Boolean): Lineage[T] = {
-    if(this.getTap().isDefined) {
-      lineageContext.setCurrentLineagePosition(this.getTap())
-      var result: ShowRDD = null
-      this.getTap().get match {
-        case _: TapPreShuffleLRDD[_] =>
-          val tmp = this.getTap().get
-            .getCachedData.setCaptureLineage(false)
-            .asInstanceOf[Lineage[(Any, (Any, RecordId))]]
-          tmp.setTap()
-          result = new ShowRDD(tmp
-            .map(r => ((r._1, r._2._1), r._2._2)).asInstanceOf[Lineage[(T, RecordId)]]
-            .filter(r => f(r._1))
-            .map(r => (r._2, r._1.toString()))
-          )
-          tmp.setTap(lineageContext.getCurrentLineagePosition.get)
-        case _: TapPostShuffleLRDD[_] =>
-          val tmp = this.getTap().get
-            .getCachedData.setCaptureLineage(false)
-            .asInstanceOf[Lineage[(T, RecordId)]]
-          tmp.setTap()
-          result = new ShowRDD(tmp.filter(r => f(r._1)).map(r => (r._2, r._1.toString())))
-          tmp.setTap(lineageContext.getCurrentLineagePosition.get)
-        case _ => throw new UnsupportedOperationException
+    if(!lineageContext.isLineageActive) {
+      if(this.getTap().isDefined) {
+        lineageContext.setCurrentLineagePosition(this.getTap())
+        var result: ShowRDD = null
+        this.getTap().get match {
+          case _: TapPreShuffleLRDD[_] =>
+            val tmp = this.getTap().get
+              .getCachedData.setCaptureLineage(false)
+              .asInstanceOf[Lineage[(Any, (Any, RecordId))]]
+            tmp.setTap()
+            result = new ShowRDD(tmp
+              .map(r => ((r._1, r._2._1), r._2._2)).asInstanceOf[Lineage[(T, RecordId)]]
+              .filter(r => f(r._1))
+              .map(r => (r._2, r._1.toString()))
+            )
+            tmp.setTap(lineageContext.getCurrentLineagePosition.get)
+          case _: TapPostShuffleLRDD[_] =>
+            val tmp = this.getTap().get
+              .getCachedData.setCaptureLineage(false)
+              .asInstanceOf[Lineage[(T, RecordId)]]
+            tmp.setTap()
+            result = new ShowRDD(tmp.filter(r => f(r._1)).map(r => (r._2, r._1.toString())))
+            tmp.setTap(lineageContext.getCurrentLineagePosition.get)
+          case _ => throw new UnsupportedOperationException
+        }
+        result.setTap(this.getTap().get)
+        result
+      } else {
+        this.dependencies(0).rdd match {
+          case _: TapHadoopLRDD[_, _] =>
+            var result: ShowRDD = null
+            lineageContext.setCurrentLineagePosition(
+              Some(this.dependencies(0).rdd.asInstanceOf[TapHadoopLRDD[_, _]])
+            )
+            result = new ShowRDD(this.dependencies(0).rdd
+              .firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
+              .map(r=> (r._1.get(), r._2.toString)).asInstanceOf[RDD[(Long, T)]]
+              .filter(r => f(r._2))
+              .join(this.dependencies(0).rdd.asInstanceOf[Lineage[(RecordId, (String, Long))]]
+              .map(r => (r._2._2, r._1)))
+              .distinct()
+              .map(r => (r._2._2, r._2._1)))
+            result.setTap(lineageContext.getCurrentLineagePosition.get)
+            result
+          case _ => new FilteredLRDD[T](this, context.clean(f))
+        }
       }
-      result.setTap(this.getTap().get)
     } else {
-      this.dependencies(0).rdd match {
-        case _: TapHadoopLRDD[_, _] =>
-          var result: ShowRDD = null
-          lineageContext.setCurrentLineagePosition(
-            Some(this.dependencies(0).rdd.asInstanceOf[TapHadoopLRDD[_, _]])
-          )
-          result = new ShowRDD(this.dependencies(0).rdd
-            .firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
-            .map(r=> (r._1.get(), r._2.toString)).asInstanceOf[RDD[(Long, T)]]
-            .filter(r => f(r._2))
-            .join(this.dependencies(0).rdd.asInstanceOf[Lineage[(RecordId, (String, Long))]]
-            .map(r => (r._2._2, r._1)))
-            .distinct()
-            .map(r => (r._2._2, r._2._1)))
-          result.setTap(lineageContext.getCurrentLineagePosition.get)
-        case _ =>
-      }
+      new FilteredLRDD[T](this, context.clean(f))
     }
-    new FilteredLRDD[T](this, context.clean(f))
   }
 
   /**

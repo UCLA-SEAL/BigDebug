@@ -17,10 +17,8 @@
 
 package org.apache.spark.lineage.rdd
 
-import java.util.concurrent.atomic.AtomicLong
-
 import org.apache.spark._
-import org.apache.spark.lineage.{NewtWrapper, LCacheManager, LineageContext}
+import org.apache.spark.lineage.{LCacheManager, LineageContext, NewtWrapper}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.ArrayBuffer
@@ -33,28 +31,36 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   setCaptureLineage(true)
 
-  @transient private[spark] var splitId: Int = 0
+  @transient private[spark] var splitId: Short = 0
 
   @transient private[spark] var tContext: TaskContext = null
 
-  @transient private[spark] var recordId: (Int, Int, Long) = (0, 0, 0L)
+  @transient private[spark] var recordId: (Short, Short, Int) = (0, 0, 0)
+
+  @transient private[spark] var recordIdShort: (Short, Int) = (0, 0)
 
   // TODO make recordInfo grow in memory and spill to disk if needed
-  private[spark] val recordInfo: ArrayBuffer[(Any, Any)] = new ArrayBuffer[(Any, Any)]()
+  @transient private[spark] var recordInfo: ArrayBuffer[(Any, Any)] = null
 
-  private[spark] var nextRecord: AtomicLong = new AtomicLong(0)
+  @transient private[spark] var nextRecord: Int = 0
 
   private[spark] var shuffledData: Lineage[_] = null
 
-  private[spark] def newRecordId = nextRecord.getAndIncrement
+  private[spark] def newRecordId = {
+    nextRecord += 1
+    nextRecord
+  }
 
-  private[spark] def addRecordInfo(key: (Int, Int, Long), value: Seq[(_)]) = {
-    value.foreach(v => recordInfo += key -> v)
+  private[spark] def addRecordInfo(key: (Short, Int), value: Any) = {
+    recordInfo += key -> value
+  }
+
+  private[spark] def addRecordInfo(key: (Short, Short, Int), value: Seq[(_)]) = {
+    recordInfo += key -> value
   }
 
   //TODO Ksh
   var newt: NewtWrapper = null;
-
 
   /**
    * Compute an RDD partition or read it from a checkpoint if the RDD was checkpointed.
@@ -69,13 +75,15 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
-  override def getRecordInfos = recordInfo
+  override def materializeRecordInfo: Array[Any] = recordInfo.toArray
 
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
       tContext = context
     }
-    splitId = split.index
+    splitId = split.index.toShort
+
+    recordInfo = new ArrayBuffer[(Any, Any)]()
 
     //TODO Ksh
     //Using Random Int to avoid same table names
@@ -90,6 +98,11 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     iterator
   }
 
+  override def cleanTable = {
+    recordInfo.clear()
+    recordInfo = null
+  }
+
   override def filter(f: T => Boolean): Lineage[T] =
     new FilteredLRDD[T](this, sparkContext.clean(f))
 
@@ -101,9 +114,9 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
   def tap(record: T) = {
-    recordId = (id, splitId, newRecordId)
-    addRecordInfo(recordId, tContext.currentRecordInfo)
-    tContext.currentRecordInfo = Seq(recordId)
+    recordIdShort = (splitId, newRecordId)
+    addRecordInfo(recordIdShort, tContext.currentRecordInfo)
+    tContext.currentRecordInfo = recordIdShort
 
     record
   }
