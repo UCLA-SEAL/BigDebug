@@ -1,15 +1,14 @@
 package org.apache.spark.examples
 
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
-import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.language.implicitConversions
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, _}
 import scala.util.Random
-import scala.reflect._
 
 abstract class Diff[+A] extends Serializable
 {
@@ -113,7 +112,7 @@ class Multiset[A: ClassTag](@transient val multiset: RDD[(A, Int)]) extends Seri
       case Removed(_) => true
     }).map(_.element)
 
-    val removalsSet = Multiset.makeMultiset(removals).multiset.map(pair => (pair._1, -1 * pair._2))
+    val removalsSet = Multiset.makeMultiset(removals).multiset.mapValues(-1 * _)
     val diffMultiset = additionsSet ++ removalsSet
 
     def countsSum(count1List: Iterable[Int], count2List: Iterable[Int]): (Int, Boolean) =
@@ -143,8 +142,11 @@ abstract class DiffRDDGenerator[A: ClassTag]
   @transient var origRDD: RDD[A] = null
   @transient var incrRDD: RDD[Diff[A]] = null
   @transient var origComputationRan = false
+  @transient private var shouldCacheOrigOutput = false
 
   def this(@transient onePrev: DiffRDDGenerator[_]) = this(List(onePrev), onePrev.spark)
+
+  def setOrigCached(): Unit = shouldCacheOrigOutput = true
 
   def setDifference[B: ClassTag](rdd1: RDD[B], rdd2: RDD[B]): RDD[B] =
   {
@@ -196,6 +198,9 @@ abstract class DiffRDDGenerator[A: ClassTag]
       for (p <- parents) p.assembleOrigComputation()
     }
     this.assembleThisOrigComputation()
+//    if(this.shouldCacheOrigOutput) {
+//      this.origRDD.cache()
+//    }
     this.origRDD.cache()
   }
 
@@ -276,6 +281,12 @@ abstract class DiffRDDGenerator[A: ClassTag]
     incrRDD.collect()
   }
 
+  def incrOutput() =
+  {
+    this.assembleIncrComputation()
+    new Multiset(Multiset.makeMultiset(this.origRDD).applyDiff(this.incrRDD).mapValues(_._1)).flattenMultiset().collect()
+  }
+
   def fixPoint[B: ClassTag](dagForIteration: (DiffRDDGenerator[A], Int) => DiffRDDGenerator[A],
                             resultForIteration: (DiffRDDGenerator[A], Int, Boolean) => B): DiffFixPoint[A, B] =
   {
@@ -286,16 +297,28 @@ abstract class DiffRDDGenerator[A: ClassTag]
   {
     assembleOrigComputation()
     setOrigComputationRan()
-    this.origRDD.count()
+    this.origRDD.cache().count()
   }
 
   def incrCount(): Long =
   {
     assembleIncrComputation()
-    val additions = this.additions(this.incrRDD)
-    val removals = this.removals(this.incrRDD)
 
-    this.origRDD.count() + additions.count() - removals.count()
+    val additions = this.incrRDD.filter({
+      case Added(_) => true
+      case _ => false
+    })
+
+    val removals = this.incrRDD.filter({
+      case Removed(_) => true
+      case _ => false
+    })
+
+    val orig = this.origRDD.count()
+    val rem = removals.count()
+    val add = additions.count()
+    //println(s"Orig count: $orig, removals: $rem, additions: $add")
+    orig - rem + add
   }
 }
 
@@ -391,6 +414,7 @@ class DiffFilterGenerator[A: ClassTag]
   var incrementalFilterChanged: Boolean = false
   var incrementalAdditionsFunction: (A => Boolean) = null
   var incrementalRemovalsFunction: (A => Boolean) = null
+  prev.setOrigCached() //for the incremental filter
 
   def setNewFilter(f1: A => Boolean): Unit =
   {
@@ -404,8 +428,8 @@ class DiffFilterGenerator[A: ClassTag]
     assert(origComputationRan)
     assert(additions != null || removals != null)
     incrementalFilterChanged = true
-    incrementalAdditionsFunction = if(additions == null) {_ => false} else additions
-    incrementalRemovalsFunction = if(removals == null) {_ => false} else removals
+    incrementalAdditionsFunction = additions
+    incrementalRemovalsFunction = removals
   }
 
   override def assembleIncrComputation(): Unit =
@@ -415,9 +439,17 @@ class DiffFilterGenerator[A: ClassTag]
       incrRDD = generateDiff(newFilter, origRDD)
     }
     else if(incrementalFilterChanged) {
-      val additions: RDD[Diff[A]] = prev.origRDD.filter(incrementalAdditionsFunction).map(Added(_))
-      val removals: RDD[Diff[A]] = prev.origRDD.filter(incrementalRemovalsFunction).map(Removed(_))
-      incrRDD = additions ++ removals
+      if (incrementalAdditionsFunction != null && incrementalRemovalsFunction != null) {
+        val additions: RDD[Diff[A]] = prev.origRDD.filter(incrementalAdditionsFunction).map(Added(_))
+        val removals: RDD[Diff[A]] = prev.origRDD.filter(incrementalRemovalsFunction).map(Removed(_))
+        incrRDD = additions ++ removals
+      }
+      else if(incrementalAdditionsFunction != null) {
+        incrRDD = prev.origRDD.filter(incrementalAdditionsFunction).map(Added(_))
+      }
+      else if(incrementalRemovalsFunction != null) {
+        incrRDD =  prev.origRDD.filter(incrementalRemovalsFunction).map(Removed(_))
+      }
     }
     else {
       super.assembleIncrComputation()
@@ -442,6 +474,8 @@ class DiffReduceByKeyGenerator[K: ClassTag, V: ClassTag]
    prev:DiffRDDGenerator[(K, V)])
   extends DiffRDDGenerator[(K, V)](prev)
 {
+  this.setOrigCached()
+
   def this(f:(V, V) => V, finv: (V, V) => V, prev:DiffRDDGenerator[(K, V)]) = this(f, finv, _ => false, prev)
 
   override def assembleThisOrigComputation(): Unit =
@@ -525,7 +559,7 @@ class DiffDistinctGenerator[A: ClassTag](prev: DiffRDDGenerator[A])
   override def assembleThisOrigComputation(): Unit =
   {
     multiset = Multiset.makeMultiset(prev.origRDD)
-    this.origRDD = multiset.multiset.map(_._1)
+    this.origRDD = multiset.multiset.cache().map(_._1)
   }
 
   override def assembleThisIncrComputation(): Unit =
@@ -543,6 +577,9 @@ class DiffJoinGenerator[K: ClassTag, V: ClassTag, W: ClassTag]
    right: DiffRDDGenerator[(K, W)])
   extends DiffRDDGenerator[(K, (V, W))](List(left, right), left.spark)
 {
+  left.setOrigCached()
+  right.setOrigCached()
+
   override def assembleThisOrigComputation(): Unit =
   {
     origRDD = left.origRDD.join(right.origRDD)
@@ -580,13 +617,14 @@ class DiffFixPoint[A: ClassTag, B: ClassTag](initialDag: DiffRDDGenerator[A],
                                              dagForIteration: (DiffRDDGenerator[A], Int) => DiffRDDGenerator[A],
                                              resultForIteration: (DiffRDDGenerator[A], Int, Boolean) => B)
 {
-  val dagsForOrigIteration: scala.collection.mutable.ListBuffer[DiffRDDGenerator[A]] = new scala.collection.mutable.ListBuffer()
+  val dagsForOrigIteration: scala.collection.mutable.ListBuffer[(DiffRDDGenerator[A])] = new scala.collection.mutable.ListBuffer()
 
   def fixPoint(): DiffRDDGenerator[A] =
   {
     var dag = initialDag
     var iter = 0
     var result = resultForIteration(dag, iter, false)
+    dagsForOrigIteration += dag
 
     var prev_result = result
     var prev_dag = dag
@@ -597,24 +635,30 @@ class DiffFixPoint[A: ClassTag, B: ClassTag](initialDag: DiffRDDGenerator[A],
       prev_dag = dag
       dag = dagForIteration(prev_dag, iter)
       result = resultForIteration(dag, iter, false)
+      dag.origRDD.cache()
       dagsForOrigIteration += dag
     } while(prev_result != result)
 
     dag
   }
 
-  def incrFixPoint(): Unit =
+  def incrFixPoint(): DiffRDDGenerator[A] =
   {
-    var origDags = dagsForOrigIteration.reverse
+    var dag = dagsForOrigIteration.head
+    var origDags = dagsForOrigIteration.tail
     var iter = 0
-    var result = resultForIteration(initialDag, iter, true)
+    var result = resultForIteration(dag, iter, true)
     var prev_result = result
     do {
       iter = iter + 1
       prev_result = result
-      result = resultForIteration(origDags.head, iter, true)
+      dag = origDags.head
+      result = resultForIteration(dag, iter, true)
+      dag.incrRDD.cache()
       origDags = origDags.tail
     } while (prev_result != result)
+
+    dag
   }
 }
 
@@ -625,6 +669,13 @@ object DiffTest
     (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null): PairDiffGeneratorFunctions[K, V] =
   {
     new PairDiffGeneratorFunctions(diff)
+  }
+
+  def time(fn: Unit => Unit, name: String): Unit =
+  {
+    val start = System.currentTimeMillis()
+    fn()
+    println(s"$name took ${System.currentTimeMillis() - start}ms")
   }
 
   def deltaDataTest(spark:SparkContext) =
@@ -661,9 +712,27 @@ object DiffTest
     val filter = input.filter(_.length() >= 3)
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
     val origResults = workflow.collect()
+    println("orig computation done")
 
     filter.incrementallySetNewFilter(removals = _.length() == 3)
     val incrResults = workflow.incrCollect()
+    println("incr computation done")
+
+    //origResults.foreach(println)
+    incrResults.foreach(println)
+  }
+
+  def incrementalFilterTest2(spark:SparkContext) =
+  {
+    val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' ')).map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
+    val filter = input.filter(_ => true)
+    val workflow = filter
+    val origResults = workflow.collect()
+    println("orig computation done")
+
+    filter.incrementallySetNewFilter(removals = r => !r._1.contains("ar"))
+    val incrResults = workflow.incrCollect()
+    println("incr computation done")
 
     //origResults.foreach(println)
     incrResults.foreach(println)
@@ -672,7 +741,16 @@ object DiffTest
   def distinctTest(spark: SparkContext) =
   {
     val workflow = new DiffSeqGenerator(List("a","b","c","b","a"), List(Added("d"), Removed("b"), Removed("b"), Added("c")), spark).distinct()
-    workflow.collect()
+    time(_ => workflow.collect(), "orig distinct")
+    time(_ => workflow.incrCollect(), "incr distinct")
+    workflow.incrCollect().foreach(println)
+  }
+
+  def distinctTest2(spark: SparkContext) =
+  {
+    val workflow = new DiffTextFileGenerator("README.md", "README.md.diff", spark).flatMap(_.trim().split(' ')).distinct()
+    time(_ => workflow.collect(), "orig distinct")
+    time(_ => workflow.incrCollect(), "incr distinct")
     workflow.incrCollect().foreach(println)
   }
 
@@ -698,23 +776,43 @@ object DiffTest
 
   def TCTest(spark: SparkContext) =
   {
-    val tc: DiffSeqGenerator[(Int, Int)] = new DiffSeqGenerator(List((1,2), (2,3), (3, 4), (100, 101), (101, 102)), List(Removed((2,3))), spark)
+    val tc: DiffSeqGenerator[(Int, Int)] = new DiffSeqGenerator(
+      List((1,2), (2, 3), (3, 4), (4, 5), (5, 6), (100, 101)),
+      List(Removed((2, 3))),
+      spark)
     val edges: DiffRDDGenerator[(Int, Int)] = tc.map(x => (x._2, x._1))
 
     def resultForIteration(dag: DiffRDDGenerator[(Int, Int)], iter: Int, incr: Boolean) =
     {
-      println(s"Doing iteration: $iter, incrementally? $incr")
-      if(incr) { dag.incrCount() }
-      else { dag.count() }
+      if(incr) {
+        val res = dag.incrOutput().toSet
+        //println(s"Iter $iter values")
+        //dag.collect().foreach(println)
+        //res.foreach(println)
+//        println(s"Incr res: ")
+//        dag.incrCollect().foreach(println)
+//        println("----")
+        res
+      }
+      else {
+        val res = dag.collect().toSet
+//        println(s"Orig res for iteration $iter:")
+//        res.foreach(println)
+        res
+      }
     }
 
     val fix = tc.fixPoint(dagForIteration = (dag, iter) => dag.union(dag.join(edges).map(x => (x._2._2, x._2._1))).distinct(),
       resultForIteration = resultForIteration)
 
-    val resultRDD = fix.fixPoint()
+    var resultRDD: DiffRDDGenerator[(Int, Int)] = null
+    var incrResultRDD: DiffRDDGenerator[(Int, Int)] = null
+
+    time(_ => resultRDD =  fix.fixPoint(), "Orig tc")
+    //time(_ => incrResultRDD = fix.incrFixPoint(), "Incr tc")
+    var incrResult: Array[Diff[(Int, Int)]] = null
+    time(_ => incrResult = resultRDD.incrCollect(), "Incr tc")
     val result = resultRDD.collect()
-    fix.incrFixPoint()
-    val incrResult = resultRDD.incrCollect()
 
     println("orig tc result")
     result.foreach(println)
@@ -722,19 +820,158 @@ object DiffTest
     incrResult.foreach(println)
   }
 
+  def RandomTCTest(spark: SparkContext, numEdges: Int = 20, numVertices: Int = 10) =
+  {
+    val rand = new Random(42)
+
+    def generateGraph = {
+      val edges: mutable.Set[(Int, Int)] = mutable.Set.empty
+      while (edges.size < numEdges) {
+        val from = rand.nextInt(numVertices)
+        val to = rand.nextInt(numVertices)
+        if (from != to) edges.+=((from, to))
+      }
+      edges.toSeq
+    }
+
+    val graph = generateGraph
+    val removalEdge = graph.head
+    println(s"Removing edge $removalEdge")
+
+    val tc = new DiffSeqGenerator(graph, List(Removed(removalEdge)), spark)
+    val edges = tc.map(x => (x._2, x._1))
+
+    def resultForIteration(dag: DiffRDDGenerator[(Int, Int)], iter: Int, incr: Boolean) =
+    {
+      if(incr) { dag.incrOutput().toSet }
+      else { dag.collect().toSet }
+    }
+
+/*    def resultForIteration(dag: DiffRDDGenerator[(Int, Int)], iter: Int, incr: Boolean) =
+    {
+      if(incr && iter == 2) {
+        dag.incrCollect()
+        1
+      }
+      else if(!incr && iter == 5) {
+        dag.collect()
+        0
+      }
+      else {
+        iter%2
+      }
+    } */
+
+    val fix = tc.fixPoint(dagForIteration = (dag, iter) => dag.union(dag.join(edges).map(x => (x._2._2, x._2._1))).distinct(),
+      resultForIteration = resultForIteration)
+
+//    val fix = tc.fixPoint(dagForIteration = (dag, iter) => dag.map((_, 1)).reduceByKey(_+_, _-_, _==0).map(_._1),
+//      resultForIteration = resultForIteration)
+
+    var resultRDD: DiffRDDGenerator[(Int, Int)] = null
+    var incrResultRDD: DiffRDDGenerator[(Int, Int)] = null
+    time(_ => resultRDD = fix.fixPoint(), "Orig tc")
+    time(_ => incrResultRDD = fix.incrFixPoint(), "Incr tc")
+    val result = resultRDD.collect()
+    val incrResult = incrResultRDD.incrCollect()
+
+//    println("orig tc result")
+//    result.foreach(println)
+//    println("incr tc result")
+//    incrResult.foreach(println)
+  }
+
+//  def RandomTCTest(spark: SparkContext, numEdges: Int = 20, numVertices: Int = 10) =
+//  {
+//    val rand = new Random(42)
+//
+//    def generateGraph = {
+//      val edges: mutable.Set[(Int, Int)] = mutable.Set.empty
+//      while (edges.size < numEdges) {
+//        val from = rand.nextInt(numVertices)
+//        val to = rand.nextInt(numVertices)
+//        if (from != to) edges.+=((from, to))
+//      }
+//      edges.toSeq
+//    }
+//
+//    val graph = generateGraph
+//    val removalEdge = graph.head
+//    println(s"Removing edge $removalEdge")
+//
+//    val tc = new DiffSeqGenerator(graph, List(Removed(removalEdge)), spark)
+//    val edges = tc.map(x => (x._2, x._1))
+//
+//    var fix: DiffRDDGenerator[(Int, Int)] = tc
+//    fix = fix.union(fix.join(edges).map(x => (x._2._2, x._2._1))).distinct() //1
+//    fix = fix.union(fix.join(edges).map(x => (x._2._2, x._2._1))).distinct() //2
+//    val incrFix1 = fix
+//    fix = fix.union(fix.join(edges).map(x => (x._2._2, x._2._1))).distinct() //3
+//    val incrFix = fix
+//    fix = fix.union(fix.join(edges).map(x => (x._2._2, x._2._1))).distinct() //4
+//    fix = fix.union(fix.join(edges).map(x => (x._2._2, x._2._1))).distinct() //5
+//
+//    time(_ => fix.collect(), "Orig tc")
+//    time(_ => incrFix.incrCollect(), "Incr tc")
+//    assert(incrFix.incrCount() == incrFix1.incrCount())
+//
+//    //    println("orig tc result")
+//    //    result.foreach(println)
+//    //    println("incr tc result")
+//    //    incrResult.foreach(println)
+//  }
+
+  def perfTest(spark: SparkContext): Unit =
+  {
+    val left = spark.makeRDD(List((1, 'a'), (2, 'b'), (3, 'c')))
+    val right = spark.makeRDD(List((1, 'A'), (2, 'B'), (4, 'C')))
+
+    val leftReduced = left.reduceByKey({(a, b) => a})
+    val rightReduced = right.reduceByKey({(a, b) => a})
+
+    val centerReduced = spark.makeRDD(List((1, 'X'), (2, 'Y'), (15, 'U'))).reduceByKey({(a, b) => a})
+    centerReduced.cogroup(leftReduced, rightReduced)
+
+
+
+    //val joined = leftReduced.join(rightReduced).join(left).join(right)
+    //val joined = leftReduced.join(rightReduced.mapPartitions(w => w, true)).join(left.mapPartitions(w => w, true)).join(right.mapPartitions(w => w, true))
+    /*leftReduced.mapPartitionsWithIndex({(i, iter) =>
+      iter.foreach(w => println(s"($i, $w)"))
+      iter
+    }).collect().foreach(println)*/
+
+    //joined.foreach(println)
+  }
+
   def main(args: Array[String]): Unit =
   {
-    val conf = new SparkConf().setAppName("DiffTest")
+    val conf = new SparkConf().setMaster("local[2]").setAppName("DiffTest")
     val spark = new SparkContext(conf)
+
+    Logger.getLogger("org").setLevel(Level.WARN)
+    Logger.getLogger("akka").setLevel(Level.WARN)
 
     //incrementalFilterTest(spark)
     //deltaDataTest(spark)
     //changeFilterTest(spark)
     //joinTest(spark)
-    //distinctTest(spark)
-    TCTest(spark)
+    if(args.length > 0) {
+      args(0) match {
+        case "distinct" => distinctTest(spark)
+        case "distinct2" => distinctTest2(spark)
+        case "randomtc" => RandomTCTest(spark)
+        case "tc" => TCTest(spark)
+        case _ => println("Not a valid test")
+      }
+    }
+    else {
+      println("Which test should I run?")
+    }
+    //RandomTCTest(spark)
 
-    readLine()
+
+    //incrementalFilterTest2(spark)
 
     spark.stop()
   }
