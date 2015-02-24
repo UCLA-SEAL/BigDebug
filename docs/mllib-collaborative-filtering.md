@@ -110,7 +110,7 @@ val model = ALS.trainImplicit(ratings, rank, numIterations, alpha)
 All of MLlib's methods use Java-friendly types, so you can import and call them there the same
 way you do in Scala. The only caveat is that the methods take Scala RDD objects, while the
 Spark Java API uses a separate `JavaRDD` class. You can convert a Java RDD to a Scala one by
-calling `.rdd()` on your `JavaRDD` object. A standalone application example
+calling `.rdd()` on your `JavaRDD` object. A self-contained application example
 that is equivalent to the provided example in Scala is given bellow:
 
 {% highlight java %}
@@ -184,12 +184,6 @@ public class CollaborativeFiltering {
   }
 }
 {% endhighlight %}
-
-In order to run the above standalone application, follow the instructions
-provided in the [Standalone
-Applications](quick-start.html#standalone-applications) section of the Spark
-quick-start guide. Be sure to also include *spark-mllib* to your build file as
-a dependency.
 </div>
 
 <div data-lang="python" markdown="1">
@@ -198,12 +192,11 @@ We use the default ALS.train() method which assumes ratings are explicit. We eva
 recommendation by measuring the Mean Squared Error of rating prediction.
 
 {% highlight python %}
-from pyspark.mllib.recommendation import ALS
-from numpy import array
+from pyspark.mllib.recommendation import ALS, Rating
 
 # Load and parse the data
 data = sc.textFile("data/mllib/als/test.data")
-ratings = data.map(lambda line: array([float(x) for x in line.split(',')]))
+ratings = data.map(lambda l: l.split(',')).map(lambda l: Rating(int(l[0]), int(l[1]), float(l[2])))
 
 # Build the recommendation model using Alternating Least Squares
 rank = 10
@@ -211,10 +204,10 @@ numIterations = 20
 model = ALS.train(ratings, rank, numIterations)
 
 # Evaluate the model on training data
-testdata = ratings.map(lambda p: (int(p[0]), int(p[1])))
+testdata = ratings.map(lambda p: (p[0], p[1]))
 predictions = model.predictAll(testdata).map(lambda r: ((r[0], r[1]), r[2]))
 ratesAndPreds = ratings.map(lambda r: ((r[0], r[1]), r[2])).join(predictions)
-MSE = ratesAndPreds.map(lambda r: (r[1][0] - r[1][1])**2).reduce(lambda x, y: x + y)/ratesAndPreds.count()
+MSE = ratesAndPreds.map(lambda r: (r[1][0] - r[1][1])**2).reduce(lambda x, y: x + y) / ratesAndPreds.count()
 print("Mean Squared Error = " + str(MSE))
 {% endhighlight %}
 
@@ -223,11 +216,17 @@ signals), you can use the trainImplicit method to get better results.
 
 {% highlight python %}
 # Build the recommendation model using Alternating Least Squares based on implicit ratings
-model = ALS.trainImplicit(ratings, rank, numIterations, alpha = 0.01)
+model = ALS.trainImplicit(ratings, rank, numIterations, alpha=0.01)
 {% endhighlight %}
 </div>
 
 </div>
+
+In order to run the above application, follow the instructions
+provided in the [Self-Contained Applications](quick-start.html#self-contained-applications)
+section of the Spark
+Quick Start guide. Be sure to also include *spark-mllib* to your build file as
+a dependency.
 
 ## Tutorial
 

@@ -18,6 +18,7 @@
 package org.apache.spark.shuffle.hash
 
 import org.apache.spark._
+import org.apache.spark.lineage.LHashShuffleReader
 import org.apache.spark.shuffle._
 
 /**
@@ -45,13 +46,18 @@ private[spark] class HashShuffleManager(conf: SparkConf) extends ShuffleManager 
       startPartition: Int,
       endPartition: Int,
       context: TaskContext,
-      lineage: Boolean = false): ShuffleReader[K, C] = { // Added by Matteo
-    new HashShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
-      startPartition,
-      endPartition,
-      context,
-      lineage) // Added by Matteo
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] = { // Matteo
+    if(lineage.isDefined) {
+      new LHashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+        startPartition,
+        endPartition,
+        context,
+        lineage.get)
+    } else {
+      new HashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+    }
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

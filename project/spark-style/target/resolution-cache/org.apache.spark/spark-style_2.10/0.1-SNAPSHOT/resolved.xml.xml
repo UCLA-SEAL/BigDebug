@@ -4,7 +4,7 @@
 		module="spark-style_2.10"
 		revision="0.1-SNAPSHOT"
 		status="integration"
-		publication="20140909180936"
+		publication="20150223174625"
 	>
 		<description>
 		spark-style

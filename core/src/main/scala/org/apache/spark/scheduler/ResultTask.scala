@@ -17,13 +17,13 @@
 
 package org.apache.spark.scheduler
 
-import java.nio.ByteBuffer
-
 import java.io._
+import java.nio.ByteBuffer
 
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 
 /**
  * A task that sends back the output to the driver application.
@@ -61,11 +61,7 @@ private[spark] class ResultTask[T, U](
     try {
       func(context, rdd.iterator(partition, context))
     } finally {
-      // Added by Matteo
-      if(rdd.isLineageActive) {
-        SparkEnv.get.cacheManager.materialize(partition.index, context)
-      }
-      context.markTaskCompleted()
+      SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context, Some(StorageLevel.DISK_ONLY)) // Added by Matteo
     }
   }
 

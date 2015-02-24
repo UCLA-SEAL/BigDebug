@@ -17,11 +17,11 @@
 
 package org.apache.spark.shuffle
 
-import org.apache.spark.{ShuffleDependency, TaskContext}
+import org.apache.spark.{TaskContext, ShuffleDependency}
 
 /**
- * Pluggable interface for shuffle systems. A ShuffleManager is created in SparkEnv on both the
- * driver and executors, based on the spark.shuffle.manager setting. The driver registers shuffles
+ * Pluggable interface for shuffle systems. A ShuffleManager is created in SparkEnv on the driver
+ * and on each executor, based on the spark.shuffle.manager setting. The driver registers shuffles
  * with it, and executors (or tasks running locally in the driver) can ask to read and write data.
  *
  * NOTE: this will be instantiated by SparkEnv so its constructor can take a SparkConf and
@@ -48,7 +48,7 @@ private[spark] trait ShuffleManager {
       startPartition: Int,
       endPartition: Int,
       context: TaskContext,
-      lineage: Boolean = false): ShuffleReader[K, C] // Added by Matteo
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] // Modified by Matteo
 
   /**
     * Remove a shuffle's metadata from the ShuffleManager.

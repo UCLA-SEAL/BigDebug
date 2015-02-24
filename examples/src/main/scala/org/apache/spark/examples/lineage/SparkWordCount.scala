@@ -17,30 +17,66 @@
 
 package org.apache.spark.examples.lineage
 
-import org.apache.spark.SparkContext._
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.lineage._
+
 
 object SparkWordCount {
   def main(args: Array[String]) {
-    val logFile = "README.md"
     val conf = new SparkConf()
-      .setMaster("local[2]")
-      .setAppName("Simple Scala Application")
+    var lineage = false
+    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/"
+    if(args.size < 2) {
+      //val logFile = "../../datasets/output.txt"
+      //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
+      logFile = "README.md"
+      conf.setMaster("local[2]")
+      lineage = true
+    } else {
+      lineage = args(0).toBoolean
+      logFile += args(1)
+      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+    }
+    conf.setAppName("WordCount")
     val sc = new SparkContext(conf)
-    sc.setCheckpointDir("./tmp/")
-
-    // Set the lineage context
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(true)
-
-    val file = lc.textFile(logFile, 6)
-    var pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
-    var counts = pairs.reduceByKey(_ + _)
-    counts.collect()
+    val file = lc.textFile(logFile, 1)
+    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    val counts = pairs.reduceByKey(_ + _)
+    //counts.collect().foreach(println)
+    print(counts.count())
 
     // Get the lineage
-    lc.setCaptureLineage(false)
-    var lineage = lc.getLineage(counts)
+    // lc.setCaptureLineage(false)
+    // var lineage = counts.getLineage()
+    // lineage.collect.foreach(println)
+    // //lineage.dumpTrace
+    // lineage = lineage.filter(r => r.equals(0,0,95))
+    // lineage.collect.foreach(println)
+    // lineage.show
+    // //lineage = show.getLineage()
+    // lineage = lineage.goBack()
+    // lineage.collect.foreach(println)
+    // lineage.show
+    // //lineage = show.getLineage()
+    // //var show = lineage.show().filter(r => r.equals("(programs,1)"))
+    // //show.collect.foreach(println)
+    // //lineage = show.getLineage.goNext()
+    // //lineage.show
+    // lineage = lineage.goBack()
+    // lineage.collect.foreach(println)
+    // lineage.show
+    // //lineage = show.getLineage()
+    // lineage.collect.foreach(println)
+    // lineage = lineage.goNext()
+    // lineage.collect.foreach(println)
+    // lineage.show
+    // lineage = lineage.goNext()
+    // lineage.collect.foreach(println)
+    // lineage.show
+    // //lineage = show.getLineage()
+    sc.stop()
   }
 }

@@ -19,13 +19,14 @@ package org.apache.spark.shuffle.sort
 
 import java.util.concurrent.ConcurrentHashMap
 
+import org.apache.spark.lineage.LHashShuffleReader
 import org.apache.spark.{SparkConf, TaskContext, ShuffleDependency}
 import org.apache.spark.shuffle._
 import org.apache.spark.shuffle.hash.HashShuffleReader
 
 private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager {
 
-  private val indexShuffleBlockManager = new IndexShuffleBlockManager()
+  private val indexShuffleBlockManager = new IndexShuffleBlockManager(conf)
   private val shuffleMapNumber = new ConcurrentHashMap[Int, Int]()
 
   /**
@@ -47,14 +48,19 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       startPartition: Int,
       endPartition: Int,
       context: TaskContext,
-      lineage: Boolean = false): ShuffleReader[K, C] = { // Added by Matteo
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] = { // Added by Matteo
     // We currently use the same block store shuffle fetcher as the hash-based shuffle.
-    new HashShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
-      startPartition,
-      endPartition,
-      context,
-      lineage) // Added by Matteo
+    if(lineage.isDefined) {
+      new LHashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+        startPartition,
+        endPartition,
+        context,
+        lineage.get)
+    } else {
+      new HashShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+    }
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */

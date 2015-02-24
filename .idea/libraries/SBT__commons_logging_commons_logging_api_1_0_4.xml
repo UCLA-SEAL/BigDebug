@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="SBT: commons-logging:commons-logging-api:1.0.4">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib_managed/jars/commons-logging-api-1.0.4.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

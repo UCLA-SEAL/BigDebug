@@ -18,7 +18,7 @@
 package org.apache.spark
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.rdd.{TapRDD, RDD}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleHandle
 
@@ -29,8 +29,6 @@ import org.apache.spark.shuffle.ShuffleHandle
 @DeveloperApi
 abstract class Dependency[T] extends Serializable {
   def rdd: RDD[T]
-
-  def tapDependency(tap: RDD[_] = null): Dependency[T]   // Added by Matteo
 }
 
 
@@ -49,11 +47,6 @@ abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
   def getParents(partitionId: Int): Seq[Int]
 
   override def rdd: RDD[T] = _rdd
-
-  /** Added by Matteo - Should never be called from here */
-  override def tapDependency(tap: RDD[_] = null): NarrowDependency[T] = {
-    throw new IllegalStateException("wrong tap")
-  }
 }
 
 
@@ -88,7 +81,7 @@ class ShuffleDependency[K, V, C](
   _rdd.sparkContext.cleaner.foreach(_.registerShuffleForCleanup(this))
 
   /** Added by Matteo */
-  override def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
+  def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
     _rdd = tap.asInstanceOf[RDD[Product2[K, V]]]
     this
   }
@@ -104,8 +97,8 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
   override def getParents(partitionId: Int) = List(partitionId)
 
   /** Added by Matteo */
-  override def tapDependency(tap: RDD[_] = null) = {
-    new OneToOneDependency[T](tap.asInstanceOf[TapRDD[T]])
+  def tapDependency(tap: RDD[_] = null) = {
+    new OneToOneDependency[T](tap.asInstanceOf[RDD[T]])
   }
 }
 

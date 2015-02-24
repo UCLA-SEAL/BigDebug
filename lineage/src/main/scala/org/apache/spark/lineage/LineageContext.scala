@@ -17,83 +17,40 @@
 
 package org.apache.spark.lineage
 
-import org.apache.hadoop.io.{Text, LongWritable}
-import org.apache.hadoop.mapred.{TextInputFormat, InputFormat, JobConf, FileInputFormat}
-import org.apache.spark.lineage.Direction.Direction
-import org.apache.spark.deploy.SparkHadoopUtil
-import org.apache.spark.lineage.rdd.LineageRDD
+import org.apache.hadoop.io.{LongWritable, Text}
+import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
+import org.apache.spark.deploy.SparkHadoopUtil
+import org.apache.spark.lineage.Direction.Direction
+import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
-import org.apache.spark.sql.{SchemaRDD, SQLContext}
 
-import scala.collection.mutable.{HashSet, Stack}
+import scala.collection.mutable.{ Stack, HashSet }
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
-case class SchemaTap(key: (Int, Int, Long), value: (Int, Int, Long))
+object LineageContext {
+  type RecordId = (Short, Short, Int)
 
-case class SchemaTapHaddop(key: (Int, Int, Long), value: (String, Long))
+  implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
-case class SchemaShow(key: (Int, Int, Long), value: String)
+  implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
+      (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) =
+    new PairLRDDFunctions(lrdd)
+}
 
-case class SchemaHaddop(key: Long, value: String)
-
-case class SchemaShuffle(key: String, value: (String, (Int, Int, Long)))
-
-case class SchemaShufflePost(key: String, value: (Int, Int, Long))
+import org.apache.spark.lineage.LineageContext._
 
 class LineageContext(@transient val sparkContext: SparkContext)
   extends Logging {
-
-  @transient val sqlContext = new SQLContext(sparkContext)
-
-  // Importing the SQL context gives access to all the SQL functions and implicit conversions.
-  import sqlContext._
 
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI, and return it as an RDD of Strings.
    */
-  def textFile(path: String, minPartitions: Int = sparkContext.defaultMinPartitions): RDD[String] = {
-    val hadoop = hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
-      minPartitions)
-    val map = hadoop.map(pair => pair._2.toString).setName(path)
-    map.setTap(hadoop.asInstanceOf[TapHadoopRDD[_, _]])
-    map
-  }
-
-  /**
-   * Get an RDD for a Hadoop-readable dataset from a Hadoop JobConf given its InputFormat and other
-   * necessary info (e.g. file name for a filesystem-based dataset, table name for HyperTable),
-   * using the older MapReduce API (`org.apache.hadoop.mapred`).
-   *
-   * @param conf JobConf for setting up the dataset
-   * @param inputFormatClass Class of the InputFormat
-   * @param keyClass Class of the keys
-   * @param valueClass Class of the values
-   * @param minPartitions Minimum number of Hadoop Splits to generate.
-   *
-   * '''Note:''' Because Hadoop's RecordReader class re-uses the same Writable object for each
-   * record, directly caching the returned RDD will create many references to the same object.
-   * If you plan to directly cache Hadoop writable objects, you should first copy them using
-   * a `map` function.
-   */
-  def hadoopRDD[K, V](
-     conf: JobConf,
-     inputFormatClass: Class[_ <: InputFormat[K, V]],
-     keyClass: Class[K],
-     valueClass: Class[V],
-     minPartitions: Int = sparkContext.defaultMinPartitions
-     ): RDD[(K, V)] = {
-    // Add necessary security credentials to the JobConf before broadcasting it.
-    SparkHadoopUtil.get.addCredentials(conf)
-
-    /* Modified by Miao */
-    val rdd = new HadoopRDD(sparkContext, conf, inputFormatClass, keyClass, valueClass, minPartitions)
-    if(isLineageActive) {
-      rdd.tap()
-    } else {
-      rdd
-    }
+  def textFile(path: String, minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
+    hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
+      minPartitions).map(pair => pair._2.toString).setName(path)
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -104,19 +61,18 @@ class LineageContext(@transient val sparkContext: SparkContext)
     * a `map` function.
     * */
   def hadoopFile[K, V](
-    path: String,
-    inputFormatClass: Class[_ <: InputFormat[K, V]],
-    keyClass: Class[K],
-    valueClass: Class[V],
-    minPartitions: Int = sparkContext.defaultMinPartitions
-    ): RDD[(K, V)] = {
+      path: String,
+      inputFormatClass: Class[_ <: InputFormat[K, V]],
+      keyClass: Class[K],
+      valueClass: Class[V],
+      minPartitions: Int = sparkContext.defaultMinPartitions
+      ): Lineage[(K, V)] = {
     // A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
     val confBroadcast = sparkContext.broadcast(new SerializableWritable(sparkContext.hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
 
-    /* Modified by Miao */
-    val rdd = new HadoopRDD(
-      sparkContext,
+    val rdd = new HadoopLRDD(
+      this,
       confBroadcast,
       Some(setInputPathsFunc),
       inputFormatClass,
@@ -124,69 +80,125 @@ class LineageContext(@transient val sparkContext: SparkContext)
       valueClass,
       minPartitions).setName(path)
     if(isLineageActive) {
-      rdd.tap()
+      rdd.tapRight()
     } else {
       rdd
     }
   }
 
-  def getLineage(rdd: RDD[_]): LineageRDD = {
-    if(rdd.getTap().isDefined) {
-      setCurrentLineagePosition(rdd.getTap())
-      return new LineageRDD(this, getSchemaRDD(rdd.getTap().get))
+  /** Distribute a local Scala collection to form an RDD.
+    *
+    * @note Parallelize acts lazily. If `seq` is a mutable collection and is
+    * altered after the call to parallelize and before the first action on the
+    * RDD, the resultant RDD will reflect the modified collection. Pass a copy of
+    * the argument to avoid this.
+    */
+  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int = sparkContext.defaultParallelism): Lineage[T] = {
+    val rdd = new ParallelCollectionLRDD[T](this, seq, numSlices, Map[Int, Seq[String]]())
+    if(isLineageActive) {
+      rdd.tapRight()
+    } else {
+      rdd
     }
-    throw new UnsupportedOperationException("no lineage support for this RDD")
   }
 
-  def getSchemaRDD(rdd: RDD[_]):SchemaRDD = {
-    rdd match {
-      case _:TapHadoopRDD[_, _] =>
-        val result = rdd
-          .asInstanceOf[RDD[((Int, Int, Long), (String, Long))]]
-          .map(r => SchemaTapHaddop(r._1, r._2))
-        result.registerTempTable("schema_" + rdd.id)
-        cacheTable("schema_" + rdd.id)
-        result
-      case _:TapRDD[_] =>
-        val result = rdd
-          .asInstanceOf[RDD[((Int, Int, Long), (Int, Int, Long))]]
-          .map(r => SchemaTap(r._1, r._2))
-        result.registerTempTable("schema_" + rdd.id)
-        cacheTable("schema_" + rdd.id)
-        result
-      case _:HadoopRDD[_, _] =>
-        val result = rdd
-          .asInstanceOf[HadoopRDD[LongWritable, Text]]
-          .map(r => SchemaHaddop(r._1.get, r._2.toString))
-        result.registerTempTable("schema_" + rdd.id)
-        result
-      case _:ShuffledRDD[_, _, _] =>
-        val result = rdd
-          .asInstanceOf[ShuffledRDD[_, _, _]]
-          .map(r => SchemaShuffle(r._1.toString, r._2.asInstanceOf[(String, (Int, Int, Long))]))
-        result.registerTempTable("schema_" + rdd.id)
-        result
-      case _:RDD[_] =>
-        val result = rdd
-          .asInstanceOf[RDD[((Int, Int, Long), String)]]
-          .map(r => SchemaShow(r._1, r._2))
-        result.registerTempTable("schema_" + rdd.id)
-        result
+  /**
+   * Run a job on all partitions in an RDD and return the results in an array.
+   */
+  def runJob[T: ClassTag, U: ClassTag](rdd: Lineage[T], func: Iterator[T] => U): Array[U] = {
+    val tappedRdd = tapJob(rdd)
+    sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
+  }
+
+  def getLineage(rdd: Lineage[_]) = {
+    val initialTap: Lineage[_] = rdd.materialize
+    val visited = new HashSet[RDD[_]]
+
+    def visit(rdd: RDD[_], parent: RDD[_]) {
+      if (!visited(rdd)) {
+        visited += rdd
+        rdd.setCaptureLineage(isLineageActive)
+        var dependencies = List[OneToOneDependency[_]]()
+        for (dep <- rdd.dependencies) {
+          val newParent: RDD[_] = dep.rdd match {
+            case tap: TapLRDD[_] =>
+              dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
+              tap
+            case _ => parent
+          }
+          visit(dep.rdd, newParent)
+        }
+        if (!dependencies.isEmpty) {
+          val oldDeps = parent.dependencies.filter(d => d.rdd.isInstanceOf[TapLRDD[_]])
+          parent.updateDependencies(oldDeps.toList ::: dependencies)
+        }
+      }
     }
+
+    visit(initialTap, initialTap)
+
+    currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
+  }
+
+  private def tapJob[T](rdd: Lineage[T]): RDD[T] = {
+    if(!isLineageActive) {
+      return rdd
+    }
+    val visited = new HashSet[RDD[_]]
+    // We are manually maintaining a stack here to prevent StackOverflowError
+    // caused by recursively visiting
+    val waitingForVisit = new Stack[RDD[_]]
+    def visit(rdd: RDD[_]) {
+      if (!visited(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
+        visited += rdd
+        val deps = new HashSet[Dependency[_]]
+        for (dep <- rdd.dependencies) {
+          waitingForVisit.push(dep.rdd)
+          dep match {
+            case shufDep: ShuffleDependency[_, _, _] =>
+              shufDep.rdd.setTap(rdd.tapLeft())
+              deps += shufDep.tapDependency(shufDep.rdd.getTap().get)
+
+            case narDep: OneToOneDependency[_] =>
+              // Intercept the end of the stage to add a post-shuffle tap
+              if(narDep.rdd.dependencies.nonEmpty) {
+                if(narDep.rdd.dependencies
+                  .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
+                  .size > 0) {
+                  val tap = narDep.rdd.tapRight()
+                  deps += narDep.tapDependency(tap)
+                }
+              }
+
+            case _ =>
+          }
+        }
+        if(deps.nonEmpty) {
+          rdd.updateDependencies(deps.toList)
+        }
+      }
+    }
+    waitingForVisit.push(rdd)
+    while (!waitingForVisit.isEmpty) {
+      visit(waitingForVisit.pop())
+    }
+
+    rdd.tapRight()
   }
 
   private var captureLineage: Boolean = false
 
-  private var currentLineagePosition: Option[RDD[_]] = None
+  private var currentLineagePosition: Option[Lineage[_]] = None
 
-  private var lastLineagePosition: Option[RDD[_]] = None
+  private var lastLineagePosition: Option[Lineage[_]] = None
 
   def getCurrentLineagePosition = currentLineagePosition
 
-  def setCurrentLineagePosition(initialRDD: Option[RDD[_]]) = {
-    // We are starting from the middle, fill the stack with prev positions
+  def setCurrentLineagePosition(initialRDD: Option[Lineage[_]]) = {
     if(lastLineagePosition.isDefined && lastLineagePosition.get != initialRDD.get) {
       currentLineagePosition = lastLineagePosition
+
+      // We are starting from the middle, fill the stack with prev positions
       while(currentLineagePosition.get != initialRDD.get) {
         prevLineagePosition.push(currentLineagePosition.get)
         currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
@@ -195,7 +207,9 @@ class LineageContext(@transient val sparkContext: SparkContext)
     currentLineagePosition = initialRDD
   }
 
-  private[spark] var prevLineagePosition = new Stack[RDD[_]]()
+  def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
+
+  private[spark] var prevLineagePosition = new Stack[Lineage[_]]()
 
   private[spark] var lastOperation: Option[Direction] = None
 
@@ -203,38 +217,38 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
   def setCaptureLineage(newLineage: Boolean) = {
     if(newLineage == false && captureLineage == true) {
-      lastLineagePosition = Some(sparkContext.getLasLineagePostion.get)
-      computeLineageDependecies(lastLineagePosition.get)
+      getLineage(lastLineagePosition.get)
     }
     captureLineage = newLineage
-    sparkContext.setCaptureLineage(newLineage)
   }
 
-  def getBackward = {
-    if(!lastOperation.isDefined) {
-      lastOperation = Some(Direction.BACKWARD)
-    }
-
+  def getBackward(path: Int = 0) = {
+    // CurrentLineagePosition should be always set at this point
     if(currentLineagePosition.get.dependencies.size == 0 ||
-      currentLineagePosition.get.dependencies(0).rdd.isInstanceOf[HadoopRDD[_, _]]) {
+      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[HadoopRDD[_, _]]) {
       throw new UnsupportedOperationException("unsopported operation")
     }
 
     prevLineagePosition.push(currentLineagePosition.get)
 
-    currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
+    currentLineagePosition = Some(currentLineagePosition.get.dependencies(path).rdd)
 
-    if(lastOperation.get == Direction.FORWARD) {
+    if(!lastOperation.isDefined || lastOperation.get == Direction.FORWARD) {
       lastOperation = Some(Direction.BACKWARD)
-      //None
+      None
+    } else {
+      val result: Lineage[_] = getCurrentLineagePosition.get match {
+        case _: TapCoGroupLRDD[_] =>
+          val filter = getCurrentLineagePosition.get.id
+          prevLineagePosition.head.asInstanceOf[RDD[(RecordId, RecordId)]].filter(r => r._2._1.equals(filter))
+        case _ => prevLineagePosition.head
+      }
+
+      Some(result.asInstanceOf[Lineage[(RecordId, Any)]])
     }
-    //else {
-      //Some(prevLineagePosition.head.asInstanceOf[RDD[((Int, Int, Long), Any)]])
-      currentLineagePosition
-    //}
   }
 
-  def getForward = {
+  def getForward: Lineage[((Short, Int), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -244,47 +258,10 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
     currentLineagePosition = Some(prevLineagePosition.pop())
 
-    currentLineagePosition.get
-  }
-
-  def computeLineageDependecies(rdd: RDD[_]) = {
-
-    var initialTap: RDD[_] = rdd.materialize
-
-    val visited = new HashSet[RDD[_]]
-    // We are manually maintaining a stack here to prevent StackOverflowError
-    // caused by recursively visiting
-    val waitingForVisit = new Stack[RDD[_]]
-    val dependencies = new Stack[RDD[_]]()
-    dependencies.push(initialTap)
-
-    def visit(rdd: RDD[_]) {
-      if (!visited(rdd)) {
-        visited += rdd
-        rdd.setCaptureLineage(isLineageActive)
-        rdd.dependencies
-          .filter(_.rdd.isInstanceOf[TapRDD[_]])
-          .foreach(d => dependencies.push(d.rdd.materialize))
-        for (dep <- rdd.dependencies) {
-          waitingForVisit.push(dep.rdd)
-        }
-      }
-    }
-    waitingForVisit.push(initialTap)
-    while (waitingForVisit.nonEmpty) {
-      visit(waitingForVisit.pop())
-    }
-
-    initialTap = dependencies.pop()
-    getSchemaRDD(initialTap)
-
-    while (dependencies.size > 0) {
-      dependencies.head.updateDependencies(Seq(new OneToOneDependency(initialTap)))
-      initialTap = dependencies.pop()
-      getSchemaRDD(initialTap)
-    }
-
-    currentLineagePosition = Some(initialTap.asInstanceOf[RDD[((Int, Int, Long), Any)]])
+    currentLineagePosition
+      .get
+      .asInstanceOf[Lineage[((Short, Short, Int), (Short, Int))]]
+      .map(r => (r._2, r._1))
   }
 }
 

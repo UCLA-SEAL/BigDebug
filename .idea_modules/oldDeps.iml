@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
   <component name="FacetManager">
-    <facet type="scala" name="Scala">
-      <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="SBT: scala:2.10.4" />
-        <option name="fsc" value="true" />
-      </configuration>
+    <facet type="Python" name="Python">
+      <configuration sdkName="" />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="false">
@@ -34,6 +30,7 @@
     <orderEntry type="library" name="SBT: org.apache.spark:spark-bagel_2.10:1.1.0" level="project" />
     <orderEntry type="library" name="SBT: org.apache.spark:spark-graphx_2.10:1.1.0" level="project" />
     <orderEntry type="library" name="SBT: org.apache.spark:spark-core_2.10:1.1.0" level="project" />
+    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
   </component>
 </module>
 

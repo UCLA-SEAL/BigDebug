@@ -42,11 +42,11 @@ class ShuffledRDD[K, V, C](
     part: Partitioner)
   extends RDD[(K, C)](prev.context, Nil) {
 
-  protected var serializer: Option[Serializer] = None
+  private var serializer: Option[Serializer] = None
 
-  protected var keyOrdering: Option[Ordering[K]] = None
+  private var keyOrdering: Option[Ordering[K]] = None
 
-  protected var aggregator: Option[Aggregator[K, V, C]] = None
+  private var aggregator: Option[Aggregator[K, V, C]] = None
 
   protected var mapSideCombine: Boolean = false
 
@@ -86,9 +86,8 @@ class ShuffledRDD[K, V, C](
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
-    SparkEnv.get.shuffleManager
-    .getReader(dep.shuffleHandle, split.index, split.index + 1, context, isLineageActive)
-      .read(if(isPreShuffleCache) 1 else if (isPostShuffleCache) 2 else 0, id)
+    SparkEnv.get.shuffleManager.getReader(dep.shuffleHandle, split.index, split.index + 1, context)
+      .read()
       .asInstanceOf[Iterator[(K, C)]]
   }
 
@@ -96,30 +95,4 @@ class ShuffledRDD[K, V, C](
     super.clearDependencies()
     prev = null
   }
-
-  /** Added by Matteo ######################################################################## */
-  override def tap() = {
-    var newDeps = Seq.empty[Dependency[_]]
-    for(dep <- dependencies) {
-      newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
-    }
-    new TapPreShuffleRDD[(K, C)](this.context, newDeps).setCached(this)
-  }
-
-  private[spark] var isPreShuffleCache: Boolean = false
-
-  private[spark] var isPostShuffleCache: Boolean = false
-
-  def setIsPreShuffleCache(isPreShuffleCache: Boolean) = {
-    this.isPreShuffleCache = isPreShuffleCache
-    this.isPostShuffleCache = false
-    this
-  }
-
-  def setIsPostShuffleCache(isPostShuffleCache: Boolean) = {
-    this.isPostShuffleCache = isPostShuffleCache
-    this.isPreShuffleCache = false
-    this
-  }
-  /** ########################################################################################## */
 }

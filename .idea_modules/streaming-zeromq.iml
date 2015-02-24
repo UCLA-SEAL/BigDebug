@@ -1,22 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
-  <component name="FacetManager">
-    <facet type="scala" name="Scala">
-      <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="SBT: scala:2.10.4" />
-        <option name="compilerOptions" value="-feature -language:postfixOps -P:genjavadoc:out=$MODULE_DIR$/../external/zeromq/target/java" />
-        <option name="deprecationWarnings" value="true" />
-        <option name="fsc" value="true" />
-        <option name="pluginPaths">
-          <array>
-            <option value="$MODULE_DIR$/../lib_managed/jars/genjavadoc-plugin_2.10.4-0.7.jar" />
-          </array>
-        </option>
-        <option name="uncheckedWarnings" value="true" />
-      </configuration>
-    </facet>
-  </component>
   <component name="NewModuleRootManager" inherit-compiler-output="false">
     <output url="file://$MODULE_DIR$/../external/zeromq/target/scala-2.10/classes" />
     <output-test url="file://$MODULE_DIR$/../external/zeromq/target/scala-2.10/test-classes" />
@@ -32,7 +15,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
     <orderEntry type="library" name="SBT: org.apache.hadoop:hadoop-client:1.0.4" level="project" />
     <orderEntry type="library" name="SBT: org.apache.hadoop:hadoop-core:1.0.4" level="project" />
     <orderEntry type="library" name="SBT: xmlenc:xmlenc:0.52" level="project" />
@@ -136,6 +118,7 @@
     <orderEntry type="library" scope="TEST" name="SBT: org.scala-tools.testing:test-interface:0.5:test" level="project" />
     <orderEntry type="module" module-name="streaming" exported="" />
     <orderEntry type="module" module-name="streaming" exported="" />
+    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
   </component>
 </module>
 

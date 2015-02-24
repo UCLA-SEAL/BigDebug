@@ -19,10 +19,11 @@ package org.apache.spark.scheduler
 
 import java.io.{ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
+import java.util.concurrent.ThreadPoolExecutor
 
 import scala.collection.mutable.HashMap
 
-import org.apache.spark.TaskContext
+import org.apache.spark.{TaskContextHelper, TaskContextImpl, TaskContext}
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.serializer.SerializerInstance
 import org.apache.spark.util.ByteBufferInputStream
@@ -45,13 +46,20 @@ import org.apache.spark.util.Utils
 private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) extends Serializable {
 
   final def run(attemptId: Long): T = {
-    context = new TaskContext(stageId, partitionId, attemptId, runningLocally = false)
+    context = new TaskContextImpl(stageId, partitionId, attemptId, runningLocally = false)
+    TaskContextHelper.setTaskContext(context)
     context.taskMetrics.hostname = Utils.localHostName()
+    context.setPool(pool) //Matteo
     taskThread = Thread.currentThread()
     if (_killed) {
       kill(interruptThread = false)
     }
-    runTask(context)
+    try {
+      runTask(context)
+    } finally {
+      context.markTaskCompleted()
+      TaskContextHelper.unset()
+    }
   }
 
   def runTask(context: TaskContext): T
@@ -64,7 +72,7 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
   var metrics: Option[TaskMetrics] = None
 
   // Task context, to be initialized in run().
-  @transient protected var context: TaskContext = _
+  @transient protected var context: TaskContextImpl = _
 
   // The actual Thread on which the task is running, if any. Initialized in run().
   @volatile @transient private var taskThread: Thread = _
@@ -72,6 +80,10 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
   // A flag to indicate whether the task is killed. This is used in case context is not yet
   // initialized when kill() is invoked.
   @volatile @transient private var _killed = false
+
+  var pool: ThreadPoolExecutor = null // Matteo
+
+  def setPool(pool: ThreadPoolExecutor) = this.pool = pool // Matteo
 
   /**
    * Whether the task has been killed.
@@ -92,7 +104,7 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
     if (interruptThread && taskThread != null) {
       taskThread.interrupt()
     }
-  }
+  }  
 }
 
 /**

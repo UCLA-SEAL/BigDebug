@@ -1,15 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
   <component name="FacetManager">
-    <facet type="scala" name="Scala">
-      <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="SBT: scala:2.10.4" />
-        <option name="compilerOptions" value="-feature -language:postfixOps" />
-        <option name="deprecationWarnings" value="true" />
-        <option name="fsc" value="true" />
-        <option name="uncheckedWarnings" value="true" />
-      </configuration>
+    <facet type="Python" name="Python">
+      <configuration sdkName="" />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="false">
@@ -27,7 +20,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
     <orderEntry type="library" name="SBT: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="module" module-name="core" exported="" />
     <orderEntry type="module" module-name="bagel" exported="" />
@@ -47,6 +39,7 @@
     <orderEntry type="module" module-name="streaming-zeromq" exported="" />
     <orderEntry type="module" module-name="streaming-mqtt" exported="" />
     <orderEntry type="module" module-name="examples" exported="" />
+    <orderEntry type="library" name="SBT: org.scala-lang:scala-library:2.10.4" level="project" />
   </component>
 </module>
 

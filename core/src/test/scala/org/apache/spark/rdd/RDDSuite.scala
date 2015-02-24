@@ -193,6 +193,7 @@ class RDDSuite extends FunSuite with SharedSparkContext {
     assert(rdd.join(emptyKv).collect().size === 0)
     assert(rdd.rightOuterJoin(emptyKv).collect().size === 0)
     assert(rdd.leftOuterJoin(emptyKv).collect().size === 2)
+    assert(rdd.fullOuterJoin(emptyKv).collect().size === 2)
     assert(rdd.cogroup(emptyKv).collect().size === 2)
     assert(rdd.union(emptyKv).collect().size === 2)
   }
@@ -296,7 +297,7 @@ class RDDSuite extends FunSuite with SharedSparkContext {
   test("coalesced RDDs with locality") {
     val data3 = sc.makeRDD(List((1,List("a","c")), (2,List("a","b","c")), (3,List("b"))))
     val coal3 = data3.coalesce(3)
-    val list3 = coal3.partitions.map(p => p.asInstanceOf[CoalescedRDDPartition].preferredLocation)
+    val list3 = coal3.partitions.flatMap(_.asInstanceOf[CoalescedRDDPartition].preferredLocation)
     assert(list3.sorted === Array("a","b","c"), "Locality preferences are dropped")
 
     // RDD with locality preferences spread (non-randomly) over 6 machines, m0 through m5
@@ -456,6 +457,11 @@ class RDDSuite extends FunSuite with SharedSparkContext {
     }
     assert(sample.size === checkSample.size)
     for (i <- 0 until sample.size) assert(sample(i) === checkSample(i))
+  }
+
+  test("collect large number of empty partitions") {
+    // Regression test for SPARK-4019
+    assert(sc.makeRDD(0 until 10, 1000).repartition(2001).collect().toSet === (0 until 10).toSet)
   }
 
   test("take") {
@@ -733,6 +739,11 @@ class RDDSuite extends FunSuite with SharedSparkContext {
     }
   }
 
+  test("zipWithIndex chained with other RDDs (SPARK-4433)") {
+    val count = sc.parallelize(0 until 10, 2).zipWithIndex().repartition(4).count()
+    assert(count === 10)
+  }
+
   test("zipWithUniqueId") {
     val n = 10
     val data = sc.parallelize(0 until n, 3)
@@ -895,5 +906,45 @@ class RDDSuite extends FunSuite with SharedSparkContext {
     def addDependency(dep: Dependency[_]) {
       mutableDependencies += dep
     }
+  }
+
+  test("nested RDDs are not supported (SPARK-5063)") {
+    val rdd: RDD[Int] = sc.parallelize(1 to 100)
+    val rdd2: RDD[Int] = sc.parallelize(1 to 100)
+    val thrown = intercept[SparkException] {
+      val nestedRDD: RDD[RDD[Int]] = rdd.mapPartitions { x => Seq(rdd2.map(x => x)).iterator }
+      nestedRDD.count()
+    }
+    assert(thrown.getMessage.contains("SPARK-5063"))
+  }
+
+  test("actions cannot be performed inside of transformations (SPARK-5063)") {
+    val rdd: RDD[Int] = sc.parallelize(1 to 100)
+    val rdd2: RDD[Int] = sc.parallelize(1 to 100)
+    val thrown = intercept[SparkException] {
+      rdd.map(x => x * rdd2.count).collect()
+    }
+    assert(thrown.getMessage.contains("SPARK-5063"))
+  }
+
+  test("cannot run actions after SparkContext has been stopped (SPARK-5063)") {
+    val existingRDD = sc.parallelize(1 to 100)
+    sc.stop()
+    val thrown = intercept[IllegalStateException] {
+      existingRDD.count()
+    }
+    assert(thrown.getMessage.contains("shutdown"))
+  }
+
+  test("cannot call methods on a stopped SparkContext (SPARK-5063)") {
+    sc.stop()
+    def assertFails(block: => Any): Unit = {
+      val thrown = intercept[IllegalStateException] {
+        block
+      }
+      assert(thrown.getMessage.contains("stopped"))
+    }
+    assertFails { sc.parallelize(1 to 100) }
+    assertFails { sc.textFile("/nonexistent-path") }
   }
 }

@@ -17,11 +17,11 @@
 
 package org.apache.spark
 
-import org.apache.spark.rdd.{TapRDD, RDD}
-import org.apache.spark.storage._
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+
+import org.apache.spark.rdd.RDD
+import org.apache.spark.storage._
 
 /**
  * Spark class responsible for passing RDDs partition contents to the BlockManager and making
@@ -31,37 +31,6 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
 
   /** Keys of RDD partitions that are being computed/loaded. */
   private val loading = new mutable.HashSet[RDDBlockId]
-
-  /** Added by Matteo. ############################################################### */
-
-  private var underMaterialization = new mutable.HashSet[(TapRDD[_], Int, StorageLevel)]
-
-  def initMaterialization[T](rdd: TapRDD[T], partition: Partition, level: StorageLevel) = {
-    underMaterialization += ((rdd, partition.index, level))
-  }
-
-  def materialize(
-      split: Int,
-      context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_ONLY)) = {
-    val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
-    underMaterialization.filter(r => r._2 == split).foreach(table => {
-      val key = RDDBlockId(table._1.id, split)
-      val arr = table._1.getRecordInfos.toArray.asInstanceOf[Array[Any]]
-      try {
-        updatedBlocks ++=
-          blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-        logInfo(s"Block $key materialized")
-      } finally {
-        underMaterialization.remove(table)
-      }
-    })
-    val metrics = context.taskMetrics
-    val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
-    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
-  }
-
-  /** ################################################################################### */
 
   /** Gets or computes an RDD partition. Used by RDD.iterator() when an RDD is cached. */
   def getOrCompute[T](
@@ -92,7 +61,7 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
           val computedValues = rdd.computeOrReadCheckpoint(partition, context)
 
           // If the task is running locally, do not persist the result
-          if (context.runningLocally) {
+          if (context.isRunningLocally) {
             return computedValues
           }
 
@@ -199,8 +168,6 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
           arr.iterator.asInstanceOf[Iterator[T]]
         case Right(it) =>
           // There is not enough space to cache this partition in memory
-          logWarning(s"Not enough space to cache partition $key in memory! " +
-            s"Free memory is ${blockManager.memoryStore.freeMemory} bytes.")
           val returnValues = it.asInstanceOf[Iterator[T]]
           if (putLevel.useDisk) {
             logWarning(s"Persisting partition $key to disk instead.")
@@ -213,4 +180,14 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
       }
     }
   }
+
+/** Added by Matteo as a hookup for the lineage ############################################### */
+
+  def finalizeTaskCache(
+                         rdd: RDD[_], split: Int,
+                         context: TaskContext,
+                         effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
+    logInfo(s"Task cache finalized")
+
+  /** ########################################################################################### */
 }

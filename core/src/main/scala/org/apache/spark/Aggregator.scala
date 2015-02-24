@@ -18,7 +18,7 @@
 package org.apache.spark
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
+import org.apache.spark.util.collection.{CompactBuffer, AppendOnlyMap, ExternalAppendOnlyMap}
 
 /**
  * :: DeveloperApi ::
@@ -34,7 +34,9 @@ case class Aggregator[K, V, C] (
     mergeValue: (C, V) => C,
     mergeCombiners: (C, C) => C) {
 
-  private val externalSorting = SparkEnv.get.conf.getBoolean("spark.shuffle.spill", true)
+  // When spilling is enabled sorting will happen externally, but not necessarily with an 
+  // ExternalSorter. 
+  private val isSpillEnabled = SparkEnv.get.conf.getBoolean("spark.shuffle.spill", true)
 
   @deprecated("use combineValuesByKey with TaskContext argument", "0.9.0")
   def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]]): Iterator[(K, C)] =
@@ -42,7 +44,7 @@ case class Aggregator[K, V, C] (
 
   def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]],
                          context: TaskContext): Iterator[(K, C)] = {
-    if (!externalSorting) {
+    if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K,C]
       var kv: Product2[K, V] = null
       val update = (hadValue: Boolean, oldValue: C) => {
@@ -62,7 +64,14 @@ case class Aggregator[K, V, C] (
         c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
         c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
       }
-      combiners.iterator
+      // If currentRecordInfo is zero then no lineage is active. Added by Matteo
+      if(context.asInstanceOf[TaskContextImpl].currentRecordInfo.equals(0)) {
+        combiners.iterator
+      } else {
+        combiners.iterator.zipWithIndex.map(r => {
+          (r._1._1, (r._1._2, (context.stageId.toShort, context.partitionId.toShort, r._2))).asInstanceOf[(K, C)]
+        })
+      }
     }
   }
 
@@ -71,9 +80,9 @@ case class Aggregator[K, V, C] (
     combineCombinersByKey(iter, null)
 
   def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext)
-      : Iterator[(K, C)] =
+    : Iterator[(K, C)] =
   {
-    if (!externalSorting) {
+    if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K,C]
       var kc: Product2[K, C] = null
       val update = (hadValue: Boolean, oldValue: C) => {
@@ -86,9 +95,20 @@ case class Aggregator[K, V, C] (
       combiners.iterator
     } else {
       val combiners = new ExternalAppendOnlyMap[K, C, C](identity, mergeCombiners, mergeCombiners)
-      while (iter.hasNext) {
-        val pair = iter.next()
-        combiners.insert(pair._1, pair._2)
+      if(context.asInstanceOf[TaskContextImpl].currentRecordInfo.equals(0)) {
+        // Matteo
+        while (iter.hasNext) {
+          val pair = iter.next()
+          combiners.insert(pair._1, pair._2)
+        }
+      } else {
+        var pair: Product2[K, Product2[C, (Short, Short, Int)]] = null
+        while (iter.hasNext) {
+          pair = iter.next().asInstanceOf[Product2[K, Product2[C, (Short, Short, Int)]]]
+          combiners.insert(pair._1, pair._2._1)
+          context.asInstanceOf[TaskContextImpl].currentRecordInfos.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[(Short, Short, Int)]) => old += pair._2._2)
+          //context.tmp += ((pair._2._2, pair._1.hashCode()))
+        }
       }
       // Update task metrics if context is not null
       // TODO: Make context non-optional in a future release
@@ -96,7 +116,7 @@ case class Aggregator[K, V, C] (
         c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
         c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
       }
-      combiners.iterator
+      combiners.iterator.zipWithIndex.asInstanceOf[Iterator[(K, C)]]
     }
   }
 }

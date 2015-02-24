@@ -17,19 +17,16 @@
 
 package org.apache.spark.shuffle.hash
 
-import java.util.concurrent.atomic.AtomicLong
-
+import org.apache.spark.{InterruptibleIterator, TaskContext}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.{BaseShuffleHandle, ShuffleReader}
-import org.apache.spark.util.collection.{AppendOnlyMap, ExternalSorter}
-import org.apache.spark.{InterruptibleIterator, TaskContext}
+import org.apache.spark.util.collection.ExternalSorter
 
 private[spark] class HashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
     startPartition: Int,
     endPartition: Int,
-    context: TaskContext,
-    var lineage: Boolean = false)
+    context: TaskContext)
   extends ShuffleReader[K, C]
 {
   require(endPartition == startPartition + 1,
@@ -38,31 +35,19 @@ private[spark] class HashShuffleReader[K, C](
   private val dep = handle.dependency
 
   /** Read the combined key-values for this reduce task */
-  override def read(isCache: Int = 0, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
+  override def read(): Iterator[Product2[K, C]] = {
     val ser = Serializer.getSerializer(dep.serializer)
-    val tappedIter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
-    // Added by Matteo
-    if(isCache == 1) {
-      return tappedIter
-    } else if(isCache == 2){
-      lineage = true
-    }
-    // Added by Matteo - Required to trace the ids of records
-    val trace = new AppendOnlyMap[K, List[(Int, Int, Long)]]
-    // Added by Matteo - Untapping to not creating conflicts with the aggregation
-    val iter = untap(tappedIter, trace)
+    val iter = BlockStoreShuffleFetcher.fetch(handle.shuffleId, startPartition, context, ser)
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(iter, context))
       } else {
-        tap(new InterruptibleIterator(context,
-          dep.aggregator.get.combineValuesByKey(iter, context)),
-          trace, context, startPartition, shuffleId) // Matteo - Added the tap after aggregation
+        new InterruptibleIterator(context, dep.aggregator.get.combineValuesByKey(iter, context))
       }
-    } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
-      throw new IllegalStateException("Aggregator is empty for map-side combine")
     } else {
+      require(!dep.mapSideCombine, "Map-side combine without Aggregator specified!")
+
       // Convert the Product2s to pairs since this is what downstream RDDs currently expect
       iter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
     }
@@ -82,46 +67,6 @@ private[spark] class HashShuffleReader[K, C](
     }
   }
 
-  /** Close this reader */
-  override def stop(): Unit = ???
-
-  /** Added by Matteo ######################################################################## */
-  def untap[T](
-      iter : Iterator[_ <: Product2[K, Product2[_, (Int, Int, Long)]]],
-      trace : AppendOnlyMap[K, List[(Int, Int, Long)]]) = {
-    if(lineage) {
-      iter.map(r => {
-        val update = (hadValue: Boolean, oldValue: List[(Int, Int, Long)]) => {
-          if (hadValue) r._2._2 :: oldValue else List(r._2._2)
-        }
-        trace.changeValue(r._1, update)
-        (r._1, r._2._1).asInstanceOf[T]
-      })
-    } else {
-      iter.asInstanceOf[Iterator[T]]
-    }
-  }
-
- def tap(
-     iter: Iterator[Product2[K, C]],
-     trace : AppendOnlyMap[K, List[(Int, Int, Long)]],
-     context : TaskContext,
-     splitId: Int,
-     shuffleId: Int) = {
-   if(lineage) {
-     iter.map(r => {
-       val id = trace(r._1)
-       context.currentRecordInfo = id.toSeq
-       context.postShuffleRecordInfo = (shuffleId, splitId, newRecordId)
-       ((r._1, r._2), (shuffleId, splitId, newRecordId)).asInstanceOf[Product2[K, C]]
-     })
-   } else {
-     iter
-   }
- }
-
-  protected var nextRecord: AtomicLong = new AtomicLong(0)
-
-  protected def newRecordId = nextRecord.getAndIncrement
- /** ########################################################################################## */
+  // Added by Matteo, required for compatibility
+  override def read(isShuffleCache: Option[Boolean] = None, shuffleId: Int): Iterator[Product2[K, C]] = read()
 }

@@ -22,9 +22,15 @@ import java.nio.charset.Charset
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
+
 import com.google.common.io.Files
-import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.io.{IntWritable, Text}
+import org.apache.hadoop.mapred.TextOutputFormat
+import org.apache.hadoop.mapreduce.lib.output.{TextOutputFormat => NewTextOutputFormat}
+
+import org.apache.spark.SparkContext._
 import org.apache.spark.streaming.StreamingContext._
 import org.apache.spark.streaming.dstream.{DStream, FileInputDStream}
 import org.apache.spark.streaming.util.ManualClock
@@ -205,6 +211,90 @@ class CheckpointSuite extends TestSuiteBase {
     testCheckpointedOperation(input, operation, output, 7)
   }
 
+  test("recovery with saveAsHadoopFiles operation") {
+    val tempDir = Files.createTempDir()
+    try {
+      testCheckpointedOperation(
+        Seq(Seq("a", "a", "b"), Seq("", ""), Seq(), Seq("a", "a", "b"), Seq("", ""), Seq()),
+        (s: DStream[String]) => {
+          val output = s.map(x => (x, 1)).reduceByKey(_ + _)
+          output.saveAsHadoopFiles(
+            tempDir.toURI.toString,
+            "result",
+            classOf[Text],
+            classOf[IntWritable],
+            classOf[TextOutputFormat[Text, IntWritable]])
+          output
+        },
+        Seq(Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq(), Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq()),
+        3
+      )
+    } finally {
+      Utils.deleteRecursively(tempDir)
+    }
+  }
+
+  test("recovery with saveAsNewAPIHadoopFiles operation") {
+    val tempDir = Files.createTempDir()
+    try {
+      testCheckpointedOperation(
+        Seq(Seq("a", "a", "b"), Seq("", ""), Seq(), Seq("a", "a", "b"), Seq("", ""), Seq()),
+        (s: DStream[String]) => {
+          val output = s.map(x => (x, 1)).reduceByKey(_ + _)
+          output.saveAsNewAPIHadoopFiles(
+            tempDir.toURI.toString,
+            "result",
+            classOf[Text],
+            classOf[IntWritable],
+            classOf[NewTextOutputFormat[Text, IntWritable]])
+          output
+        },
+        Seq(Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq(), Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq()),
+        3
+      )
+    } finally {
+      Utils.deleteRecursively(tempDir)
+    }
+  }
+
+  test("recovery with saveAsHadoopFile inside transform operation") {
+    // Regression test for SPARK-4835.
+    //
+    // In that issue, the problem was that `saveAsHadoopFile(s)` would fail when the last batch
+    // was restarted from a checkpoint since the output directory would already exist.  However,
+    // the other saveAsHadoopFile* tests couldn't catch this because they only tested whether the
+    // output matched correctly and not whether the post-restart batch had successfully finished
+    // without throwing any errors.  The following test reproduces the same bug with a test that
+    // actually fails because the error in saveAsHadoopFile causes transform() to fail, which
+    // prevents the expected output from being written to the output stream.
+    //
+    // This is not actually a valid use of transform, but it's being used here so that we can test
+    // the fix for SPARK-4835 independently of additional test cleanup.
+    //
+    // After SPARK-5079 is addressed, should be able to remove this test since a strengthened
+    // version of the other saveAsHadoopFile* tests would prevent regressions for this issue.
+    val tempDir = Files.createTempDir()
+    try {
+      testCheckpointedOperation(
+        Seq(Seq("a", "a", "b"), Seq("", ""), Seq(), Seq("a", "a", "b"), Seq("", ""), Seq()),
+        (s: DStream[String]) => {
+          s.transform { (rdd, time) =>
+            val output = rdd.map(x => (x, 1)).reduceByKey(_ + _)
+            output.saveAsHadoopFile(
+              new File(tempDir, "result-" + time.milliseconds).getAbsolutePath,
+              classOf[Text],
+              classOf[IntWritable],
+              classOf[TextOutputFormat[Text, IntWritable]])
+            output
+          }
+        },
+        Seq(Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq(), Seq(("a", 2), ("b", 1)), Seq(("", 2)), Seq()),
+        3
+      )
+    } finally {
+      Utils.deleteRecursively(tempDir)
+    }
+  }
 
   // This tests whether the StateDStream's RDD checkpoints works correctly such
   // that the system can recover from a master failure. This assumes as reliable,
@@ -231,8 +321,7 @@ class CheckpointSuite extends TestSuiteBase {
   // failure, are re-processed or not.
   test("recovery with file input stream") {
     // Set up the streaming context and input streams
-    val testDir = Files.createTempDir()
-    testDir.deleteOnExit()
+    val testDir = Utils.createTempDir()
     var ssc = new StreamingContext(master, framework, Seconds(1))
     ssc.checkpoint(checkpointDir)
     val fileStream = ssc.textFileStream(testDir.toString)
@@ -266,7 +355,7 @@ class CheckpointSuite extends TestSuiteBase {
 
     // Verify whether files created have been recorded correctly or not
     var fileInputDStream = ssc.graph.getInputStreams().head.asInstanceOf[FileInputDStream[_, _, _]]
-    def recordedFiles = fileInputDStream.files.values.flatMap(x => x)
+    def recordedFiles = fileInputDStream.batchTimeToSelectedFiles.values.flatten
     assert(!recordedFiles.filter(_.endsWith("1")).isEmpty)
     assert(!recordedFiles.filter(_.endsWith("2")).isEmpty)
     assert(!recordedFiles.filter(_.endsWith("3")).isEmpty)
@@ -392,7 +481,9 @@ class CheckpointSuite extends TestSuiteBase {
     logInfo("Manual clock after advancing = " + clock.time)
     Thread.sleep(batchDuration.milliseconds)
 
-    val outputStream = ssc.graph.getOutputStreams.head.asInstanceOf[TestOutputStreamWithPartitions[V]]
+    val outputStream = ssc.graph.getOutputStreams.filter { dstream =>
+      dstream.isInstanceOf[TestOutputStreamWithPartitions[V]]
+    }.head.asInstanceOf[TestOutputStreamWithPartitions[V]]
     outputStream.output.map(_.flatten)
   }
 }

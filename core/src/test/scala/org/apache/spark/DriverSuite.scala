@@ -26,8 +26,6 @@ import org.scalatest.time.SpanSugar._
 
 import org.apache.spark.util.Utils
 
-import scala.language.postfixOps
-
 class DriverSuite extends FunSuite with Timeouts {
 
   test("driver should exit after finishing") {
@@ -52,7 +50,10 @@ class DriverSuite extends FunSuite with Timeouts {
 object DriverWithoutCleanup {
   def main(args: Array[String]) {
     Utils.configTestLog4j("INFO")
-    val sc = new SparkContext(args(0), "DriverWithoutCleanup")
+    // Bind the web UI to an ephemeral port in order to avoid conflicts with other tests running on
+    // the same machine (we shouldn't just disable the UI here, since that might mask bugs):
+    val conf = new SparkConf().set("spark.ui.port", "0")
+    val sc = new SparkContext(args(0), "DriverWithoutCleanup", conf)
     sc.parallelize(1 to 100, 4).count()
   }
 }
