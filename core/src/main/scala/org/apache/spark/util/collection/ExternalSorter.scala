@@ -20,15 +20,15 @@ package org.apache.spark.util.collection
 import java.io._
 import java.util.Comparator
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable
-
 import com.google.common.io.ByteStreams
-
 import org.apache.spark._
-import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.storage.{BlockObjectWriter, BlockId}
+import org.apache.spark.serializer.{DeserializationStream, Serializer}
+import org.apache.spark.storage.{BlockId, BlockObjectWriter}
+import org.apache.spark.util.PackShortIntoInt
+
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Sorts and potentially merges a number of key-value pairs of type (K, V) to produce key-combiner
@@ -747,10 +747,14 @@ private[spark] class ExternalSorter[K, V, C](
         if (elements.hasNext) {
           val writer = blockManager.getDiskWriter(
             blockId, outputFile, ser, fileBufferSize, context.taskMetrics.shuffleWriteMetrics.get)
-          for (elem <- elements.zipWithIndex.map(r => {
-            (r._1._1, (r._1._2, (context.stageId.toShort, context.partitionId.toShort, r._2))).asInstanceOf[(K, C)]
-          })) {
-            writer.write(elem)
+          if (context.asInstanceOf[TaskContextImpl].currentRecordInfo == 0) { // Matteo
+            for (elem <- elements) {
+              writer.write(elem)
+            }
+          } else {
+            for (elem <- elements) {
+              writer.write(new Tuple2(elem._1, new Tuple2(elem._2, PackShortIntoInt(context.stageId, context.partitionId))))
+            }
           }
           writer.commitAndClose()
           val segment = writer.fileSegment()

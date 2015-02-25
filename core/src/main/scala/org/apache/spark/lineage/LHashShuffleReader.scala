@@ -17,11 +17,12 @@
 
 package org.apache.spark.lineage
 
+import com.google.common.collect.ArrayListMultimap
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.BaseShuffleHandle
 import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReader}
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap, ExternalSorter}
-import org.apache.spark.{TaskContextImpl, InterruptibleIterator, TaskContext}
+import org.apache.spark.util.collection.ExternalSorter
+import org.apache.spark.{InterruptibleIterator, TaskContext, TaskContextImpl}
 
 import scala.collection.mutable.ListBuffer
 
@@ -51,7 +52,7 @@ private[spark] class LHashShuffleReader[K, C](
       }
     }
 
-    context.asInstanceOf[TaskContextImpl].currentRecordInfos = new PrimitiveKeyOpenHashMap[Int, CompactBuffer[(Short, Short, Int)]]
+    context.asInstanceOf[TaskContextImpl].currentRecordInfos = ArrayListMultimap.create()
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if(lineage) {
@@ -88,23 +89,4 @@ private[spark] class LHashShuffleReader[K, C](
   private[spark] def update(value: (Short, Short, Int)) = (hadValue: Boolean, oldValue: ListBuffer[(Short, Short, Int)]) => {
     if (hadValue) oldValue += value else new ListBuffer += value
   }
-
-//  def untap[T](iter : Iterator[_ <: Product2[K, Product2[_, (Short, Short, Int)]]]) = {
-//    if(lineage) {
-//      iter.map(r => {
-//        context.currentRecordInfos.changeValue(r._1.hashCode(),update(r._2._2))
-//        (r._1, r._2._1).asInstanceOf[T]
-//      })
-//    } else {
-//      iter.asInstanceOf[Iterator[T]]
-//    }
-//  }
-//
-//  def tap(iter: Iterator[Product2[K, C]]): Iterator[Product2[K, C]] = {
-//    if(lineage) {
-//      iter.zipWithIndex.asInstanceOf[Iterator[Product2[K, C]]]
-//    } else {
-//      iter
-//    }
-//  }
 }

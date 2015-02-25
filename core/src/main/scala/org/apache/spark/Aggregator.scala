@@ -18,7 +18,7 @@
 package org.apache.spark
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{CompactBuffer, AppendOnlyMap, ExternalAppendOnlyMap}
+import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
 
 /**
  * :: DeveloperApi ::
@@ -95,19 +95,18 @@ case class Aggregator[K, V, C] (
       combiners.iterator
     } else {
       val combiners = new ExternalAppendOnlyMap[K, C, C](identity, mergeCombiners, mergeCombiners)
-      if(context.asInstanceOf[TaskContextImpl].currentRecordInfo.equals(0)) {
-        // Matteo
+      if(context.asInstanceOf[TaskContextImpl].currentRecordInfo.equals(0)) { // Matteo
         while (iter.hasNext) {
           val pair = iter.next()
           combiners.insert(pair._1, pair._2)
         }
       } else {
-        var pair: Product2[K, Product2[C, (Short, Short, Int)]] = null
+        var pair: Product2[K, Product2[C, Int]] = null
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[C, (Short, Short, Int)]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[C, Int]]]
           combiners.insert(pair._1, pair._2._1)
-          context.asInstanceOf[TaskContextImpl].currentRecordInfos.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[(Short, Short, Int)]) => old += pair._2._2)
-          //context.tmp += ((pair._2._2, pair._1.hashCode()))
+          //context.asInstanceOf[TaskContextImpl].currentRecordInfos.changeValue(pair._2._2._2, CompactBuffer(pair._2._2._1), (old: CompactBuffer[Int]) => old += pair._2._2._1)
+          context.asInstanceOf[TaskContextImpl].currentRecordInfos.put(pair._1.hashCode(), pair._2._2)//.changeValue(pair._2._2._2, CompactBuffer(pair._2._2._1), (old: CompactBuffer[Int]) => old += pair._2._2._1)
         }
       }
       // Update task metrics if context is not null
@@ -116,7 +115,7 @@ case class Aggregator[K, V, C] (
         c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
         c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
       }
-      combiners.iterator.zipWithIndex.asInstanceOf[Iterator[(K, C)]]
+      combiners.iterator//.zipWithIndex.asInstanceOf[Iterator[(K, C)]]
     }
   }
 }

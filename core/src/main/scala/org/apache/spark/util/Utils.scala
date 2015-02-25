@@ -1889,6 +1889,7 @@ private[spark] class RedirectThread(
   extends Thread(name) {
 
   setDaemon(true)
+
   override def run() {
     scala.util.control.Exception.ignoring(classOf[IOException]) {
       // FIXME: We copy the stream on the level of bytes to avoid encoding problems.
@@ -1906,5 +1907,19 @@ private[spark] class RedirectThread(
         }
       }
     }
+  }
+}
+
+object PackShortIntoInt {
+  private final val RIGHT: Int = 0xFFFF;
+
+  def apply(left: Int, right: Int) = (left << 16) | (right & RIGHT);
+
+  def getLeft(value: Int) {
+    value >>> 16 // >>> operator 0-fills from left
+  }
+
+  def getRight(value: Int) {
+    value & RIGHT
   }
 }

@@ -42,7 +42,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel]) = {
     val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
-      underMaterialization.filter(r => r._2 == split && r._1.id != 7).foreach(table => {
+      underMaterialization.filter(r => r._2 == split).foreach(table => {
          val t = new Runnable() {
            override def run() {
              val key = RDDBlockId(table._1.id, split)
@@ -54,7 +54,10 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
              } catch {
                case e: Exception => println(e)
              } finally {
-               table._1.cleanTable
+               //table._1.cleanTable
+               underMaterialization.synchronized {
+                 underMaterialization.remove(table)
+               }
                logInfo(s"Block $key materialized")
              }
            }
@@ -62,9 +65,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
 
          //context.pool.synchronized {
         context.asInstanceOf[TaskContextImpl].pool.execute(t)
-        underMaterialization.synchronized {
-          underMaterialization.remove(table)
-        }
          //}
       })
     val metrics = context.taskMetrics
@@ -76,9 +76,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       rdd: RDD[_],
       split: Int, context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
- //   materialize(split, context, effectiveStorageLevel)
-    underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.synchronized {
-      underMaterialization.remove(table)
-    })
+    //materialize(split, context, effectiveStorageLevel)
+    //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
   }
 }

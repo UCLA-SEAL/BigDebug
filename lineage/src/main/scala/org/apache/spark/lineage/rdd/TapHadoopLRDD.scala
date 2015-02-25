@@ -29,12 +29,6 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  //private[spark] val filePath = firstParent[(K, V)].asInstanceOf[HadoopLRDD[K, V]].getFilePath
-
-//  private[spark] def addRecordInfo(key: Int, value: Long) = {
-//    recordInfo += key -> value
-//  }
-
   @transient private[spark] var recordInfo1: PrimitiveVector[Int] = null
 
   @transient private[spark] var recordInfo2: PrimitiveVector[Long] = null

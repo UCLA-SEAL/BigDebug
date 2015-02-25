@@ -36,9 +36,10 @@ class TapPostShuffleLRDD[T: ClassTag](
 //  private[spark] def unroll(h: RecordId, t: Seq[RecordId]): Seq[(RecordId, RecordId)] =
 //    if(t.isEmpty) Nil else (h, t.head) :: unroll(h, t.tail)
 
-  override def materializeRecordInfo: Array[Any] = { Array()
+  override def materializeRecordInfo: Array[Any] = { //Array()
     //tContext.currentRecordInfos.flatMap(r => unroll(r._2.head, r._2.tail)).toArray
     //tContext.currentRecordInfos.zip(recordInfo1.iterator.map(r => r._1).toIterable).flatMap(r => r._1._2.map(r2 => (r._2, r2))).toArray[Any]
+    tContext.currentRecordInfos.entries.toArray.asInstanceOf[Array[Any]]
   }
 
   private[spark] def update(value: Int) = (hadValue: Boolean, oldValue: Int) => {
@@ -64,7 +65,7 @@ class TapPostShuffleLRDD[T: ClassTag](
   //@transient private[spark] var recordInfo1: ExternalAppendOnlyMap[Int, Int, Int] = null
 
   override def tap(record: T) = {
-    recordInfo1 += record._2
+//    recordInfo1 += record._2
 //      (id.toShort, splitId, record._2._2) :: _)
 //    tContext.currentRecordInfos.changeValue(
 //      record._1._1.hashCode(),
