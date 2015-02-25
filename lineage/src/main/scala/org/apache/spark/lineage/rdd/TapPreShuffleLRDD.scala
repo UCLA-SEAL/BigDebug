@@ -36,7 +36,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   @transient var tmp2: ArrayBuffer[RoaringBitmap] = null
 
   override def materializeRecordInfo: Array[Any] = {
-    tmp.iterator.map(r => new Tuple2(new Tuple2(PackShortIntoInt(tContext.stageId.toShort, splitId), r._1), r._2)).toArray
+    tmp.iterator.map(r => new Tuple2(new Tuple2(PackShortIntoInt(tContext.stageId, splitId), r._1), r._2)).toArray
 //    tmp.zipWithIndex.map(r => ((tContext.stageId.toShort, splitId, r._2), r._1._2)).toArray.asInstanceOf[Array[Any]]
 //    tmp.zipWithIndex.flatMap(r => {
 //      r._1._2.toArray.map(

@@ -1,0 +1,153 @@
+Using /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home as default JAVA_HOME.
+Note, this will be overridden by -java-home if it is set.
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project/project[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/.sbt/0.13/staging/ec3aa8f39111944cc5f2/sbt-pom-reader/project[0m
+[0m[[33mwarn[0m] [0mMultiple resolvers having different access mechanism configured with same name 'sbt-plugin-releases'. To avoid conflict, Remove duplicate project resolvers (`resolvers`) or rename publishing resolver (`publishTo`).[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project[0m
+Note: We ignore environment variables, when use of profile is detected in conjunction with environment variable.
+[0m[[0minfo[0m] [0mSet current project to spark-parent (in build file:/Users/inter/Develop/spark-lineage/)[0m
+Processed 0 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 12 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 3 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 3 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 2 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 5 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 18 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 3 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 37 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 1 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 70 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 69 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 13 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 6 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 3 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 1 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 45 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 88 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 8 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 1 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 63 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+Processed 395 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 1 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@34c45a8d[0m
+[0m[[32msuccess[0m] [0mTotal time: 8 s, completed Sep 19, 2014 3:02:50 PM[0m
+Using /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home as default JAVA_HOME.
+Note, this will be overridden by -java-home if it is set.
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project/project[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/.sbt/0.13/staging/ec3aa8f39111944cc5f2/sbt-pom-reader/project[0m
+[0m[[33mwarn[0m] [0mMultiple resolvers having different access mechanism configured with same name 'sbt-plugin-releases'. To avoid conflict, Remove duplicate project resolvers (`resolvers`) or rename publishing resolver (`publishTo`).[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project[0m
+Note: We ignore environment variables, when use of profile is detected in conjunction with environment variable.
+[0m[[0minfo[0m] [0mSet current project to spark-parent (in build file:/Users/inter/Develop/spark-lineage/)[0m
+Processed 4 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 3 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@236d0dd3[0m
+[0m[[32msuccess[0m] [0mTotal time: 1 s, completed Sep 19, 2014 3:03:00 PM[0m
+Using /System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home as default JAVA_HOME.
+Note, this will be overridden by -java-home if it is set.
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project/project[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/.sbt/0.13/staging/ec3aa8f39111944cc5f2/sbt-pom-reader/project[0m
+[0m[[33mwarn[0m] [0mMultiple resolvers having different access mechanism configured with same name 'sbt-plugin-releases'. To avoid conflict, Remove duplicate project resolvers (`resolvers`) or rename publishing resolver (`publishTo`).[0m
+[0m[[0minfo[0m] [0mLoading project definition from /Users/inter/Develop/spark-lineage/project[0m
+Note: We ignore environment variables, when use of profile is detected in conjunction with environment variable.
+[0m[[0minfo[0m] [0mSet current project to spark-parent (in build file:/Users/inter/Develop/spark-lineage/)[0m
+Processed 0 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 2 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@36fce9d7[0m
+Processed 4 file(s)
+Found 0 errors
+Found 0 warnings
+Found 0 infos
+Finished in 0 ms
+[0m[[32msuccess[0m] [0mcreated: sbt.SettingKey$$anon$4@36fce9d7[0m
+[0m[[32msuccess[0m] [0mTotal time: 1 s, completed Sep 19, 2014 3:03:10 PM[0m
