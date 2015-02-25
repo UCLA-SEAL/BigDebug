@@ -198,10 +198,9 @@ abstract class DiffRDDGenerator[A: ClassTag]
       for (p <- parents) p.assembleOrigComputation()
     }
     this.assembleThisOrigComputation()
-//    if(this.shouldCacheOrigOutput) {
-//      this.origRDD.cache()
-//    }
-    this.origRDD.cache()
+    if(this.shouldCacheOrigOutput) {
+      this.origRDD.cache()
+    }
   }
 
   def assembleIncrComputation(): Unit =
@@ -211,7 +210,6 @@ abstract class DiffRDDGenerator[A: ClassTag]
       for (p <- parents) p.assembleIncrComputation()
     }
     this.assembleThisIncrComputation()
-    this.incrRDD.cache()
   }
 
   def setOrigComputationRan(): Unit = iterateUpstream(_.origComputationRan = true)
@@ -409,7 +407,7 @@ class DiffFilterGenerator[A: ClassTag]
    prev: DiffRDDGenerator[A])
   extends DiffRDDGenerator[A](prev)
 {
-  var incrementalFilterChanged: Boolean = false
+  var filterChanged: Boolean = false
   var incrementalAdditionsFunction: (A => Boolean) = null
   var incrementalRemovalsFunction: (A => Boolean) = null
   prev.setOrigCached() //for the incremental filter
@@ -419,14 +417,14 @@ class DiffFilterGenerator[A: ClassTag]
     assert(origComputationRan)
     def additions(x: A) = f1 (x) && !f(x)
     def removals(x: A) = f(x) && !f1(x)
-    incrementalFilterChanged = true
+    filterChanged = true
     incrementalAdditionsFunction = additions
     incrementalRemovalsFunction = removals
   }
 
   override def assembleIncrComputation(): Unit =
   {
-    if(incrementalFilterChanged) {
+    if(filterChanged) {
       val additions: RDD[Diff[A]] = prev.origRDD.filter(incrementalAdditionsFunction).map(Added(_))
       val removals: RDD[Diff[A]] = prev.origRDD.filter(incrementalRemovalsFunction).map(Removed(_))
       incrRDD = additions ++ removals
