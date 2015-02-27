@@ -32,35 +32,23 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var splitId: Short = 0
 
-  @transient private[spark] var tContext: TaskContextImpl = null
+  @transient private[spark] var tContext: TaskContextImpl = _
 
   @transient private[spark] var recordId: (Short, Short, Int) = (0, 0, 0)
 
-  @transient private[spark] var recordIdShort: (Short, Int) = (0, 0)
+  @transient private var inputIdStore: ListBuffer[Int] = _
 
-  // TODO make recordInfo grow in memory and spill to disk if needed
-  @transient private[spark] var recordInfo: ListBuffer[(Any, Any)] = null
+  @transient private var outputIdStore: ListBuffer[Int] = _
 
   @transient private[spark] var nextRecord: Int = 0
 
-  private[spark] var shuffledData: Lineage[_] = null
+  private[spark] var shuffledData: Lineage[_] = _
 
   private[spark] def newRecordId = {
     nextRecord += 1
     nextRecord
   }
 
-  private[spark] def addRecordInfo(key: (Short, Int), value: Any) = {
-    recordInfo += key -> value
-  }
-
-  private[spark] def addRecordInfo(key: (Short, Short, Int), value: Seq[(_)]) = {
-    recordInfo += key -> value
-  }
-
-  /**
-   * Compute an RDD partition or read it from a checkpoint if the RDD was checkpointed.
-   */
   private[spark] override def computeOrReadCheckpoint(
      split: Partition,
      context: TaskContext): Iterator[T] = compute(split, context)
@@ -71,7 +59,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
-  override def materializeRecordInfo: Array[Any] = recordInfo.toArray
+  override def materializeRecordInfo: Array[Any] = inputIdStore.zip(outputIdStore).toArray
 
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
@@ -79,17 +67,11 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
     splitId = split.index.toShort
 
-    recordInfo = new ListBuffer[(Any, Any)]()
+    initializeStores()
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
     firstParent[T].iterator(split, context).map(tap)
-  }
-
-  override def cleanTable = {
-    if(recordInfo != null)
-    recordInfo.clear()
-    recordInfo = null
   }
 
   override def filter(f: T => Boolean): Lineage[T] =
@@ -102,10 +84,15 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
+  def initializeStores() = {
+    inputIdStore = new ListBuffer
+    outputIdStore = new ListBuffer
+  }
+
   def tap(record: T) = {
-    recordIdShort = (splitId, newRecordId)
-    //addRecordInfo(recordIdShort, tContext.currentRecordInfo)
-    tContext.currentRecordInfo = recordIdShort._2
+    inputIdStore += tContext.currentInputId
+    tContext.currentInputId = newRecordId
+    outputIdStore += tContext.currentInputId
 
     record
   }

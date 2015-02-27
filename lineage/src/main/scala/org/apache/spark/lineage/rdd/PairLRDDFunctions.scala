@@ -18,10 +18,11 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark.Partitioner._
+import org.apache.spark.lineage.LAggregator
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
-import org.apache.spark.{Aggregator, HashPartitioner, Partitioner, SparkException}
+import org.apache.spark.{HashPartitioner, Partitioner, SparkException}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -75,7 +76,11 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
         throw new SparkException("Default partitioner cannot partition array keys.")
       }
     }
-    val aggregator = new Aggregator[K, V, C](createCombiner, mergeValue, mergeCombiners)
+    val aggregator = new LAggregator[K, V, C](
+      createCombiner,
+      mergeValue,
+      mergeCombiners,
+      lineageContext.isLineageActive)
 
     new ShuffledLRDD[K, V, C](self, partitioner)
       .setSerializer(serializer)

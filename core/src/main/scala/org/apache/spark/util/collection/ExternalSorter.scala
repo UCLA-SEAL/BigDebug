@@ -747,13 +747,16 @@ private[spark] class ExternalSorter[K, V, C](
         if (elements.hasNext) {
           val writer = blockManager.getDiskWriter(
             blockId, outputFile, ser, fileBufferSize, context.taskMetrics.shuffleWriteMetrics.get)
-          if (context.asInstanceOf[TaskContextImpl].currentRecordInfo == 0) { // Matteo
+          // Modified by Matteo
+          if (context.asInstanceOf[TaskContextImpl].currentInputId == 0) {
             for (elem <- elements) {
               writer.write(elem)
             }
           } else {
             for (elem <- elements) {
-              writer.write(new Tuple2(elem._1, new Tuple2(elem._2, PackShortIntoInt(context.stageId, context.partitionId))))
+              writer.write(
+                new Tuple2(elem._1,
+                  new Tuple2(elem._2, PackShortIntoInt(context.stageId, context.partitionId))))
             }
           }
           writer.commitAndClose()
@@ -761,6 +764,10 @@ private[spark] class ExternalSorter[K, V, C](
           lengths(id) = segment.length
         }
       }
+//      if(context.asInstanceOf[TaskContextImpl].currentInputId != 0 &&
+//          Runtime.getRuntime.freeMemory() < 13000000000L) {
+//        System.gc()
+//      }
     }
 
     context.taskMetrics.memoryBytesSpilled += memoryBytesSpilled

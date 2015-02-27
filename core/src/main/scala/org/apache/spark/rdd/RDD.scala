@@ -103,8 +103,6 @@ abstract class RDD[T: ClassTag](
 
   def materializeRecordInfo: Array[Any] =  Array[Any]()
 
-  def cleanTable: Unit = throw new UnsupportedOperationException("Not available for RDDs")
-
   /** ########################################################################################## */
 
   // =======================================================================

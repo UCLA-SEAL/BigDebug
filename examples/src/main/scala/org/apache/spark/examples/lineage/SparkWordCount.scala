@@ -28,9 +28,9 @@ object SparkWordCount {
     var lineage = false
     var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/"
     if(args.size < 2) {
-      logFile = "../../datasets/output.txt"
+      //logFile = "../../datasets/output.txt"
       //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
-      //logFile = "README.md"
+      logFile = "README.md"
       conf.setMaster("local[2]")
       lineage = true
     } else {
@@ -41,17 +41,17 @@ object SparkWordCount {
     conf.setAppName("WordCount")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
-    lc.setCaptureLineage(true)
+    lc.setCaptureLineage(lineage)
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    //counts.collect().foreach(println)
-    print(counts.count())
+    counts.collect().foreach(println)
+    //print(counts.count())
 
     // Get the lineage
-//    lc.setCaptureLineage(false)
-//    var lin = counts.getLineage()
-//    lin.collect.foreach(println)
+      lc.setCaptureLineage(false)
+      var lin = counts.getLineage()
+      lin.collect.foreach(println)
 //    //lineage.dumpTrace
 //    lin = lin.filter(r => r.equals(0,0,95))
 //    lin.collect.foreach(println)

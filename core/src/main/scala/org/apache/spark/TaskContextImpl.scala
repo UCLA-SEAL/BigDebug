@@ -43,10 +43,10 @@ private[spark] class TaskContextImpl(val stageId: Int,
   @volatile private var completed: Boolean = false
 
   // Used to pipeline records through taps inside the same stage
-  @transient var currentRecordInfo: Int = 0 // Added by Matteo
+  @transient var currentInputId: Int = 0 // Added by Matteo
 
   // Used to pipeline records through taps inside the same stage
-  @transient var currentRecordInfos: ArrayListMultimap[Int, Int] = null // Added by Matteo
+  @transient var currentInputStore: ArrayListMultimap[Int, Int] = null // Added by Matteo
 
   @transient var pool: ThreadPoolExecutor = null // Matteo
 

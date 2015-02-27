@@ -17,9 +17,9 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.{LCacheManager, LineageContext, PrimitiveKeyOpenHashMap}
+import org.apache.spark.Dependency
+import org.apache.spark.lineage.{LineageContext, PrimitiveKeyOpenHashMap}
 import org.apache.spark.util.PackShortIntoInt
-import org.apache.spark.{Dependency, Partition, SparkEnv, TaskContext, TaskContextImpl}
 import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.ArrayBuffer
@@ -30,46 +30,30 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
+  @transient private var inputIdStore: PrimitiveKeyOpenHashMap[Int, Int] = null
+  @transient private var inputIdStore2: ArrayBuffer[RoaringBitmap] = null
+
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
-  @transient var tmp: PrimitiveKeyOpenHashMap[Int, Int] = null
-  @transient var tmp2: ArrayBuffer[RoaringBitmap] = null
+  override def materializeRecordInfo: Array[Any] = inputIdStore.iterator.map(r =>
+      new Tuple2(new Tuple2(PackShortIntoInt(tContext.stageId, splitId), r._1), r._2)).toArray
 
-  override def materializeRecordInfo: Array[Any] = {
-    tmp.iterator.map(r => new Tuple2(new Tuple2(PackShortIntoInt(tContext.stageId, splitId), r._1), r._2)).toArray
-//    tmp.zipWithIndex.map(r => ((tContext.stageId.toShort, splitId, r._2), r._1._2)).toArray.asInstanceOf[Array[Any]]
-//    tmp.zipWithIndex.flatMap(r => {
-//      r._1._2.toArray.map(
-//        r2 => ((tContext.stageId.toShort, splitId, r._2), r2))
-//    }).toArray.asInstanceOf[Array[Any]]
-  }
-
-  override def compute(split: Partition, context: TaskContext) = {
-    if(tContext == null) {
-      tContext = context.asInstanceOf[TaskContextImpl]
-    }
-    splitId = split.index.toShort
-
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
-
-    tmp = new PrimitiveKeyOpenHashMap[Int, Int]
-    tmp2 = new ArrayBuffer[RoaringBitmap](1)
-
-    firstParent[T].iterator(split, context).map(tap)
-  }
-
-  private[spark] def update(value: Int) = (hadValue: Boolean, oldValue: RoaringBitmap) => {
-    if (hadValue) {oldValue.add(value);oldValue} else RoaringBitmap.bitmapOf(value)
+  override def initializeStores() = {
+    inputIdStore = new PrimitiveKeyOpenHashMap
+    inputIdStore2 = new ArrayBuffer(1)
   }
 
   override def tap(record: T) = {
-   // tmp.changeValue(record._1.hashCode(), update(tContext.currentRecordInfo))
-    val index = tmp.update(record._1.hashCode()) -1
-    if (tmp2.size == index) {
-      tmp2.append(RoaringBitmap.bitmapOf(tContext.currentRecordInfo))
+    val index = inputIdStore.update(record._1.hashCode()) -1
+    if (inputIdStore2.size == index) {
+      inputIdStore2.append(RoaringBitmap.bitmapOf(tContext.currentInputId))
     } else {
-      tmp2(index).add(tContext.currentRecordInfo)
+      inputIdStore2(index).add(tContext.currentInputId)
     }
     record
+  }
+
+  private def update(value: Int) = (hadValue: Boolean, oldValue: RoaringBitmap) => {
+    if (hadValue) {oldValue.add(value);oldValue} else RoaringBitmap.bitmapOf(value)
   }
 }

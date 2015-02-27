@@ -19,7 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
-import org.apache.spark.lineage.{LCacheManager, LineageContext}
+import org.apache.spark.lineage.LineageContext
 import org.apache.spark.util.collection.PrimitiveVector
 
 private[spark]
@@ -29,31 +29,21 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private[spark] var recordInfo1: PrimitiveVector[Int] = null
+  @transient private var inputIdStore: PrimitiveVector[Int] = _
 
-  @transient private[spark] var recordInfo2: PrimitiveVector[Long] = null
+  @transient private var outputIdStore: PrimitiveVector[Long] = _
 
-  override def compute(split: Partition, context: TaskContext) = {
-    if(tContext == null) {
-      tContext = context.asInstanceOf[TaskContextImpl]
-    }
-    splitId = split.index.toShort
+  override def materializeRecordInfo: Array[Any] = inputIdStore.array.zip(outputIdStore.array)
 
-    recordInfo1 = new PrimitiveVector[Int]()
-
-    recordInfo2 = new PrimitiveVector[Long]()
-
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
-
-    firstParent[(K, V)].iterator(split, context).map(tap)
+  override def initializeStores = {
+    inputIdStore = new PrimitiveVector
+    outputIdStore = new PrimitiveVector
   }
 
-  override def materializeRecordInfo: Array[Any] = recordInfo1.array.zip(recordInfo2.array)
-
   override def tap(record: (K, V)) = {
-    tContext.currentRecordInfo = newRecordId
-    recordInfo1 += tContext.currentRecordInfo
-    recordInfo2 += record._1.asInstanceOf[LongWritable].get
+    tContext.currentInputId = newRecordId
+    inputIdStore += tContext.currentInputId
+    outputIdStore += record._1.asInstanceOf[LongWritable].get
 
     record
   }

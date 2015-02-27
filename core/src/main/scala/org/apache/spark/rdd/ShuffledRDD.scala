@@ -75,7 +75,7 @@ class ShuffledRDD[K, V, C](
   }
 
   override def getDependencies: Seq[Dependency[_]] = {
-    List(new ShuffleDependency(prev, part, serializer, keyOrdering, aggregator, mapSideCombine))
+    List(new ShuffleDependency(prev, part, serializer, keyOrdering, aggregator.asInstanceOf[Option[Aggregator[K, V, C]]], mapSideCombine))
   }
 
   override val partitioner = Some(part)

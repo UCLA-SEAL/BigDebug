@@ -17,12 +17,11 @@
 
 package org.apache.spark.lineage
 
-import com.google.common.collect.ArrayListMultimap
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.BaseShuffleHandle
 import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReader}
 import org.apache.spark.util.collection.ExternalSorter
-import org.apache.spark.{InterruptibleIterator, TaskContext, TaskContextImpl}
+import org.apache.spark.{InterruptibleIterator, TaskContext}
 
 import scala.collection.mutable.ListBuffer
 
@@ -52,12 +51,7 @@ private[spark] class LHashShuffleReader[K, C](
       }
     }
 
-    context.asInstanceOf[TaskContextImpl].currentRecordInfos = ArrayListMultimap.create()
-
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
-      if(lineage) {
-        context.asInstanceOf[TaskContextImpl].currentRecordInfo = 1 // TODO
-      }
       if (dep.mapSideCombine) {
         new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(tappedIter, context))
       } else {
