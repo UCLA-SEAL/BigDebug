@@ -17,10 +17,9 @@
 
 package org.apache.spark.lineage
 
-import com.google.common.collect.ArrayListMultimap
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
-import org.apache.spark.{TaskContextImpl, Aggregator, TaskContext}
+import org.apache.spark.util.collection.{AppendOnlyMap, CompactBuffer, ExternalAppendOnlyMap}
+import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
 /**
  * :: DeveloperApi ::
@@ -61,11 +60,11 @@ class LAggregator[K, V, C] (
         }
       } else {
         var pair: Product2[K, Product2[C, Int]] = null
-        val inputStore: ArrayListMultimap[Int, Int] = ArrayListMultimap.create()
+        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[C, Int]]]
           combiners.insert(pair._1, pair._2._1)
-          inputStore.put(pair._1.hashCode(), pair._2._2)
+          inputStore.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[Int]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
       }

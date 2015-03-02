@@ -33,7 +33,7 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   @transient private var outputIdStore: PrimitiveVector[Long] = _
 
-  override def materializeRecordInfo: Array[Any] = inputIdStore.array.zip(outputIdStore.array)
+  override def materializeRecordInfo: Array[Any] = outputIdStore.array.zip(inputIdStore.array)
 
   override def initializeStores = {
     inputIdStore = new PrimitiveVector

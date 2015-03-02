@@ -2,12 +2,13 @@ package org.apache.spark.lineage
 
 import org.apache.spark.Partitioner
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.util.PackShortIntoInt
 
 class LocalityAwarePartitioner(partitions: Int) extends Partitioner
 {
   def numPartitions = partitions
 
-  def getPartition(key: Any): Int = key.asInstanceOf[RecordId]._2.toInt
+  def getPartition(key: Any): Int = PackShortIntoInt.getRight(key.asInstanceOf[RecordId]._1)
 
   override def equals(other: Any): Boolean = other match {
     case h: LocalityAwarePartitioner =>

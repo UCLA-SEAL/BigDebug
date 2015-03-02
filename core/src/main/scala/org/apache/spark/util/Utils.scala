@@ -1910,16 +1910,13 @@ private[spark] class RedirectThread(
   }
 }
 
+// Matteo
 object PackShortIntoInt {
   private final val RIGHT: Int = 0xFFFF;
 
   def apply(left: Int, right: Int) = (left << 16) | (right & RIGHT);
 
-  def getLeft(value: Int) {
-    value >>> 16 // >>> operator 0-fills from left
-  }
+  def getLeft(value: Int): Int = value >>> 16 // >>> operator 0-fills from left
 
-  def getRight(value: Int) {
-    value & RIGHT
-  }
+  def getRight(value: Int): Int = value & RIGHT
 }

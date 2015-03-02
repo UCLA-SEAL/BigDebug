@@ -17,13 +17,13 @@
 
 package org.apache.spark.lineage.rdd
 
-import com.googlecode.javaewah.EWAHCompressedBitmap
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.{Direction, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
+import org.roaringbitmap.RoaringBitmap
 
 import scala.reflect._
 
@@ -74,7 +74,7 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
       )
     } else {
       new LineageRDD(
-        rightJoinShort(shuffled.map(r => ((r._1._2, r._1._3), r._2)), next)
+        rightJoinShort(shuffled.map(r => ((r._1._1, r._1._2), r._2)), next)
           .map(r => (r._2, r._1))
           .asInstanceOf[Lineage[((Short, Int), Any)]]
           .cache()
@@ -96,7 +96,7 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
       if (next.get.isInstanceOf[TapPreShuffleLRDD[_]]) {
         new LineageRDD(
           rightJoin(shuffled, next.get)
-            .flatMap(r => r._2.asInstanceOf[EWAHCompressedBitmap].toArray.map(r2 => ((0: Short, r._1._2, r2), r._1)))
+            .flatMap(r => r._2.asInstanceOf[RoaringBitmap].toArray.map(r2 => ((r._1._1, r2), r._1)))
             .asInstanceOf[Lineage[(RecordId, Any)]])
           .cache()
       } else {
@@ -153,10 +153,10 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
   def showForDump(): RDD[((Short, Int), String)] = {
     val position = prev.lineageContext.getCurrentLineagePosition
       var result: RDD[((Short, Int), String)] = rightJoinShort(
-            prev.map(r => ((r._1._2, r._1._3), r._2)),
+            prev.map(r => ((r._1._1, r._1._2), r._2)),
             position.get.asInstanceOf[TapPostShuffleLRDD[_]]
               .getCachedData.setCaptureLineage(false)
-              .asInstanceOf[Lineage[((Any, Any), (Short, Int))]]
+              .asInstanceOf[Lineage[((Any, Any), (Int, Int))]]
               .map(r => (r._2, (r._1._1, r._1._2).toString()))
           ).asInstanceOf[RDD[((Short, Int), String)]].cache() // Added dummy id. To be removed
       result
@@ -193,18 +193,22 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
       var result: ShowRDD = null
       position.get match {
         case _: TapHadoopLRDD[_, _] =>
+          prev.collect().foreach(println)
+          position.get.asInstanceOf[Lineage[(Long, Int)]].collect().foreach(println)
+          position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
+            .map(r=> (r._1.get(), r._2.toString)).collect().foreach(println)
           result = new ShowRDD(
             join3Way(
-              prev.map(r => ((r._1._3), r._2)),
-              position.get.asInstanceOf[Lineage[(Int, Long)]],
+              prev.map(r => r._1),
+              position.get.asInstanceOf[Lineage[(Long, Int)]],
               position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                 .map(r=> (r._1.get(), r._2.toString))
-            ).map(r => ((0:Short, 0:Short, r._1), r._2)).cache() // Added dummy id. To be removed
+            ).map(r => ((0, r._1), r._2)).cache() // Added dummy id. To be removed
           )
         case _: TapParallelCollectionLRDD[_] =>
           result = new ShowRDD(
               position.get.asInstanceOf[Lineage[(RecordId, Any)]]
-                .map(r=> (r._1, (r._2, r._1._3).toString)).cache()
+                .map(r=> (r._1, (r._2, r._1._2).toString)).cache()
             )
         case _: TapPreCoGroupLRDD[_] =>
           val part = new LocalityAwarePartitioner(prev.partitions.size)
@@ -218,7 +222,7 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
                   (v, w1s.asInstanceOf[Iterable[(_, RecordId)]]))
             }.flatMap(
               r => for(v <- r.productIterator) yield(v.asInstanceOf[(_, Iterable[(_, RecordId)])])
-            ).flatMap( r => for(v <- r._2) yield(v._2, ((r._1, v._1), v._2._3).toString()))
+            ).flatMap( r => for(v <- r._2) yield(v._2, ((r._1, v._1), v._2._2).toString()))
 
           result = new ShowRDD(rightJoin(
               left, new ShuffledLRDD[RecordId, Any, Any](right, part).setMapSideCombine(false)
@@ -229,7 +233,7 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
               position.get.asInstanceOf[TapPreShuffleLRDD[_]]
                 .getCachedData
                 .asInstanceOf[Lineage[(Any, (Any, RecordId))]]
-                .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._3).toString()))
+                .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._2).toString()))
             ).cache()
           )
         case _: TapPostShuffleLRDD[_] =>
@@ -238,12 +242,12 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
             .getCachedData.setCaptureLineage(false)
             .asInstanceOf[Lineage[((Any, Any), Int)]].collect().foreach(println)
           result = new ShowRDD(rightJoinShort(
-              prev.map(r => ((r._1._2, r._1._3), r._2)),
+              prev.map(r => ((r._1._1, r._1._2), r._2)),
               position.get.asInstanceOf[TapPostShuffleLRDD[_]]
                 .getCachedData.setCaptureLineage(false)
                 .asInstanceOf[Lineage[((Any, Any), Int)]]
-                .map(r => ((0:Short, r._2), ((r._1._1, r._1._2), r._2).toString()))
-            ).map(r => ((0:Short, r._1._1, r._1._2), r._2)).cache() // Added dummy id. To be removed
+                .map(r => ((0, r._2), ((r._1._1, r._1._2), r._2).toString()))
+            ).map(r => ((r._1._1, r._1._2), r._2)).cache() // Added dummy id. To be removed
           )
         case _: TapCoGroupLRDD[_] =>
           val part = new LocalityAwarePartitioner(
@@ -260,7 +264,7 @@ extends RDD[(RecordId)](prev) with Lineage[RecordId]
                 )
             }.flatMap(
                 r => for(v <- r.productIterator) yield(v.asInstanceOf[(_, Iterable[(_, RecordId)])])
-              ).flatMap( r => for(v <- r._2) yield(v._2, ((r._1, v._1), v._2._3).toString())), part).setMapSideCombine(false)
+              ).flatMap( r => for(v <- r._2) yield(v._2, ((r._1, v._1), v._2._2).toString())), part).setMapSideCombine(false)
 
           result = new ShowRDD(rightJoin(
             new ShuffledLRDD[RecordId, Any, Any](left, part).setMapSideCombine(false), right).cache()

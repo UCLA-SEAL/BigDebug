@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.{LCacheManager, LineageContext}
+import org.apache.spark.lineage.LineageContext
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -30,19 +30,13 @@ class TapPostShuffleLRDD[T: ClassTag](
 {
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def materializeRecordInfo: Array[Any] = {
-    tContext.currentInputStore.entries.toArray.foreach(println)
-    tContext.currentInputStore.entries.toArray.zipWithIndex.asInstanceOf[Array[Any]]
-  }
+  override def materializeRecordInfo: Array[Any] =
+    tContext.currentInputStore.toArray.zipWithIndex.flatMap(
+      r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
 
-  override def compute(split: Partition, context: TaskContext) = {
-    if(tContext == null) {
-      tContext = context.asInstanceOf[TaskContextImpl]
-    }
-    splitId = split.index.toShort
+  override def tap(record: T) = {
+    tContext.currentInputId = newRecordId
 
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
-
-    firstParent[T].iterator(split, context)
+    record
   }
 }

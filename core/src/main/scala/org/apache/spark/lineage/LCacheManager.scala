@@ -76,7 +76,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       rdd: RDD[_],
       split: Int, context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
-    materialize(split, context, effectiveStorageLevel)
+    //materialize(split, context, effectiveStorageLevel)
     //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
   }
 }

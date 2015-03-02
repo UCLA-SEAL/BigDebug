@@ -184,9 +184,9 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
 /** Added by Matteo as a hookup for the lineage ############################################### */
 
   def finalizeTaskCache(
-                         rdd: RDD[_], split: Int,
-                         context: TaskContext,
-                         effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
+       rdd: RDD[_], split: Int,
+       context: TaskContext,
+       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
     logInfo(s"Task cache finalized")
 
   /** ########################################################################################### */

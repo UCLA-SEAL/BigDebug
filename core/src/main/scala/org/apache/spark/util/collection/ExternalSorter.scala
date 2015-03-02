@@ -748,6 +748,7 @@ private[spark] class ExternalSorter[K, V, C](
           val writer = blockManager.getDiskWriter(
             blockId, outputFile, ser, fileBufferSize, context.taskMetrics.shuffleWriteMetrics.get)
           // Modified by Matteo
+          // currentInputId == 0 if the lineage is not active (or no record exist for partition)
           if (context.asInstanceOf[TaskContextImpl].currentInputId == 0) {
             for (elem <- elements) {
               writer.write(elem)
@@ -764,10 +765,13 @@ private[spark] class ExternalSorter[K, V, C](
           lengths(id) = segment.length
         }
       }
-//      if(context.asInstanceOf[TaskContextImpl].currentInputId != 0 &&
-//          Runtime.getRuntime.freeMemory() < 13000000000L) {
-//        System.gc()
-//      }
+        // The reduce size requires a certain amount of free heap memory in order to work properly.
+        // If freeMemory is not enough, we call the garbage collector
+      if(context.asInstanceOf[TaskContextImpl].currentInputId != 0 &&
+          Runtime.getRuntime.freeMemory() < 13000000000L) {
+        System.gc()
+        println("GC")
+      }
     }
 
     context.taskMetrics.memoryBytesSpilled += memoryBytesSpilled

@@ -20,17 +20,16 @@ package org.apache.spark.lineage
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 
-import scala.collection.mutable.{ Stack, HashSet }
+import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 object LineageContext {
-  type RecordId = (Short, Short, Int)
+  type RecordId = (Int, Int)
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
