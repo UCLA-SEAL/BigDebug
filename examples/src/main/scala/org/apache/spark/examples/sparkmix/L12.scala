@@ -27,23 +27,32 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import java.util.Properties
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.LineageContext
 
 object L12 {
-  def run(sc: SparkContext, lc: LineageContext, pigMixPath: String, outputPath: String): Long = {
+  def main(args: Array[String]) {
 
-    val properties: Properties = SparkMixUtils.loadPropertiesFile()
+    val properties = SparkMixUtils.loadPropertiesFile()
+    val dataSize = args(0)
+    val lineage: Boolean = args(1).toBoolean
+
+    val pigMixPath = properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
+    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
+
+    new File(outputRoot).mkdir()
+
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
+    val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
+    val pageViews = lc.textFile(pageViewsPath)
 
-    var pageViews = sc.textFile(pageViewsPath)
+    lc.setCaptureLineage(lineage)
 
-    if (lc != null) {
-      lc.setCaptureLineage(true)
-      pageViews = lc.textFile(pageViewsPath)
-    }
     val start = System.currentTimeMillis()
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), SparkMixUtils.safeSplit(x, "\u0001", 1),
@@ -77,14 +86,19 @@ object L12 {
 
     val end = System.currentTimeMillis()
 
-    if (lc != null)
-      lc.setCaptureLineage(false)
+    F.collect
+    gamma.collect
+    gimel.collect
 
-    F.saveAsTextFile(outputPath + "/highest_value_page_per_user")
-    gamma.saveAsTextFile(outputPath + "/total_timespent_per_term")
-    gimel.saveAsTextFile(outputPath + "/queries_per_action")
+    lc.setCaptureLineage(false)
 
-    return (end - start)
+    //F.saveAsTextFile(outputPath + "/highest_value_page_per_user")
+    //gamma.saveAsTextFile(outputPath + "/total_timespent_per_term")
+    //gimel.saveAsTextFile(outputPath + "/queries_per_action")
+
+    println(end - start)
+
+    sc.stop()
 
   }
 }

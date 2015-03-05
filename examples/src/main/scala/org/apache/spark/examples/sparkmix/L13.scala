@@ -17,28 +17,36 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import java.util.Properties
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.LineageContext
 
-object L13 {
-  def run(sc: SparkContext, lc: LineageContext, pigMixPath: String, outputPath: String): Long = {
 
-    val properties: Properties = SparkMixUtils.loadPropertiesFile()
+object L13 {
+  def main(args: Array[String]) {
+
+    val properties = SparkMixUtils.loadPropertiesFile()
+    val dataSize = args(0)
+    val lineage: Boolean = args(1).toBoolean
+
+    val pigMixPath = properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
+    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
+
+    new File(outputRoot).mkdir()
+
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
+    val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
-    val powerUsersSamplesPath = pigMixPath + "power_users_samples/"
+    val pageViews = lc.textFile(pageViewsPath)
+    val powerUsersPath = pigMixPath + "power_users_samples/"
+    val powerUsersSample = lc.textFile(powerUsersPath)
 
-    var pageViews = sc.textFile(pageViewsPath)
-    var powerUsersSample = sc.textFile(powerUsersSamplesPath)
+    lc.setCaptureLineage(lineage)
 
-    if (lc != null) {
-      lc.setCaptureLineage(true)
-      pageViews = lc.textFile(pageViewsPath)
-      powerUsersSample = lc.textFile(powerUsersSamplesPath)
-    }
-
-      val start = System.currentTimeMillis()
+    val start = System.currentTimeMillis()
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), SparkMixUtils.safeSplit(x, "\u0001", 1),
       SparkMixUtils.safeSplit(x, "\u0001", 2), SparkMixUtils.safeSplit(x, "\u0001", 3),
@@ -60,12 +68,13 @@ object L13 {
 
     val end = System.currentTimeMillis()
 
-    if (lc != null)
-      lc.setCaptureLineage(false)
+    C.collect
 
-    C.saveAsTextFile(outputPath)
+    lc.setCaptureLineage(false)
 
-    return (end - start)
+    println(end - start)
+
+    sc.stop()
 
   }
 }

@@ -17,29 +17,35 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import java.util.Properties
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.LineageContext
 
 object L14 {
-  def run(sc: SparkContext, lc: LineageContext, pigMixPath: String, outputPath: String): Long = {
+  def main(args: Array[String]) {
 
-    val properties: Properties = SparkMixUtils.loadPropertiesFile()
+    val properties = SparkMixUtils.loadPropertiesFile()
+    val dataSize = args(0)
+    val lineage: Boolean = args(1).toBoolean
+
+    val pigMixPath = properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
+    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
+
+    new File(outputRoot).mkdir()
+
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
+    val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views_sorted/"
+    val pageViews = lc.textFile(pageViewsPath)
     val usersPath = pigMixPath + "users_sorted/"
+    val users = lc.textFile(usersPath)
 
-    val pageViews = sc.textFile(pageViewsPath)
-    val users = sc.textFile(usersPath)
+    lc.setCaptureLineage(lineage)
 
-    if (lc != null) {
-      lc.setCaptureLineage(true)
-      val pageViews = lc.textFile(pageViewsPath)
-      val users = lc.textFile(usersPath)
-    }
-
-      val start = System.currentTimeMillis()
-
+    val start = System.currentTimeMillis()
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), SparkMixUtils.safeSplit(x, "\u0001", 1),
       SparkMixUtils.safeSplit(x, "\u0001", 2), SparkMixUtils.safeSplit(x, "\u0001", 3),
@@ -56,16 +62,17 @@ object L14 {
 
     val beta = alpha.map(x => (x._1, x._1))
 
-    val C = B.join(beta, properties.getProperty("PARALLEL").toInt) // merge join unsupported in Spark
+    val C = B.join(beta) // merge join unsupported in Spark
 
     val end = System.currentTimeMillis()
 
-    if (lc != null)
-      lc.setCaptureLineage(false)
+    C.collect
 
-    C.saveAsTextFile(outputPath)
+    lc.setCaptureLineage(false)
 
-    return (end - start)
+    println(end - start)
+
+    sc.stop()
 
   }
 }

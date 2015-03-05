@@ -19,21 +19,33 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import java.util.Properties
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
 
 object L2 {
-  def run(sc: SparkContext, lc: LineageContext, pigMixPath: String, outputPath: String): Long = {
+  def main(args: Array[String]) {
 
-    val properties: Properties = SparkMixUtils.loadPropertiesFile()
+    val properties = SparkMixUtils.loadPropertiesFile()
+    val dataSize = args(0)
+    val lineage: Boolean = args(1).toBoolean
+
+    val pigMixPath = properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
+    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
+
+    new File(outputRoot).mkdir()
+
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
+    val sc = new SparkContext(conf)
+    val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
+    val pageViews = lc.textFile(pageViewsPath)
     val powerUsersPath = pigMixPath + "power_users"
+    val powerUsers = lc.textFile(powerUsersPath)
 
-      val pageViews = lc.textFile(pageViewsPath)
-      val powerUsers = lc.textFile(powerUsersPath)
-      lc.setCaptureLineage(true)
+    lc.setCaptureLineage(lineage)
 
     val start = System.currentTimeMillis()
 
@@ -59,10 +71,12 @@ object L2 {
 
     C.collect
 
-    if (lc != null)
-      lc.setCaptureLineage(false)
+    lc.setCaptureLineage(false)
 
-    return (end - start)
+    println(end - start)
+
+    sc.stop()
+
 
   }
 }

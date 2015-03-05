@@ -17,7 +17,7 @@ object SparkMix {
 
   def main (args: Array[String]) {
 
-    val properties = SparkMixUtils.loadPropertiesFile()
+   /* val properties = SparkMixUtils.loadPropertiesFile()
     val datasize = args(0)
     val pigmixPath = properties.getProperty("pigMix") + "pigmix_" + datasize + "/"
     val outputRoot = properties.getProperty("output") + "pigmix_" + datasize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
@@ -26,14 +26,14 @@ object SparkMix {
 
     val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
     val sc = new SparkContext(conf)
-    var lc: LineageContext = null
+    var lc = new LineageContext(sc)
 
     if (args(1) == "true") {
       lc = new LineageContext(sc)
       println("LINEAGE ON")
     }
 
-    //val L1time = L1.run(sc, lc, pigmixPath, outputRoot + "L1out")
+    val L1time = L1.run(sc, lc, pigmixPath, outputRoot + "L1out")
     val L2time = L2.run(sc, lc, pigmixPath, outputRoot + "L2out")
     /*val L3time = L3.run(sc, lc, pigmixPath, outputRoot + "L3out")
     val L4time = L4.run(sc, lc, pigmixPath, outputRoot + "L4out")
@@ -54,7 +54,7 @@ object SparkMix {
     val pw = new PrintWriter(new File(outputRoot + "time.txt"))
 
     pw.append(datasize + "\t" + properties.getProperty("PARALLEL") + "\n")
-    //pw.append("L1: " + (L1time/1000.0).toString + " s\n")
+    pw.append("L1: " + (L1time/1000.0).toString + " s\n")
     pw.append("L2: " + (L2time/1000.0).toString + " s\n")
     /*pw.append("L3: " + (L3time/1000.0).toString + " s\n")
     pw.append("L4: " + (L4time/1000.0).toString + " s\n")
@@ -74,6 +74,6 @@ object SparkMix {
 
     pw.close()
 
-    sc.stop()
+    sc.stop()*/
   }
 }
