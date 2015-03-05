@@ -37,7 +37,7 @@ object L17 {
 
     new File(outputRoot).mkdir()
 
-    val conf = new SparkConf().setAppName("SparkMix").setMaster("local")
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
@@ -48,17 +48,19 @@ object L17 {
 
     val start = System.currentTimeMillis()
 
-    val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), SparkMixUtils.safeSplit(x, "\u0001", 1),
-      SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 2)), SparkMixUtils.safeSplit(x, "\u0001", 3),
+    val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), 
+      SparkMixUtils.safeSplit(x, "\u0001", 1), 
+      SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 2)), 
+      SparkMixUtils.safeSplit(x, "\u0001", 3),
       SparkMixUtils.safeSplit(x, "\u0001", 4), SparkMixUtils.safeSplit(x, "\u0001", 5),
       SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 6)),
-      SparkMixUtils.safeSplit(x, "\u0001", 7),
-      SparkMixUtils.safeSplit(x, "\u0001", 8), SparkMixUtils.safeSplit(x, "\u0001", 9),
-      SparkMixUtils.safeSplit(x, "\u0001", 10), SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 11)),
+      SparkMixUtils.safeSplit(x, "\u0001", 7), SparkMixUtils.safeSplit(x, "\u0001", 8), 
+      SparkMixUtils.safeSplit(x, "\u0001", 9), SparkMixUtils.safeSplit(x, "\u0001", 10), 
+      SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 11)),
       SparkMixUtils.safeSplit(x, "\u0001", 12), SparkMixUtils.safeSplit(x, "\u0001", 13),
-      SparkMixUtils.safeSplit(x, "\u0001", 14), SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 15)),
-      SparkMixUtils.safeSplit(x, "\u0001", 16),
-      SparkMixUtils.safeSplit(x, "\u0001", 17)))
+      SparkMixUtils.safeSplit(x, "\u0001", 14), 
+      SparkMixUtils.safeDouble(SparkMixUtils.safeSplit(x, "\u0001", 15)),
+      SparkMixUtils.safeSplit(x, "\u0001", 16), SparkMixUtils.safeSplit(x, "\u0001", 17)))
 
     val B = A.groupBy(x => (x._1, x._2, x._3, x._4, x._5, x._6, x._7, x._10, x._11, x._12, x._13, x._14, x._15, x._16))
 
