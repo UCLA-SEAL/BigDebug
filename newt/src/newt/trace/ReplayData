@@ -1,0 +1,29 @@
+#Write output to be traced one per line (no blank lines allowed - although fix is simple if you need to inser blank lines)
+#Comment lines preceeded by #
+#Sample output:
+#0!146642!13!hdfs://compute-2-9.local:9977/user/sde/brinduout!part-r-00000
+#0!146655!11!hdfs://compute-2-9.local:9977/user/sde/brinduout!part-r-00000
+#
+#To get output, follow these steps:
+#1. Log into MYSQL on Newt master
+#2. Query Newt.actorInstances table to get information about registered actors
+#3. Check ActorUrl and ActorTable for actor you're interested in
+#4. Log into MYSQL on the node where the actor's table is located
+#5. Query the table and take random outputs
+#6. It is also possible to directly write query results into a file (I think you would need to specify a file in /tmp for this)
+#
+#Example:
+#
+#ssh c3-7 (Newt master)
+#mysql -u root
+#select ActorTable, ActorUrl from Newt.actorInstances where ActorType = 'RW'; (if interested only in RecordWriters, semicolon is MUST)
+#exit
+#
+#ssh c3-8 (Assuming ActorUrl before was c3-8)
+#mysql -u root
+#select Output from Newt.RWID_table; (Assuming this is the table of the actor)
+#select Output into outfile '/tmp/outfile' fields terminated by '\t' lines terminated by '\n' from Newt.RWID_table;
+#exit
+#
+#If selecting into outfile, use /tmp/outfile instead of this file as second input to trace client
+0!30!6!hdfs://compute-2-9.local:9977/user/sde/blahout2!part-r-00000

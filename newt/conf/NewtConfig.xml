@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<Configuration>
+    <Mysql>
+        <User value="root"/>
+        <Password value="root"/>
+    </Mysql>
+    <Nodes>
+        <Master value="131.179.49.141"/>
+        <Slave value="131.179.49.141"/>
+
+    </Nodes>
+    <LogDir value="/tmp/Newt/"/>
+</Configuration>
+    

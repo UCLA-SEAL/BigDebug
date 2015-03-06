@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<Universe name="NEWT_TEST_UNIVERSE">
+    <RootActor name="NEWT_TEST_ROOTACTOR">
+        <TestActor input="" output=""/>
+    </RootActor>
+</Universe>

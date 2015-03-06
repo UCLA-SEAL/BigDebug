@@ -1,0 +1,1226 @@
+package newt.server;
+
+import java.lang.*;
+import java.util.*;
+import java.io.*;
+import java.net.InetAddress;
+
+import java.sql.ResultSet;
+
+import org.w3c.dom.*;
+
+import org.apache.xmlrpc.XmlRpcException;
+import org.apache.xmlrpc.client.XmlRpcClient;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import newt.common.*;
+import newt.contract.*;
+import newt.actor.*;
+import newt.server.sql.*;
+
+public class NewtState {
+    static HashMap<String, Integer>                 ActorNamesToID = null;
+    static HashMap<Integer, String>                 ActorIDToNames = null;
+    static HashMap<Integer, Integer>                ActorsToParent = null;
+    static HashMap<String, String>                  LogicalParents = null;
+    static HashMap<String, Vector<String>>          LogicalChildren = null; 
+    static HashMap<Integer, String>                 ActorTypes = null;
+    static HashMap<Integer, String>                 ActorDirs = null;
+    static HashMap<String, Boolean>                 ActorStatics = null;
+    static HashMap<Integer, FileWriter>             ActorsToFiles = null;
+    static HashMap<String, ObjectOutputStream>      ProvenanceFiles = null;
+
+    static HashMap<Integer, NewtTrace>                  traceInstances = null;
+    static HashMap<Integer, HashMap<String, String[]>>  traceResults = null;
+    static HashMap<Integer, Vector<String>>             completedTraces = null;
+    
+    private static NewtState                    instance = null;
+
+    String                                      user = null;
+    String                                      password = null;
+    String                                      master = null;
+    String                                      logdir = null;
+    String                                      newtHome = null;
+    boolean                                     isMaster = false;
+    Vector<String>                              slaves = null;
+    static int                                  nextSlave = 0;
+    String                                      selfName = null;
+    String                                      selfUrl = null;
+    InetAddress[]                               selfs = null;
+    static Object                               lock = new Object();
+    static int                                  longLength = Long.toString( Long.MAX_VALUE ).length();
+    Vector<ProvenanceTask>                      provenanceData = null;
+    
+    public static String fieldTerminator= "##||\t||##";
+    public static String lineTerminator= "##||||##\n";
+    static byte[] fieldTerminatorBytes = fieldTerminator.getBytes();
+    static byte[] lineTerminatorBytes = lineTerminator.getBytes();
+
+    protected NewtState()
+    { 
+        newtHome = System.getenv( "NEWT_HOME" );
+        if( newtHome == null ) {
+           System.out.println( "Configuration not found. Export NEWT_HOME." );
+            System.exit( 1 );
+        }
+
+        try {
+            selfName = InetAddress.getLocalHost().getCanonicalHostName();
+            selfs = InetAddress.getAllByName( selfName );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+       System.out.println( "Initing newtState..." );
+        slaves = new Vector<String>();
+        parseConfig();
+        Configuration.mysqlUser = user;
+        Configuration.mysqlPassword = password;
+        
+        ActorNamesToID = new HashMap<String, Integer>();
+        ActorIDToNames = new HashMap<Integer, String>();
+        ActorsToParent = new HashMap<Integer, Integer>();
+        LogicalParents = new HashMap<String, String>();
+        LogicalChildren = new HashMap<String, Vector<String>>();
+        ActorTypes = new HashMap<Integer, String>();
+        ActorDirs = new HashMap<Integer, String>();
+        ActorStatics = new HashMap<String, Boolean>();
+        ActorsToFiles = new HashMap<Integer, FileWriter>();
+        ProvenanceFiles = new HashMap<String, ObjectOutputStream>();
+        provenanceData = new Vector<ProvenanceTask>();
+
+        traceInstances = new HashMap<Integer, NewtTrace>();
+        traceResults = new HashMap<Integer, HashMap<String, String[]>>();
+        completedTraces = new HashMap<Integer, Vector<String>>();
+
+        NewtMySql newtMysql = new NewtMySql( user, password );
+        newtMysql.init( isMaster, "Newt" );
+        if( isMaster ) {
+            addSchema( "GHOST", 0, "GHOST_table", "GHOST_table_logical" );
+            addSchemaTableRow( 0, "Input", "input", "FileLocatable", "varchar(255)", 32 );
+            addSchemaTableRow( 0, "Output", "output", "FileLocatable", "varchar(255)", 32 );
+        } else {
+            try {
+                String dir = "/tmp/Newt";
+                File newtDir = new File( dir );
+                if( newtDir.exists() ) {
+                    File[] newtTempFiles = newtDir.listFiles();
+                    for( File f: newtTempFiles ) {
+                        f.delete();
+                    }
+                    newtDir.delete();
+                }
+            
+                boolean success = newtDir.mkdir();
+                if (success) {
+                   System.out.println( "Directory: " + dir + " created" );
+                }
+            } catch( Exception e ) {
+                e.printStackTrace();
+            }
+
+            Thread provenanceWriter = new Thread() {
+                public void run() {
+                    while( true ) {
+                        writeProvenance();
+                    }
+                }
+            };
+            provenanceWriter.start();
+        }
+    }
+    
+    public static NewtState getInstance()
+    {
+        synchronized( lock ) {
+            if( instance == null ) {
+                instance = new NewtState();
+            }
+        }
+        return instance;
+    }
+
+    public void parseConfig()
+    {
+        String configFile = newtHome + "/" + "NewtConfig.xml";
+        Node root = null;
+        NewtXmlDOM dom = new NewtXmlDOM();
+
+        try {
+            Document doc = dom.doc( configFile );
+            root = dom.root( doc );
+        } catch( Exception e ) {
+           System.out.println( "Failed to process config file." );
+            System.exit( 1 );
+        }
+
+        setupNewt( dom, root );
+    }
+
+    public void setupNewt( NewtXmlDOM dom, Node n )
+    {
+        try {
+            switch( n.getNodeType() ) {
+            case Node.ELEMENT_NODE:
+            {
+                if( n.getNodeName().equals( "Configuration" ) ) {
+                    n = n.getFirstChild();
+                    while( n != null ) {
+                        setupNewt( dom, n );
+                        n = (Node)n.getNextSibling();
+                    }
+                } else if( n.getNodeName().equals( "Nodes" ) ) {
+                    ArrayList<Node> children = dom.childrenByTag( n, "Master" );
+                    Node m = children.get( 0 );
+                    Node v = dom.getAttribute( m, "value" );
+                    master = v.getNodeValue();
+                    InetAddress masters [] = InetAddress.getAllByName( master );
+                    
+                   System.out.println( "Master: " + master );
+
+                    isMaster = false;
+                    for( InetAddress i: masters ) {
+                        for( InetAddress s: selfs ) {
+                            if( s.getCanonicalHostName().equals( i.getCanonicalHostName() ) ) {
+                                isMaster = true;
+                            }
+                        }
+                    }
+
+                    master = "http://" + master + ":8899/hessianrpc";
+
+                    children = dom.childrenByTag( n, "Slave" );
+                    for( Node c: children ) {
+                        v = dom.getAttribute( c, "value" );
+                        String slave = v.getNodeValue();
+                        slaves.add( "http://" + v.getNodeValue() + ":8899/hessianrpc" );
+                       System.out.println( "Slave: " + slave );
+                        
+                        InetAddress slaves [] = InetAddress.getAllByName( slave );
+                        for( InetAddress i: slaves ) {
+                            for( InetAddress s: selfs ) {
+                                if( s.getCanonicalHostName().equals( i.getCanonicalHostName() ) ) {
+                                    selfUrl = "http://" + v.getNodeValue() + ":8899/hessianrpc";
+                                }
+                            }
+                        }
+                    }
+                } else if( n.getNodeName().equals( "Mysql" ) ) {
+                    ArrayList<Node> children = dom.childrenByTag( n, "User" );
+                    n = children.get( 0 );
+                    Node v = dom.getAttribute( n, "value" );
+                    user = v.getNodeValue();
+                } else if( n.getNodeName().equals( "LogDir" ) ) {
+                    Node v = dom.getAttribute( n, "value" );
+                    logdir = v.getNodeValue();
+                } else {
+                }
+            }
+            case Node.TEXT_NODE:
+            {
+            }
+            }
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getLogDir()
+    {
+        return logdir;
+    }
+
+    public synchronized int getNextActorID()
+    {
+        int aid = -1;
+        
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addTable( "Newt", "stateIDs" );
+        statement.addColumn( "ActorID" );
+        statement.addColumn( "DummyIndex" );
+        statement.setQuery( false );
+        ResultSet rs = statement.execute();
+        try {
+            rs.next();
+            aid = rs.getInt( 1 );
+            rs.updateInt( 1, aid + 1 );
+            rs.updateRow();
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        statement.close();
+        return aid;
+    }
+
+    public synchronized int getNextSchemaID()
+    {
+        int sid = -1;
+        
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addTable( "Newt", "stateIDs" );
+        statement.addColumn( "SchemaID" );
+        statement.addColumn( "DummyIndex" );
+        statement.setQuery( false );
+        ResultSet rs = statement.execute();
+        try {
+            rs.next();
+            sid = rs.getInt( 1 );
+            rs.updateInt( 1, sid + 1 );
+            rs.updateRow();
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        statement.close();
+        return sid;
+    }
+
+    public synchronized int getNextTraceID()
+    {
+        int tid = -1;
+        
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addTable( "Newt", "stateIDs" );
+        statement.addColumn( "TraceID" );
+        statement.addColumn( "DummyIndex" );
+        statement.setQuery( false );
+        ResultSet rs = statement.execute();
+        try {
+            rs.next();
+            tid = rs.getInt( 1 );
+            rs.updateInt( 1, tid + 1 );
+            rs.updateRow();
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        statement.close();
+        return tid;
+    }
+
+    public void addActorGset( String atype, String ptype, String s, int sid, String stype, String dtype )
+    {
+        NewtInsertStatementBuilder statement = new NewtInsertStatementBuilder();
+        statement.setTable( "Newt", "actorGset" );
+        statement.addValues( new Object[] { atype, ptype, s, "", stype, dtype, sid, "" } );
+        statement.setQuery();
+        statement.execute();
+        statement.close();
+    }
+
+    public synchronized int queryTraceActor( int traceID )
+    {
+        int aid = -1;
+       
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addColumn( "*" );
+        statement.addTable( "Trace", "traceActors" );
+        statement.addAbsoluteCondition( "TraceID", traceID );
+        statement.setQuery( false );
+        ResultSet rs = statement.execute();
+        try {
+            rs.next();
+            aid = rs.getInt( 2 );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        statement.close();
+        return aid;
+    }
+
+    public synchronized void addActorInstance( int aid, String aname, int pid, String atype, String tname, String tUrl, String committed, String rid, int sid, int did )
+    {
+        NewtInsertStatementBuilder statement = new NewtInsertStatementBuilder();
+        statement.setTable( "Newt", "actorInstances" );
+        statement.addValues( new Object[] { aid, aname, pid, atype, tname, tUrl, committed, rid, sid, did } );
+        statement.setQuery();
+        statement.execute();
+        statement.close();
+    }
+
+    public synchronized void updateSourceOrDestinationActor( int aid, int otherAid, String columnName )
+    {
+        NewtUpdateStatementBuilder statement = new NewtUpdateStatementBuilder();
+        statement.setTable( "Newt", "actorInstances" );
+        statement.addColumn( columnName, otherAid );
+        statement.addCondition( "ActorID", aid );
+        statement.setQuery( false );
+        statement.execute();
+        statement.close();
+    }
+
+    public synchronized void addSchema( String atype, int sid, String sname, String tname )
+    {
+        NewtUpdateStatementBuilder updateStatement = new NewtUpdateStatementBuilder();
+        updateStatement.setTable( "Newt", "actorGset" );
+        updateStatement.addColumn( "SchemaName", sname );
+        updateStatement.addColumn( "SchemaID", sid );
+        updateStatement.addColumn( "SchemaTable", tname );
+        updateStatement.addCondition( "ActorType", atype );
+        updateStatement.setQuery( false );
+        updateStatement.execute();
+        updateStatement.close();
+
+        NewtCreateStatementBuilder createStatement = new NewtCreateStatementBuilder();
+        createStatement.setTable( "Newt", tname );
+        createStatement.addColumn( "ColumnName", "varchar(255)", false );
+        createStatement.addColumn( "ColumnType", "varchar(255)", true );
+        createStatement.addColumn( "NewtDataType", "varchar(255)", true );
+        createStatement.addColumn( "SqlDataType", "varchar(255)", true );
+        createStatement.addColumn( "IndexLength", "int", true );
+        createStatement.setPrimaryKey( "ColumnName" );
+        createStatement.setQuery();
+        createStatement.execute();
+        createStatement.close();
+    }
+
+    public synchronized void addSchemaTableRow( int sid, String cname, String ctype, String ndtype, String sdtype, int indexlen )
+    {
+        String tname = null;
+        
+        NewtSelectStatementBuilder selectStatement = new NewtSelectStatementBuilder();
+        selectStatement.addColumn( "*" );
+        selectStatement.addTable( "Newt", "actorGset" );
+        selectStatement.addAbsoluteCondition( "SchemaID", sid );
+        selectStatement.setQuery( false );
+        ResultSet rs = selectStatement.execute();
+        try {
+            rs.next();
+            tname = rs.getString( 8 );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        selectStatement.addTable( "Newt", tname );
+        selectStatement.addColumn( "ColumnName" );
+        selectStatement.addAbsoluteCondition( "ColumnName", cname );
+        selectStatement.setQuery( false );
+        rs = selectStatement.execute();
+        try {
+            if( rs.next() ) {
+                return;
+            }
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        NewtInsertStatementBuilder insertStatement = new NewtInsertStatementBuilder();
+        insertStatement.setTable( "Newt", tname );
+        insertStatement.addValues( new Object[] { cname, ctype, ndtype, sdtype, indexlen } );
+        insertStatement.setQuery();
+        insertStatement.execute();
+        insertStatement.close();
+    }
+
+    public synchronized String createProvenanceTable( int aid, String tname, int sid )
+    {
+        String  stname = null;
+
+        NewtSelectStatementBuilder selectStatement = new NewtSelectStatementBuilder();
+        selectStatement.addColumn( "SchemaTable" );
+        selectStatement.addTable( "Newt", "actorGset" );
+        selectStatement.addAbsoluteCondition( "SchemaID", sid );
+        selectStatement.setQuery( false );
+        ResultSet rs = selectStatement.execute();
+        try {
+            rs.next();
+            stname = rs.getString( 1 );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        HashMap<String, String> columns = new HashMap<String, String>();
+        selectStatement.addColumn( "*" );
+        selectStatement.addTable( "Newt", stname );
+        selectStatement.setQuery( false );
+        rs = selectStatement.execute();
+
+        NewtCreateStatementBuilder createStatement = new NewtCreateStatementBuilder();
+        createStatement.setTable( "Newt", tname );
+        try {
+            while( rs.next() ) {
+                createStatement.addColumn( rs.getString( 1 ), rs.getString( 4 ), false );
+                int indexLen = rs.getInt( 5 );
+                if( indexLen > 0 ) {
+                    createStatement.addIndex( rs.getString( 1 ), rs.getInt( 5 ) );
+                }
+            }
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        selectStatement.close();
+
+        String remoteUpdate = createStatement.getQuery();
+        String actorUrl = null;
+        if( remoteUpdate != null ) {
+            actorUrl = sendRemoteUpdate( remoteUpdate, tname );
+        }
+        createStatement.reset();
+        createStatement.close();
+
+        NewtUpdateStatementBuilder updateStatement = new NewtUpdateStatementBuilder();
+        updateStatement.setTable( "Newt", "actorInstances" );
+        updateStatement.addColumn( "ActorTable", tname );
+        updateStatement.addColumn( "ActorUrl", actorUrl );
+        updateStatement.addCondition( "ActorID", aid );
+        updateStatement.setQuery( false );
+        updateStatement.execute();
+        updateStatement.close();
+
+        return actorUrl;
+    }
+
+    public synchronized String sendRemoteUpdate( String update, String filename )
+    {
+        String url = nextUrl();
+        try {
+            RpcCommunication.getService( url ).createProvTable( update, filename );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+        return url;
+    }
+        
+    public synchronized String nextUrl()
+    {
+        String url = slaves.get( nextSlave );
+        nextSlave = ( nextSlave + 1 ) % slaves.size();
+
+        return url;
+    }
+    
+    public synchronized void addFileLocatable( int actorID, String locatable, boolean isInput, boolean isGhostable )
+    {
+        NewtInsertStatementBuilder insertStatement = new NewtInsertStatementBuilder();
+        insertStatement.setTable( "Newt", "dataInstances" );
+        insertStatement.addValue( actorID );
+        insertStatement.addValue( locatable );
+        if( isInput ) {
+            insertStatement.addValue( "Read" );
+        } else {
+            insertStatement.addValue( "Write" );
+        }
+        insertStatement.addValue( (isGhostable ? "True" : "False") );
+        insertStatement.setQuery();
+        insertStatement.execute();
+        insertStatement.close();
+    }
+
+    public void addProvenance( String tname, ProvenanceContainer provenance )
+    {
+        synchronized( provenanceData ) {
+            provenanceData.add( new ProvenanceTask( provenance, tname, false ) );
+            provenanceData.notifyAll();
+        }
+    }
+
+    public void writeProvenance()
+    {
+        ProvenanceTask provenance;
+        
+        synchronized( provenanceData ) {
+            while( provenanceData.size() == 0 ) {
+                try {
+                    provenanceData.wait();
+                } catch( Exception e ) {
+                }
+            }
+
+            provenance = provenanceData.get( 0 );
+            provenanceData.remove( provenance );
+        }
+
+        try {
+            if( provenance.isCommitTask() ) {
+                synchronized( provenance ) {
+                    provenance.setCommitted();
+                    provenance.notifyAll();
+                }
+                return;
+            }
+            
+            ObjectOutputStream b = null;
+            synchronized( ProvenanceFiles ) {
+                b = ProvenanceFiles.get( provenance.getTableName() );
+            }
+       
+            ProvenanceContainer pContainer = provenance.getProvenance();
+            for( int i = 0; i < pContainer.size(); i++ ) {
+                pContainer.get( i ).writeExternal( b );
+            }
+        } catch( Exception e ) {
+           System.out.println( provenance.getTableName() + " " + e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+    
+    public void makeProvTable( String update, String filename )
+    {
+        NewtSqlStatementBuilder statement = new NewtSqlStatementBuilder( false );
+        statement.addStatement( update );
+        statement.execute();
+        statement.close();
+
+        try {
+            ObjectOutputStream b = new ObjectOutputStream( new BufferedOutputStream( new FileOutputStream( "/tmp/Newt/" + filename ) ) );
+            synchronized( ProvenanceFiles ) {
+                ProvenanceFiles.put( filename, b );
+            }
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+    
+    public NewtMySql queryActorInstance( HashMap<String, Object[]> queryVars, boolean isAnd )
+    {
+        return queryTable( "Newt", "actorInstances", queryVars, isAnd );
+    }
+
+    public NewtMySql queryActorGset( HashMap<String, Object[]> queryVars, boolean isAnd )
+    {
+        return queryTable( "Newt", "actorGset", queryVars, isAnd );
+    }
+
+    public synchronized NewtMySql queryTable( String dbName, String tableName, HashMap<String, Object[]> queryVars, boolean isAnd )
+    {
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addColumn( "*" );
+        statement.addTable( dbName, tableName );
+        if( queryVars != null && queryVars.size() > 0 ) {
+            Set<Map.Entry<String, Object[]>> queryVarEntries = queryVars.entrySet();
+            for( Map.Entry<String, Object[]> queryVar: queryVarEntries ) {
+                statement.addAbsoluteConditions( queryVar.getKey(), queryVar.getValue() );
+            }
+        }
+        statement.setQuery( isAnd );
+        statement.execute();
+        return statement.getContainer();
+    }
+
+    public void updateBatch( Vector<String> batchUpdate )
+    {
+        if( batchUpdate == null || batchUpdate.size() == 0 ) {
+            return;
+        }
+
+        NewtSqlStatementBuilder statement = new NewtSqlStatementBuilder( false );
+        statement.addStatements( batchUpdate );
+        statement.execute();
+        statement.close();
+    }
+
+    public void commitFile( String filename )
+    {
+        ProvenanceContainer pContainer = new ProvenanceContainer( 0 );
+        ProvenanceTask pCommitTask = new ProvenanceTask( pContainer, filename, true );
+        synchronized( provenanceData ) {
+            provenanceData.add( pCommitTask );
+            provenanceData.notifyAll();
+        }
+
+        synchronized( pCommitTask ) {
+            while( !pCommitTask.committed() ) {
+                try {
+                    pCommitTask.wait();
+                } catch( Exception e ) {
+                }
+            }
+        }
+    }
+
+    public void finalize( String filename )
+    {
+        ObjectOutputStream b = null;
+        synchronized( ProvenanceFiles ) {
+            b = ProvenanceFiles.get( filename );
+            ProvenanceFiles.remove( filename );
+        }
+
+        if( b != null ) {
+            try {
+                b.flush();
+                b.close();
+            } catch(Exception e ) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public byte[] toAssociation( byte[] input, byte[] output, Long timeTaken )
+    {
+        byte[] timeTakenInBytes = Long.toString( timeTaken ).getBytes();
+        byte[] association = new byte[ input.length + output.length + timeTakenInBytes.length + 2*fieldTerminatorBytes.length + lineTerminatorBytes.length ];
+        
+        int written = 0;
+        System.arraycopy( input, 0, association, written, input.length );
+        written += input.length; 
+        System.arraycopy( fieldTerminatorBytes, 0, association, written, fieldTerminatorBytes.length );
+        written += fieldTerminatorBytes.length; 
+        System.arraycopy( output, 0, association, written, output.length );
+        written += output.length; 
+        System.arraycopy( fieldTerminatorBytes, 0, association, written, fieldTerminatorBytes.length );
+        written += fieldTerminatorBytes.length; 
+        System.arraycopy( timeTakenInBytes, 0, association, written, timeTakenInBytes.length );
+        written += timeTakenInBytes.length; 
+        System.arraycopy( lineTerminatorBytes, 0, association, written, lineTerminatorBytes.length );
+        return association;
+    }
+    
+    public void formatProvenanceFile( String oldFilename, String newFilename )
+    {
+        ObjectInputStream i = null;
+        BufferedOutputStream o = null;
+
+        try {
+            i = new ObjectInputStream( new BufferedInputStream( new FileInputStream( "/tmp/Newt/" + oldFilename ) ) );
+            o = new BufferedOutputStream( new FileOutputStream( "/tmp/Newt/" + newFilename ) );
+            HashMap<String, ArrayList<byte[]>> inputBuffer = new HashMap<String, ArrayList<byte[]>>();
+            ProvenanceItem pItem = new ProvenanceItem();
+            while( true ) {
+                pItem.readExternal( i );
+                if( pItem.itemType == ProvenanceItem.ASSOCIATION ) {
+                    o.write( ByteArray.escapeBackslashes( toAssociation( pItem.primaryData, pItem.tagOrSecondaryData, pItem.timeTaken ) ) );
+                } else {
+                    String tag = new String( pItem.tagOrSecondaryData );
+                    ArrayList<byte[]> inputs = inputBuffer.get( tag );
+                    if( inputs == null ) {
+                        inputs = new ArrayList<byte[]>();
+                        inputBuffer.put( tag, inputs );
+                    }
+                        
+                    if( pItem.itemType == ProvenanceItem.RESET_INPUT ) {
+                        inputs.clear();
+                        inputs.add( pItem.primaryData );
+                    } else if( pItem.itemType == ProvenanceItem.INPUT ) {
+                        inputs.add( pItem.primaryData );
+                    } else if( pItem.itemType == ProvenanceItem.OUTPUT_RESET ) {
+                        for( byte[] input: inputs ) {
+                            o.write( ByteArray.escapeBackslashes( toAssociation( input, pItem.primaryData, pItem.timeTaken ) ) );
+                        }
+                        inputs.clear();
+                    } else if( pItem.itemType == ProvenanceItem.OUTPUT ) {
+                        for( byte[] input: inputs ) {
+                            o.write( ByteArray.escapeBackslashes( toAssociation( input, pItem.primaryData, pItem.timeTaken ) ) );
+                        }
+                    } else if( pItem.itemType == ProvenanceItem.RESET ) {
+                        inputs.clear();
+                    }
+                }
+            }
+        } catch( EOFException e ) {
+            try {
+                o.close();
+                i.close();
+            } catch( Exception ex ) {
+                System.err.println( ex.getMessage() );
+                ex.printStackTrace();
+            }
+        } catch( Exception e ) {
+            System.err.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        try {
+            File f = new File( "/tmp/Newt/" + oldFilename );
+            f.delete();
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+    }
+
+    public void commitComplete( String table, String filename )
+    {
+        try {
+            File f = new File( "/tmp/Newt/" + filename );
+            f.delete();
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+       
+        try {
+            RpcCommunication.getService( master ).finalizeCommit( table );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void finalizeCommit( String table )
+    {
+        String commitStatus = "True";
+        
+        NewtSelectStatementBuilder selectStatement = new NewtSelectStatementBuilder();
+        selectStatement.addTable( "Newt", "actorInstances" );
+        selectStatement.addColumn( "ActorID" );
+        selectStatement.addAbsoluteCondition( "actorInstances.ActorTable", table );
+        selectStatement.setQuery( false );
+        ResultSet rs = selectStatement.execute();
+        int aid = -1;
+        
+        try {
+            rs.next();
+            aid = rs.getInt( 1 );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        if( aid != -1 ) {
+            selectStatement.addColumn( "Locatable" );
+            selectStatement.addTable( "Newt", "dataInstances" );
+            selectStatement.addAbsoluteCondition( "ActorID", aid );
+            selectStatement.addAbsoluteCondition( "ReadOrWrite", "Read" );
+            selectStatement.addAbsoluteCondition( "Ghostable", "True" );
+            selectStatement.setQuery( true );
+            rs = selectStatement.execute();
+            String locatable = null;
+
+            try {
+                if( rs.next() ) {
+                    locatable = rs.getString( 1 );
+                }
+            } catch( Exception e ) {
+               System.out.println( e.getMessage() );
+                e.printStackTrace();
+            }
+
+            if( locatable != null ) {
+                selectStatement.addColumn( "ActorID" );
+                selectStatement.addTable( "Newt", "dataInstances" );
+                selectStatement.addAbsoluteCondition( "ReadOrWrite", "Write" );
+                selectStatement.addAbsoluteCondition( "Ghostable", "True" );
+                selectStatement.addAbsoluteCondition( "Locatable", locatable );
+                selectStatement.setQuery( true );
+                rs = selectStatement.execute();
+                int ghostAid = -1;
+
+                try {
+                    if( rs.next() ) {
+                        ghostAid = rs.getInt( 1 );
+                    }
+                } catch( Exception e ) {
+                   System.out.println( e.getMessage() );
+                    e.printStackTrace();
+                }
+
+                if( ghostAid != -1 ) {
+                   System.out.println( "Need to ghost reader: " + aid + " with writer: " + ghostAid );
+                    selectStatement.addTable( "Newt", "actorInstances" );
+                    selectStatement.addColumn( "ActorID" );
+                    selectStatement.addColumn( "ActorUrl" );
+                    selectStatement.addColumn( "ActorTable" );
+                    selectStatement.addAbsoluteCondition( "ActorID", ghostAid );
+                    selectStatement.addAbsoluteCondition( "ActorID", aid );
+                    selectStatement.setQuery( false );
+                    rs = selectStatement.execute();
+                    String ghostSourceUrl = null;
+                    String ghostSourceTable = null;
+                    String ghostDestinationUrl = null;
+                    String ghostDestinationTable = null;
+
+                    try {
+                        while( rs.next() ) {
+                            if( rs.getInt( 1 ) == aid ) {
+                                ghostDestinationUrl = rs.getString( 2 );
+                                ghostDestinationTable = rs.getString( 3 );
+                            } else {
+                                ghostSourceUrl = rs.getString( 2 );
+                                ghostSourceTable = rs.getString( 3 );
+                            }
+                        }
+                    } catch( Exception e ) {
+                       System.out.println( e.getMessage() );
+                        e.printStackTrace();
+                    }
+
+                    if( ghostDestinationUrl.equals( ghostSourceUrl ) ) {
+                        ghostDestinationUrl = "self";
+                    }
+
+                    try {
+                        RpcCommunication.getService( ghostSourceUrl ).sendGhostData( ghostSourceTable, ghostDestinationUrl, ghostDestinationTable );
+                        commitStatus = "Ghosting";
+                    } catch( Exception e ) {
+                       System.out.println( e.getMessage() );
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        
+        selectStatement.close();
+
+        NewtUpdateStatementBuilder updateStatement = new NewtUpdateStatementBuilder();
+        updateStatement.setTable( "Newt", "actorInstances" );
+        updateStatement.addColumn( "Committed", commitStatus );
+        updateStatement.addCondition( "ActorTable", table );
+        updateStatement.setQuery( false );
+        updateStatement.execute();
+        updateStatement.close();
+
+        if( commitStatus.equals( "True" ) ) {
+           System.out.println( "Commit completed for: " + table );
+        } else {
+           System.out.println( "Ghosting for: " + table );
+        }
+    }
+
+    public synchronized void ghost( Vector<String> ghostData, Vector<String> ghostMatch, String ghostSourceTable, String ghostDestinationTable )
+    {
+        NewtGhost ghoster = new NewtGhost( ghostData, ghostMatch, ghostSourceTable, ghostDestinationTable, this );
+        ghoster.start();
+    }
+
+    public synchronized void sendGhostComplete( String sourceTable, String destinationTable, String ghostTable )
+    {
+        try {
+            RpcCommunication.getService( master ).ghostComplete( sourceTable, destinationTable, ghostTable );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void commitActorInstance( int actorID )
+    {
+        NewtSelectStatementBuilder selectStatement = new NewtSelectStatementBuilder();
+        selectStatement.addColumns( new String[] { "ActorTable", "ActorUrl" } );
+        selectStatement.addTable( "Newt", "actorInstances" );
+        selectStatement.addAbsoluteCondition( "ParentID", actorID );
+        selectStatement.addAbsoluteCondition( "Committed", "" );
+        selectStatement.setQuery( true );
+        ResultSet rs = selectStatement.execute();
+        HashMap<String, String> cleanupFiles = new HashMap<String, String>();
+        try {
+            while( rs.next() ) {
+                cleanupFiles.put( rs.getString( 1 ), rs.getString( 2 ) );
+            }
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+
+        NewtSqlStatementBuilder statement = new NewtSqlStatementBuilder();
+        NewtUpdateStatementBuilder updateStatement = new NewtUpdateStatementBuilder();
+        updateStatement.setTable( "Newt", "actorInstances" );
+        updateStatement.addColumn( "Committed", "Populating" );
+        updateStatement.addCondition( "ActorID", actorID );
+        updateStatement.setQuery( false, statement );
+        NewtDeleteStatementBuilder deleteStatement = new NewtDeleteStatementBuilder();
+        deleteStatement.setTable( "Newt", "actorInstances" );
+        deleteStatement.addCondition( "ParentID", actorID );
+        deleteStatement.addCondition( "Committed", "" );
+        deleteStatement.setQuery( true, statement );
+        statement.execute();
+        statement.close();
+
+        selectStatement.addColumns( new String[] { "actorInstances.ActorUrl", "actorInstances.ActorTable" } );
+        selectStatement.addTable( "Newt", "actorInstances" );
+        selectStatement.addTable( "Newt", "actorGset" );
+        selectStatement.addAbsoluteCondition( "actorInstances", "ActorID", actorID );
+        selectStatement.addJoinCondition( "actorGset", "ActorType", "actorInstances", "ActorType" );
+        selectStatement.setQuery( true );
+        rs = selectStatement.execute();
+        String actorUrl = null;
+        String actorTable = null;
+        try {
+            rs.next();
+            actorUrl = rs.getString( 1 );
+            actorTable = rs.getString( 2 );
+        } catch( Exception e ) {
+            e.printStackTrace();
+        }
+        selectStatement.close();
+
+       System.out.println( "Committed actor: " + actorID + ", populating..." );
+
+        sendRemoteCleanup( cleanupFiles );
+        sendRemoteLoadData( actorTable, actorUrl );
+    }
+
+    public void sendRemoteLoadData( String actorTable, String actorUrl )
+    {
+        try {
+            RpcCommunication.getService( actorUrl ).loadData( actorTable );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void sendRemoteCleanup( HashMap<String, String> cleanupFiles )
+    {
+        Set entries = cleanupFiles.entrySet();
+        for( int i = 0; i < slaves.size(); i++ ) {
+            String url = slaves.get( i );
+            Vector<String> tables = new Vector<String>();
+
+            for( Object o: entries ) {
+                Map.Entry e = (Map.Entry) o;
+                if( url.equals( (String) e.getValue() ) ) {
+                    tables.add( (String) e.getKey() );
+                }
+            }
+
+            if( tables.size() > 0 ) {
+                try {
+                    RpcCommunication.getService( url ).cleanFiles( tables );
+                } catch( Exception e ) {
+                   System.out.println( e.getMessage() );
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void cleanFiles( Vector<String> files )
+    {
+        NewtSqlStatementBuilder statement = new NewtSqlStatementBuilder( false );
+        for( Object f: files )
+        {
+            String file = (String) f;
+            finalize( file );
+
+            try {
+                boolean success = (new File( "/tmp/Newt/" + file )).delete();
+                if( success ) {
+                   System.out.println( "Successfully deleted uncommitted file: " + file );
+                } else {
+                   System.out.println( "Failed to delete uncommitted file: " + file );
+                }
+                statement.addStatement( "drop table if exists Newt." + file );
+            } catch( Exception e ) {
+                e.printStackTrace();
+            }
+        }
+
+        statement.execute();
+        statement.close();
+    }
+
+    public synchronized int registerTrace( int tid, String status, int caid, String tableName, Vector<String> completedNodes )
+    {
+        NewtInsertStatementBuilder statement = new NewtInsertStatementBuilder();
+        statement.setTable( "Trace", "traceActors" );
+        statement.addValues( new Object[] { tid, caid, status, tableName } );
+        statement.setQuery();
+        statement.execute();
+        statement.close();
+
+        if( !status.equals( "Incorrect" ) ) {
+            completedTraces.put( tid, completedNodes );
+        }
+
+        return slaves.size();
+    }
+
+    public synchronized void sendTrace( int tid, 
+                                        HashMap<String, HashMap<String, Vector<Vector>>> traceQuery,
+                                        HashMap<String, Vector<String>> tableSources,
+                                        Vector data,
+                                        Vector locatableData )
+    {
+        for( int i = 0; i < slaves.size(); i++ ) {
+            try {
+                RpcCommunication.getService( slaves.get( i ) ).traceLocal( tid, traceQuery, tableSources, data, locatableData );
+            } catch( Exception e ) {
+               System.out.println( e.getMessage() );
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public int traceLocal( int tid,
+                         HashMap<String, HashMap<String, Vector<Vector>>> traceQuery,
+                         HashMap<String, Vector<String>> tableSources,
+                         Vector data,
+                         Vector locatableData )
+    {
+        synchronized( traceResults ) {
+            if( traceResults.get( tid ) == null ) {
+                HashMap<String, String[]> traceInstanceResults = new HashMap<String, String[]>();
+                traceResults.put( tid, traceInstanceResults );
+            }
+        }
+
+        NewtTrace newtTrace = new NewtTrace( tid, data, locatableData, traceQuery, tableSources, this, selfUrl );
+        synchronized( traceInstances ) {
+            traceInstances.put( tid, newtTrace );
+        }
+
+        try {
+            newtTrace.start();
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+
+        return tid;
+    }
+
+    public HashMap<String, String[]> getTraceResultsMap( int traceID )
+    {
+        HashMap<String, String[]> traceInstanceResults = null;
+        synchronized( traceResults ) {
+            traceInstanceResults = traceResults.get( traceID );
+        }
+
+        return traceInstanceResults;
+    }
+
+    public synchronized void forwardTraceResults( Vector<String> targets, 
+                                                  int tid, 
+                                                  String[] resultTable,
+                                                  Vector results )
+    {
+        for( String url: targets ) {
+            try {
+                RpcCommunication.getService( url ).continueTrace( tid, (String)resultTable[ 0 ], (String)resultTable[ 1 ], results  );
+               System.out.println( "Forwarded result: (" + tid + ", " + resultTable[ 0 ] + ", " + resultTable[ 1 ] + ") to " + url );
+            } catch( Exception e ) {
+               System.out.println( e.getMessage() );
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public synchronized void continueTrace( int tid, String resultTable, String resultDataType, Vector results )
+    {
+        try {
+       System.out.println( "Continuing: " + tid + ", " + resultTable + ", " + resultDataType );
+        NewtCreateStatementBuilder createStatement = new NewtCreateStatementBuilder();
+        createStatement.setTable( "Trace", resultTable );
+        createStatement.addColumn( "Result", resultDataType, true );
+        createStatement.setQuery();
+        createStatement.execute();
+        createStatement.close();
+        
+        NewtBulkInsertStatementBuilder bulkInsertStatement = new NewtBulkInsertStatementBuilder();
+        bulkInsertStatement.setTable( "Trace", resultTable );
+        bulkInsertStatement.setRowLength( 1 );
+        for( Object o: results ) {
+            bulkInsertStatement.addRow( new Object[] { o } );
+        }
+        bulkInsertStatement.setQuery();
+        bulkInsertStatement.execute();
+        bulkInsertStatement.close();
+        
+        HashMap<String, String[]> traceInstanceResults = null;
+        synchronized( traceResults ) {
+            if( traceResults.get( tid ) == null ) {
+                traceInstanceResults = new HashMap<String, String[]>();
+                traceResults.put( tid, traceInstanceResults );
+            } else {
+                traceInstanceResults = traceResults.get( tid );
+            }
+        }
+
+        String[] splits = resultTable.split( "\\$" );
+        if( splits.length != 3 ) {
+           System.out.println( "Table name not found. Discarding result..." );
+        } else {
+            String sourceTable = splits[ 1 ];
+            NewtTrace newtTrace = null; 
+            synchronized( traceInstances ) {
+                newtTrace = traceInstances.get( tid );
+            }
+            synchronized( traceInstanceResults ) {
+                traceInstanceResults.put( sourceTable, new String[] { "Trace." + resultTable, resultDataType } );
+            }
+           System.out.println( "Recieved trace results for traceID: " + tid + " table: " + resultTable );
+        }
+        }catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public void notifyTraceComplete( int tid )
+    {
+        try {
+            RpcCommunication.getService( master ).traceComplete( tid, selfUrl );
+        } catch( Exception e ) {
+           System.out.println( e.getMessage() );
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void traceComplete( int tid, String slave )
+    {
+       System.out.println( "Trace: " + tid + " completed on: " + slave );
+        Vector<String> completedNodes = completedTraces.get( tid );
+        synchronized( completedNodes ) {
+            completedNodes.add( slave );
+            if( completedNodes.containsAll( slaves ) ) {
+                NewtUpdateStatementBuilder statement = new NewtUpdateStatementBuilder();
+                statement.setTable( "Trace", "traceActors" );
+                statement.addColumn( "Status", "Complete" );
+                statement.addCondition( "TraceID", tid );
+                statement.setQuery( false );
+                statement.execute();
+                statement.close();
+
+               System.out.println( "Trace: " + tid + " complete" );
+                completedNodes.notifyAll();
+            }
+        }
+    }
+
+    public synchronized HashSet getReplayFilter( int tid, String tableName )
+    {
+        HashMap<String, String[]> traceInstanceResults = null; 
+        synchronized( traceResults ) {
+            traceInstanceResults = traceResults.get( tid );
+        }
+
+        if( traceInstanceResults == null ) {
+            return null;
+        }
+
+        String traceResultTable = null;
+        String traceResultDataType = null;
+        synchronized( traceInstanceResults ) {
+            traceResultTable = traceInstanceResults.get( tableName )[ 0 ];
+            traceResultDataType = traceInstanceResults.get( tableName )[ 1 ];
+        }
+
+        if( traceResultTable == null ) {
+            return null;
+        }
+
+        NewtSelectStatementBuilder statement = new NewtSelectStatementBuilder();
+        statement.addTable( traceResultTable );
+        statement.addColumn( "Result" );
+        statement.setQuery( false );
+        ResultSet rs = statement.execute();
+
+        HashSet filter = new HashSet();
+        int count = 0;
+        try {
+            if( traceResultDataType.startsWith( "varchar" ) ) {
+                while( rs.next() ) {
+                    filter.add( rs.getString( 1 ) );
+                    count++;
+                }
+            } else if( traceResultDataType.startsWith( "varbinary" ) ) {
+                while( rs.next() ) {
+                    filter.add( new ByteArray( rs.getBytes( 1 ) ) );
+                    count++;
+                }
+            }
+        } catch( Exception e ) {
+            e.printStackTrace();
+            return null;
+        }
+
+        statement.close();
+        System.err.println( "Total replay records: " + count );
+        return filter;
+    }
+}

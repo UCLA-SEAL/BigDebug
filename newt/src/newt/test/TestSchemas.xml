@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+
+<Provenance>
+    <Schema name="TestActor_table" actor="TestActor" static="true">
+        <Input key="true" type="input" datatype="KeyValuePair" />
+        <Output type="output" datatype="KeyValuePair" />
+    </Schema>        
+</Provenance>

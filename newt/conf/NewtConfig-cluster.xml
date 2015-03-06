@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+
+<Configuration>
+    <Mysql>
+        <User value="root"/>
+        <Password value="root"/>
+    </Mysql>
+    <Nodes>
+        <Master value="131.179.64.20"/>
+        <Slave value="131.179.64.21"/>
+        <Slave value="131.179.64.22"/>
+        <Slave value="131.179.64.23"/>
+        <Slave value="131.179.64.24"/>
+        <Slave value="131.179.64.25"/>
+        <Slave value="131.179.64.26"/>
+        <Slave value="131.179.64.27"/>
+        <Slave value="131.179.64.28"/>
+        <Slave value="131.179.64.29"/>
+        <Slave value="131.179.64.30"/>
+        <Slave value="131.179.64.31"/>
+        <Slave value="131.179.64.32"/>
+        <Slave value="131.179.64.33"/>
+        <Slave value="131.179.64.34"/>
+        <Slave value="131.179.64.35"/>
+        <Slave value="131.179.64.36"/>
+        <Slave value="131.179.64.37"/>
+        <Slave value="131.179.64.38"/>
+
+    </Nodes>
+    <LogDir value="/tmp/Newt/"/>
+</Configuration>
+    
