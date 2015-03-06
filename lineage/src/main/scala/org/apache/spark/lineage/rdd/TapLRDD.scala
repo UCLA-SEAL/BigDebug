@@ -17,16 +17,22 @@
 
 package org.apache.spark.lineage.rdd
 
+import newt.NewtWrapper
 import org.apache.spark._
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
 
+
 import scala.collection.mutable.ListBuffer
 import scala.reflect._
+import scala.util.Random
+
 
 private[spark]
 class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
     extends RDD[T](lc.sparkContext, deps) with Lineage[T] {
+
+  var newt: NewtWrapper = null
 
   setCaptureLineage(true)
 
@@ -67,6 +73,9 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
     splitId = split.index.toShort
 
+    val newtId:Int = splitId + Random.nextInt(Integer.MAX_VALUE);
+    newt = new NewtWrapper(newtId)
+
     initializeStores()
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
@@ -96,4 +105,6 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     record
   }
+
+
 }

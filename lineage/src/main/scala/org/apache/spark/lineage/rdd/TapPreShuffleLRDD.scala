@@ -41,6 +41,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   override def initializeStores() = {
     inputIdStore = new PrimitiveKeyOpenHashMap
     inputIdStore2 = new ArrayBuffer(1)
+    tContext.newtRef = newt;
   }
 
   override def tap(record: T) = {
@@ -50,6 +51,9 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     } else {
       inputIdStore2(index).add(tContext.currentInputId)
     }
+    //TODO Ksh Adding input at preshuffle
+    newt.addInput(tContext.currentInputId.toString,record._1.hashCode.toString)
+
     record
   }
 

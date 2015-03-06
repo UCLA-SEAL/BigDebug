@@ -17,9 +17,12 @@
 
 package org.apache.spark.lineage
 
+import newt.NewtWrapper
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.util.collection.{AppendOnlyMap, CompactBuffer, ExternalAppendOnlyMap}
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
+
+import scala.util.Random
 
 /**
  * :: DeveloperApi ::
@@ -61,11 +64,21 @@ class LAggregator[K, V, C] (
       } else {
         var pair: Product2[K, Product2[C, Int]] = null
         val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap
+
+        //TODO
+        val newtId:Int = context.partitionId() + Random.nextInt(Integer.MAX_VALUE);
+        val newt = new NewtWrapper(newtId)
+
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[C, Int]]]
           combiners.insert(pair._1, pair._2._1)
+
+          //TODO Ksh
+          newt.addInput((context.stageId(),context.partitionId()).toString,pair._1.hashCode.toString)
+
           inputStore.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[Int]) => old += pair._2._2)
         }
+        context.asInstanceOf[TaskContextImpl].newtRef = newt
         context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
       }
 

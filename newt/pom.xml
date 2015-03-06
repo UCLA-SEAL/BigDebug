@@ -26,44 +26,25 @@
   </parent>
 
   <groupId>org.apache.spark</groupId>
-  <artifactId>spark-lineage_2.10</artifactId>
+  <artifactId>spark-newt_2.10</artifactId>
   <properties>
-    <sbt.project.name>lineage</sbt.project.name>
+    <sbt.project.name>newt</sbt.project.name>
   </properties>
   <packaging>jar</packaging>
-  <name>Spark Lineage Project</name>
+  <name>Spark Newt Project</name>
 
   <dependencies>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-      <dependency>
-          <groupId>org.apache.spark</groupId>
-          <artifactId>spark-sql_${scala.binary.version}</artifactId>
-          <version>${project.version}</version>
-      </dependency>
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_${scala.binary.version}</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.scalacheck</groupId>
-      <artifactId>scalacheck_${scala.binary.version}</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.roaringbitmap</groupId>
-      <artifactId>RoaringBitmap</artifactId>
-      <version>0.4.8</version>
-    </dependency>
+
   </dependencies>
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
     <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+      </plugin>
+
       <plugin>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>

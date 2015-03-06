@@ -35,8 +35,18 @@ class TapPostShuffleLRDD[T: ClassTag](
       r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
 
   override def tap(record: T) = {
+    tContext.newtRef.addOutput(record.asInstanceOf[Product2 [T,T]]._1.hashCode().toString,record.asInstanceOf[Product2 [T,T]]._1.hashCode().toString)
     tContext.currentInputId = newRecordId
 
     record
+  }
+
+  //TODO Ksh
+  override def commitNewt(): Unit =
+  {
+    println("PostShuffle(native):"+newt.getId)
+    println("PostShuffle(context):"+tContext.newtRef.getId)
+    tContext.newtRef.commit()
+    //newt.commit()
   }
 }

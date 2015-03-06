@@ -31,7 +31,8 @@ object SparkWordCount {
       //logFile = "../../datasets/output.txt"
       //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
       logFile = "README.md"
-      conf.setMaster("local[2]")
+      //logFile = "Rsmall.md"
+      conf.setMaster("local[1]")
       lineage = true
     } else {
       lineage = args(0).toBoolean

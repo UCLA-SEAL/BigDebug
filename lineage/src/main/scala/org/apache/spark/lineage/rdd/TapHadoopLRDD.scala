@@ -21,6 +21,7 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.util.collection.PrimitiveVector
+import scala.collection.JavaConversions._
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -45,6 +46,16 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
     inputIdStore += tContext.currentInputId
     outputIdStore += record._1.asInstanceOf[LongWritable].get
 
+    //TODO Ksh
+    //recordid is the output and seq is input
+    newt.add((tContext.stageId,tContext.partitionId).toString(), List(( record._1.asInstanceOf[LongWritable].get).toString()))
+
     record
+  }
+
+  //TODO Ksh
+  override def commitNewt(): Unit =
+  {
+    newt.commit()
   }
 }

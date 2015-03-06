@@ -19,12 +19,12 @@ package org.apache.spark.scheduler
 
 import java.nio.ByteBuffer
 
-import scala.language.existentials
-
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
+
+import scala.language.existentials
 
 /**
 * A ShuffleMapTask divides the elements of an RDD into multiple buckets (based on a partitioner

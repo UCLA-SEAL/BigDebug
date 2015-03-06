@@ -54,7 +54,12 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
              } catch {
                case e: Exception => println(e)
              } finally {
+
                //table._1.cleanTable
+               //TODO Ksh
+               //System.out.println("Trying to commit")
+               table._1.commitNewt();
+
                underMaterialization.synchronized {
                  underMaterialization.remove(table)
                }
@@ -76,7 +81,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       rdd: RDD[_],
       split: Int, context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
-    //materialize(split, context, effectiveStorageLevel)
+    materialize(split, context, effectiveStorageLevel)
     //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
   }
 }

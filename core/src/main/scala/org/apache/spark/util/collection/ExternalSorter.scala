@@ -758,14 +758,21 @@ private[spark] class ExternalSorter[K, V, C](
               writer.write(
                 new Tuple2(elem._1,
                   new Tuple2(elem._2, PackShortIntoInt(context.stageId, context.partitionId))))
+              //TODO Ksh Adding output at shuffle
+              if(context.asInstanceOf[TaskContextImpl].newtRef!=null)
+              context.asInstanceOf[TaskContextImpl].newtRef.addOutput((context.stageId(),context.partitionId()).toString,elem._1.hashCode.toString)
             }
           }
+
           writer.commitAndClose()
           val segment = writer.fileSegment()
           lengths(id) = segment.length
         }
       }
-        // The reduce size requires a certain amount of free heap memory in order to work properly.
+      context.asInstanceOf[TaskContextImpl].newtRef.commit()
+      context.asInstanceOf[TaskContextImpl].newtRef = null
+
+      // The reduce size requires a certain amount of free heap memory in order to work properly.
         // If freeMemory is not enough, we call the garbage collector
       if(context.asInstanceOf[TaskContextImpl].currentInputId != 0 &&
           Runtime.getRuntime.freeMemory() < 13000000000L) {

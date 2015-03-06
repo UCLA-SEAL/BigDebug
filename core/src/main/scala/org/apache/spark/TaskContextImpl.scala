@@ -19,6 +19,7 @@ package org.apache.spark
 
 import java.util.concurrent.ThreadPoolExecutor
 
+import newt.NewtWrapper
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.lineage.PrimitiveKeyOpenHashMap
 import org.apache.spark.util.collection.CompactBuffer
@@ -51,6 +52,8 @@ private[spark] class TaskContextImpl(val stageId: Int,
   @transient var currentInputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = null // Added by Matteo
 
   @transient var pool: ThreadPoolExecutor = null // Matteo
+
+  var newtRef: NewtWrapper  = null
 
   def setPool(pool: ThreadPoolExecutor) = this.pool = pool
 
