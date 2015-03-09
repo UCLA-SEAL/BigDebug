@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.googlecode.javaewah:JavaEWAH:0.3.2:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/JavaEWAH-0.3.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

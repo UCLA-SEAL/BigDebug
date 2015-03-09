@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: junit:junit:4.11:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/junit-4.11.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

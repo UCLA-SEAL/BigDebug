@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.avro:avro-compiler:1.7.3:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/avro-compiler-1.7.3.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

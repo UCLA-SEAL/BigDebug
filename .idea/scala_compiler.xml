@@ -3,6 +3,7 @@
   <component name="ScalaCompilerConfiguration">
     <option name="deprecationWarnings" value="true" />
     <option name="uncheckedWarnings" value="true" />
+    <option name="featureWarnings" value="true" />
     <parameters>
       <parameter value="-feature" />
       <parameter value="-language:postfixOps" />
@@ -23,7 +24,33 @@
       <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/mqtt/target/java" />
       <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/twitter/target/java" />
       <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/zeromq/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/assembly/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/bagel/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/core/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/examples/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/flume/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/flume-sink/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/kafka/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/mqtt/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/twitter/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/external/zeromq/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/graphx/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/lineage/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/mllib/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/network/common/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/network/shuffle/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/repl/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/sql/catalyst/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/sql/core/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/sql/hive/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/streaming/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/tools/target/java" />
+      <parameter value="-P:genjavadoc:out=/Users/kshitij/myGit/spark-lineage/newt/target/java" />
     </parameters>
+    <plugins>
+      <plugin path="$PROJECT_DIR$/lib_managed/jars/genjavadoc-plugin_2.10.4-0.8.jar" />
+      <plugin path="$PROJECT_DIR$/lib_managed/jars/paradise_2.10.4-2.0.1.jar" />
+    </plugins>
   </component>
 </project>
-

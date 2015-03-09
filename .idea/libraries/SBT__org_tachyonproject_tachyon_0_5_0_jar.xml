@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.tachyonproject:tachyon:0.5.0:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/tachyon-0.5.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

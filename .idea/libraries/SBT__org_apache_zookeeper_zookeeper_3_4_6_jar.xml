@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.zookeeper:zookeeper:3.4.6:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/zookeeper-3.4.6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

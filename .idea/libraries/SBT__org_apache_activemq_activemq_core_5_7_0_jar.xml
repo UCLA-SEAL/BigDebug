@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.activemq:activemq-core:5.7.0:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/activemq-core-5.7.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

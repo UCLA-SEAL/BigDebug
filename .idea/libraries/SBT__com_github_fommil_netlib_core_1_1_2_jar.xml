@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.github.fommil.netlib:core:1.1.2:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/core-1.1.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.twitter:algebird-core_2.10:0.8.1:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/algebird-core_2.10-0.8.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

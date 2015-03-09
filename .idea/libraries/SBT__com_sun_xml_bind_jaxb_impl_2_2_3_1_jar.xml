@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.sun.xml.bind:jaxb-impl:2.2.3-1:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jaxb-impl-2.2.3-1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

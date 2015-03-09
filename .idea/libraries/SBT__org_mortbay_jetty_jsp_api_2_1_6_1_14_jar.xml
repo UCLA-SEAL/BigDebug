@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.mortbay.jetty:jsp-api-2.1:6.1.14:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jsp-api-2.1-6.1.14.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

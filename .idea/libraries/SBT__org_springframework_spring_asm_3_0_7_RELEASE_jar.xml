@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.springframework:spring-asm:3.0.7.RELEASE:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/spring-asm-3.0.7.RELEASE.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

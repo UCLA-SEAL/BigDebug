@@ -40,6 +40,8 @@
             <option value="$PROJECT_DIR$/network/common/project" />
             <option value="$PROJECT_DIR$/network/shuffle" />
             <option value="$PROJECT_DIR$/network/shuffle/project" />
+            <option value="$PROJECT_DIR$/newt" />
+            <option value="$PROJECT_DIR$/newt/project" />
             <option value="$PROJECT_DIR$/project" />
             <option value="$PROJECT_DIR$/repl" />
             <option value="$PROJECT_DIR$/repl/project" />
@@ -55,9 +57,9 @@
             <option value="$PROJECT_DIR$/tools/project" />
           </set>
         </option>
+        <option name="sbtVersion" value="0.13.6" />
         <option name="useAutoImport" value="true" />
       </SbtProjectSettings>
     </option>
   </component>
 </project>
-

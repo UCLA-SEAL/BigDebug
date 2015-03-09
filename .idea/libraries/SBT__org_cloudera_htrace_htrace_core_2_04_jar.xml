@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.cloudera.htrace:htrace-core:2.04:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/htrace-core-2.04.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

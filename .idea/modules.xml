@@ -24,6 +24,8 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/network-common-build.iml" filepath="$PROJECT_DIR$/.idea/modules/network-common-build.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/network-shuffle.iml" filepath="$PROJECT_DIR$/.idea/modules/network-shuffle.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/network-shuffle-build.iml" filepath="$PROJECT_DIR$/.idea/modules/network-shuffle-build.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/newt.iml" filepath="$PROJECT_DIR$/.idea/modules/newt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/newt-build.iml" filepath="$PROJECT_DIR$/.idea/modules/newt-build.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/oldDeps.iml" filepath="$PROJECT_DIR$/.idea/modules/oldDeps.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/oldDeps-build.iml" filepath="$PROJECT_DIR$/.idea/modules/oldDeps-build.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/repl.iml" filepath="$PROJECT_DIR$/.idea/modules/repl.iml" />
@@ -51,4 +53,3 @@
     </modules>
   </component>
 </project>
-

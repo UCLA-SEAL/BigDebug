@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.datanucleus:datanucleus-core:3.2.10:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/datanucleus-core-3.2.10.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

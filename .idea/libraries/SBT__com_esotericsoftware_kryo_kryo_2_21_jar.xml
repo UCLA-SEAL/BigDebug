@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.esotericsoftware.kryo:kryo:2.21:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/kryo-2.21.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

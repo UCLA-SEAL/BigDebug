@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.jruby.joni:joni:2.1.2:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/joni-2.1.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

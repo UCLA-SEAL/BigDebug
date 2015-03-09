@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.flume:flume-ng-configuration:1.4.0:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/flume-ng-configuration-1.4.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

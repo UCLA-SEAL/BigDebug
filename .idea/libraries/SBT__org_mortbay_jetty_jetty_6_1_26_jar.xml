@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.mortbay.jetty:jetty:6.1.26:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jetty-6.1.26.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

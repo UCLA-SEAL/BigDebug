@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.httpcomponents:httpclient:4.3.2:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/httpclient-4.3.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

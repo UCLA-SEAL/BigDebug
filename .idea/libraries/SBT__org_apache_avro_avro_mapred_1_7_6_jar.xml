@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: org.apache.avro:avro-mapred:1.7.6:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/avro-mapred-1.7.6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

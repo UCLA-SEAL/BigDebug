@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.codahale.metrics:metrics-graphite:3.0.0:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/metrics-graphite-3.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

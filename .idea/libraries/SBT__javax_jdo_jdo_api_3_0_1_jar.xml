@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: javax.jdo:jdo-api:3.0.1:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jdo-api-3.0.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.github.stephenc:jamm:0.2.5:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jamm-0.2.5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

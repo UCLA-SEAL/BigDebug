@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: oro:oro:2.0.8:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/oro-2.0.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

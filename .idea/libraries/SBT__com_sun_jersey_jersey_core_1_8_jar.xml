@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: com.sun.jersey:jersey-core:1.8:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/jersey-core-1.8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

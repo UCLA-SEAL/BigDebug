@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="SBT: net.java.dev.jna:jna:3.0.9:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib_managed/jars/jna-3.0.9.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
