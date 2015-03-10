@@ -20,28 +20,26 @@ package org.apache.spark.storage
 import java.io.{BufferedOutputStream, ByteArrayOutputStream, File, InputStream, OutputStream}
 import java.nio.{ByteBuffer, MappedByteBuffer}
 
-import scala.collection.mutable.{ArrayBuffer, HashMap}
-import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.util.Random
-
 import akka.actor.{ActorSystem, Props}
-import sun.nio.ch.DirectBuffer
-
 import org.apache.spark._
 import org.apache.spark.executor._
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.network._
 import org.apache.spark.network.buffer.{ManagedBuffer, NioManagedBuffer}
-import org.apache.spark.network.netty.{SparkTransportConf, NettyBlockTransferService}
+import org.apache.spark.network.netty.SparkTransportConf
 import org.apache.spark.network.shuffle.ExternalShuffleClient
 import org.apache.spark.network.shuffle.protocol.ExecutorShuffleInfo
-import org.apache.spark.network.util.{ConfigProvider, TransportConf}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleManager
 import org.apache.spark.shuffle.hash.HashShuffleManager
 import org.apache.spark.util._
+import sun.nio.ch.DirectBuffer
+
+import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.util.Random
 
 private[spark] sealed trait BlockValues
 private[spark] case class ByteBufferValues(buffer: ByteBuffer) extends BlockValues
@@ -1217,6 +1215,25 @@ private[spark] class BlockManager(
     metadataCleaner.cancel()
     broadcastCleaner.cancel()
     logInfo("BlockManager stopped")
+  }
+
+  // Matteo
+  private var gcRunned: Boolean = false
+
+  private var gcCount: Int = 0
+
+  def runGc() = synchronized {
+    if(!gcRunned) {
+      gcRunned = true
+//      gcCount = 0
+      System.gc()
+      println("GC")
+//    } else {
+//      gcCount += 1
+//      if(gcCount > 56) {
+//        gcRunned = false
+//      }
+    }
   }
 }
 

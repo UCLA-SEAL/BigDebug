@@ -29,15 +29,15 @@ object Grep {
     lc.setCaptureLineage(lineage)
     val lines = lc.textFile(logFile, 2)
     val result = lines.filter(line => line.contains("spark"))
-    print(result.count())
-		//println(result.collect().mkString("\n"))
+    //print(result.count())
+		println(result.collect().mkString("\n"))
 
-//    lc.setCaptureLineage(false)
-//    var lineage = result.getLineage()
-//    lineage.collect().foreach(println)
-//    lineage = lineage.goBack()
-//    lineage.collect.foreach(println)
-//    lineage.show
+    lc.setCaptureLineage(false)
+    var linRdd = result.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+//    linRdd.show
     sc.stop()
 	}
 }

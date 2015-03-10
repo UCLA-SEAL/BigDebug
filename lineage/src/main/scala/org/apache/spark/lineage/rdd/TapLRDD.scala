@@ -36,15 +36,15 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var recordId: (Short, Short, Int) = (0, 0, 0)
 
+  @transient private[spark] var nextRecord: Int = 0
+
   @transient private var inputIdStore: ListBuffer[Int] = _
 
   @transient private var outputIdStore: ListBuffer[Int] = _
 
-  @transient private[spark] var nextRecord: Int = 0
-
   private[spark] var shuffledData: Lineage[_] = _
 
-  private[spark] def newRecordId = {
+  private[spark] def newRecordId() = {
     nextRecord += 1
     nextRecord
   }
@@ -91,7 +91,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def tap(record: T) = {
     inputIdStore += tContext.currentInputId
-    tContext.currentInputId = newRecordId
+    tContext.currentInputId = newRecordId()
     outputIdStore += tContext.currentInputId
 
     record

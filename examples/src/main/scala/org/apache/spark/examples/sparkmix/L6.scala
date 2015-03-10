@@ -14,13 +14,9 @@
  */
 package org.apache.spark.examples.sparkmix
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import java.util.Properties
-import java.io.{File, FileInputStream}
+import java.io.File
 
-import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.lineage.LineageContext
 
 

@@ -22,6 +22,7 @@ import org.apache.spark.lineage.LAggregator
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
+import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.{HashPartitioner, Partitioner, SparkException}
 
 import scala.language.implicitConversions
@@ -87,6 +88,28 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       .setAggregator(aggregator)
       .asInstanceOf[ShuffledLRDD[K, V, C]]
       .setMapSideCombine(mapSideCombine)
+  }
+
+  /**
+   * Group the values for each key in the RDD into a single sequence. Allows controlling the
+   * partitioning of the resulting key-value pair RDD by passing a Partitioner.
+   * The ordering of elements within each group is not guaranteed, and may even differ
+   * each time the resulting RDD is evaluated.
+   *
+   * Note: This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
+   * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
+   */
+  override def groupByKey(partitioner: Partitioner): Lineage[(K, Iterable[V])] = {
+    // groupByKey shouldn't use map side combine because map side combine does not
+    // reduce the amount of data shuffled and requires all map side data be inserted
+    // into a hash table, leading to more objects in the old gen.
+    val createCombiner = (v: V) => CompactBuffer(v)
+    val mergeValue = (buf: CompactBuffer[V], v: V) => buf += v
+    val mergeCombiners = (c1: CompactBuffer[V], c2: CompactBuffer[V]) => c1 ++= c2
+    val bufs = combineByKey[CompactBuffer[V]](
+      createCombiner, mergeValue, mergeCombiners, partitioner, mapSideCombine = false)
+    bufs.asInstanceOf[Lineage[(K, Iterable[V])]]
   }
 
   /**

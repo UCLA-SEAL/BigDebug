@@ -29,11 +29,11 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var inputIdStore: PrimitiveVector[Int] = _
+  @transient private var inputIdStore: PrimitiveVector[Long] = _
 
-  @transient private var outputIdStore: PrimitiveVector[Long] = _
+  @transient private var outputIdStore: PrimitiveVector[Int] = _
 
-  override def materializeRecordInfo: Array[Any] = outputIdStore.array.zip(inputIdStore.array)
+  override def materializeRecordInfo: Array[Any] = inputIdStore.array.zip(outputIdStore.array)
 
   override def initializeStores = {
     inputIdStore = new PrimitiveVector
@@ -42,8 +42,8 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   override def tap(record: (K, V)) = {
     tContext.currentInputId = newRecordId
-    inputIdStore += tContext.currentInputId
-    outputIdStore += record._1.asInstanceOf[LongWritable].get
+    outputIdStore += tContext.currentInputId
+    inputIdStore += record._1.asInstanceOf[LongWritable].get
 
     record
   }

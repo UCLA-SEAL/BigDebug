@@ -52,7 +52,7 @@ private[spark] class TaskContextImpl(val stageId: Int,
 
   @transient var pool: ThreadPoolExecutor = null // Matteo
 
-  def setPool(pool: ThreadPoolExecutor) = this.pool = pool
+  def setPool(pool: ThreadPoolExecutor) = this.pool = pool // Matteo
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     onCompleteCallbacks += listener

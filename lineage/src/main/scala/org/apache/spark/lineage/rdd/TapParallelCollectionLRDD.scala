@@ -31,18 +31,21 @@ class TapParallelCollectionLRDD[T: ClassTag](
   def this(@transient prev: ParallelCollectionLRDD[_]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var inputIdStore: ListBuffer[(Any, Any)] = null
+  @transient private var inputIdStore: ListBuffer[Any] = null
 
   @transient private var outputIdStore: ListBuffer[Int] = null
 
-  private[spark] def addRecordInfo(key: (Short, Short, Int), value: Seq[(_)]) = {
-    inputIdStore += key -> value
+  override def initializeStores() = {
+    inputIdStore = new ListBuffer
+    outputIdStore = new ListBuffer
   }
 
+  override def materializeRecordInfo: Array[Any] = inputIdStore.zip(outputIdStore).toArray
+
   override def tap(record: T) = {
-    recordId = (id.toShort, splitId, newRecordId)
-    //tContext.currentRecordInfos = Seq(recordId)
-    addRecordInfo(recordId, Seq(record))
+    inputIdStore += record
+    tContext.currentInputId = newRecordId
+    outputIdStore += tContext.currentInputId
 
     record
   }

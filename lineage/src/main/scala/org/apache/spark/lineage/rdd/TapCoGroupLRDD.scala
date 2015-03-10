@@ -18,9 +18,9 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LineageContext, PrimitiveKeyOpenHashMap}
+import org.apache.spark.util.collection.CompactBuffer
 
-import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 private[spark]
@@ -28,28 +28,28 @@ class TapCoGroupLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps)
 {
-  @transient private var inputIdStore: ListBuffer[(Any, Any)] = null
-
-  @transient private var outputIdStore: ListBuffer[Int] = null
-
-  private[spark] def addRecordInfo(key: (Short, Short, Int), value: Seq[(_)]) = {
-    inputIdStore += key -> value
-  }
+  @transient private var inputIdStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = null
 
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
+  override def initializeStores() = inputIdStore = new PrimitiveKeyOpenHashMap
+
+  override def materializeRecordInfo: Array[Any] =
+    inputIdStore.toArray.zipWithIndex.flatMap(
+      r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
+
   override def tap(record: T) = {
-    var trace = List[(Int, Int, Long)]()
-    val iters = for(iter <- record.asInstanceOf[(T, Array[Iterable[_]])]._2) yield({
+    var trace = CompactBuffer[Int]
+    val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Int)]])]
+    val iters = for(iter <- values) yield({
       iter.map(r => {
-        trace = r.asInstanceOf[(T, (Int, Int, Long))]._2 :: trace
-        r.asInstanceOf[(T, (Int, Int, Long))]._1
+        trace += r._2
+        r._1
       })
     })
-    recordId = (id.toShort, splitId, newRecordId)
-    addRecordInfo(recordId, trace)
-    //tContext.currentRecordInfos = Seq(recordId)
+    tContext.currentInputId = newRecordId()
+    inputIdStore.update(key.hashCode, trace)
 
-    (record.asInstanceOf[(T, Array[Iterable[_]])]._1, iters).asInstanceOf[T]
+    (key, iters).asInstanceOf[T]
   }
 }

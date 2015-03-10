@@ -37,9 +37,53 @@ class LAggregator[K, V, C] (
     isLineage: Boolean = false)
   extends Aggregator[K, V, C](createCombiner, mergeValue, mergeCombiners) {
 
+  override def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]], context: TaskContext)
+      : Iterator[(K, C)] = {
+    if (!isSpillEnabled) {
+      val combiners = new AppendOnlyMap[K,C]
+      var kv: Product2[K, V] = null
+      val update = (hadValue: Boolean, oldValue: C) => {
+        if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)
+      }
+      while (iter.hasNext) {
+        kv = iter.next()
+        combiners.changeValue(kv._1, update)
+      }
+      combiners.iterator
+    } else {
+      val combiners = new ExternalAppendOnlyMap[K, V, C](createCombiner, mergeValue, mergeCombiners)
+
+      if(!isLineage) {
+        combiners.insertAll(iter)
+      } else {
+        var pair: Product2[K, Product2[V, Int]] = null
+        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] =
+          new PrimitiveKeyOpenHashMap
+
+        while (iter.hasNext) {
+          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Int]]]
+          combiners.insert(pair._1, pair._2._1)
+          inputStore.changeValue(
+            pair._1.hashCode(),
+            CompactBuffer(pair._2._2),
+            (old: CompactBuffer[Int]) => old += pair._2._2)
+        }
+        context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
+      }
+
+      // Update task metrics if context is not null
+      // TODO: Make context non optional in a future release
+      Option(context).foreach { c =>
+        c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
+        c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
+      }
+      combiners.iterator
+
+    }
+  }
+
   override def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext)
-    : Iterator[(K, C)] =
-  {
+    : Iterator[(K, C)] = {
     if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K,C]
       var kc: Product2[K, C] = null
@@ -60,11 +104,16 @@ class LAggregator[K, V, C] (
         }
       } else {
         var pair: Product2[K, Product2[C, Int]] = null
-        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap
+        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] =
+          new PrimitiveKeyOpenHashMap
+
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[C, Int]]]
           combiners.insert(pair._1, pair._2._1)
-          inputStore.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[Int]) => old += pair._2._2)
+          inputStore.changeValue(
+            pair._1.hashCode(),
+            CompactBuffer(pair._2._2),
+            (old: CompactBuffer[Int]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
       }

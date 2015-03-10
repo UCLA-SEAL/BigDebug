@@ -130,7 +130,7 @@ private[spark] class ExternalSorter[K, V, C](
   // at the end. This avoids doing serialization and deserialization twice to merge together the
   // spilled files, which would happen with the normal code path. The downside is having multiple
   // files open at a time and thus more memory allocated to buffers.
-  private val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 200)
+  private val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 1)
   private val bypassMergeSort =
     (numPartitions <= bypassMergeThreshold && aggregator.isEmpty && ordering.isEmpty)
 
@@ -764,13 +764,6 @@ private[spark] class ExternalSorter[K, V, C](
           val segment = writer.fileSegment()
           lengths(id) = segment.length
         }
-      }
-        // The reduce size requires a certain amount of free heap memory in order to work properly.
-        // If freeMemory is not enough, we call the garbage collector
-      if(context.asInstanceOf[TaskContextImpl].currentInputId != 0 &&
-          Runtime.getRuntime.freeMemory() < 13000000000L) {
-        System.gc()
-        println("GC")
       }
     }
 

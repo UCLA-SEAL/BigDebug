@@ -1,7 +1,8 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.OneToOneDependency
+import org.apache.spark.{Partitioner, OneToOneDependency}
+import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
@@ -63,7 +64,7 @@ trait Lineage[T] extends RDD[T] {
       lineageContext.setCurrentLineagePosition(getTap())
       return getTap().get match {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] => new LineageRDD(getTap().get.map(r => ((0, r.asInstanceOf[((Int), (Int, Int))]._1), r.asInstanceOf[((Int), (Int, Int))]._2)))
-        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => ((r.asInstanceOf[((Int, Int), (_))]._1._1, r.asInstanceOf[((Short, Int), (_))]._1._2), (0:Short, r.asInstanceOf[((_), (Short, Int))]._2._1, r.asInstanceOf[((_), (Short, Int))]._2._2))))
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => ((0, r.asInstanceOf[(Int, Int)]._1), (0, r.asInstanceOf[(Int, Int)]._2))))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -282,6 +283,33 @@ trait Lineage[T] extends RDD[T] {
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =
     new FlatMappedLRDD[U, T](this, lineageContext.sparkContext.clean(f))
+
+  /**
+   * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
+   * mapping to that key. The ordering of elements within each group is not guaranteed, and
+   * may even differ each time the resulting RDD is evaluated.
+   *
+   * Note: This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
+   * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
+   */
+  override def groupBy[K](f: T => K)(implicit kt: ClassTag[K]): Lineage[(K, Iterable[T])] =
+    groupBy[K](f, defaultPartitioner(this))
+
+  /**
+   * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
+   * mapping to that key. The ordering of elements within each group is not guaranteed, and
+   * may even differ each time the resulting RDD is evaluated.
+   *
+   * Note: This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
+   * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
+   */
+  override def groupBy[K](f: T => K, p: Partitioner)(implicit kt: ClassTag[K], ord: Ordering[K] = null)
+  : Lineage[(K, Iterable[T])] = {
+    val cleanF = lineageContext.sparkContext.clean(f)
+    this.map(t => (cleanF(t), t)).groupByKey(p)
+  }
 
   /**
    * Return a new Lineage by applying a function to all elements of this Lineage.

@@ -45,29 +45,29 @@ object SparkWordCount {
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    //counts.collect().foreach(println)
-    print(counts.count())
+    counts.collect().foreach(println)
+    //print(counts.count())
 
     // Get the lineage
-//    lc.setCaptureLineage(false)
-//    var lin = counts.getLineage()
-//    lin.collect.foreach(println)
+    lc.setCaptureLineage(false)
+    var linRdd = counts.getLineage()
+    linRdd.collect.foreach(println)
 //    //lineage.dumpTrace
-//    lin = lin.filter(r => r.equals(0,0,95))
+//    linRdd = linRdd.filter(r => r.equals(0,95))
 //    lin.collect.foreach(println)
 //    lin.show
 //    //lineage = show.getLineage()
-//    lin = lin.goBack()
-//    lin.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
 //    lin.show
 //    //lineage = show.getLineage()
 //    //var show = lineage.show().filter(r => r.equals("(programs,1)"))
 //    //show.collect.foreach(println)
 //    //lineage = show.getLineage.goNext()
 //    //lineage.show
-//    lin = lin.goBack()
-//    lin.collect.foreach(println)
-//    lin.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
 //    //lineage = show.getLineage()
 //    lin.collect.foreach(println)
 //    lin = lin.goNext()

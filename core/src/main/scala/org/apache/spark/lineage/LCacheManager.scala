@@ -33,9 +33,16 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
 //
   def initMaterialization[T](
       rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
-    ) = underMaterialization.synchronized {
-    underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
+    ) = {
+    // The reduce size requires a certain amount of free heap memory in order to work properly.
+    // If freeMemory is not enough, we call the garbage collector
+  if(Runtime.getRuntime.freeMemory() < 13000000000L) {
+    //blockManager.runGc
   }
+    underMaterialization.synchronized {
+      underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
+  }
+}
 
   def materialize(
       split: Int,
@@ -54,7 +61,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
              } catch {
                case e: Exception => println(e)
              } finally {
-               //table._1.cleanTable
                underMaterialization.synchronized {
                  underMaterialization.remove(table)
                }
@@ -76,7 +82,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       rdd: RDD[_],
       split: Int, context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
-    //materialize(split, context, effectiveStorageLevel)
+    materialize(split, context, effectiveStorageLevel)
     //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
   }
 }
