@@ -12,7 +12,7 @@ if [ -f $TMP/newtp.pid ]; then
     fi
 fi
 
-java -cp $NEWT_HOME/newt.jar:$NEWT_HOME/lib/* newt.server.NewtServer noclean peer &> $TMP/peer.log &
+java -cp $NEWT_HOME/newt.jar:$NEWT_HOME/lib/* newt.server.NewtServer clean peer &> $TMP/peer.log &
 pid=$!
 echo $pid
 echo $pid > $TMP/newtp.pid

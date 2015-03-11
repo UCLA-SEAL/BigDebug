@@ -24,6 +24,7 @@
     <orderEntry type="library" name="SBT: com.google.guava:guava:14.0.1:jar" level="project" />
     <orderEntry type="library" name="SBT: org.spark-project.spark:unused:1.0.0:jar" level="project" />
     <orderEntry type="library" name="lib" level="project" />
+
     <orderEntry type="module-library">
       <library name="SBT: unmanaged-jars">
         <CLASSES>

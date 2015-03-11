@@ -726,7 +726,8 @@ public class NewtHandler extends HessianServlet implements NewtService {
                 final String filename = table;
                 final String newfilename = table + "_final";
                 String tempDir = Utilities.GetTempDirectory();
-                final String update = "load data infile '" + tempDir + "/Newt/" + newfilename + "' into table Newt." + table 
+                //TODO Ksh: Added local to the query below , weird bug related to Ubuntu
+                final String update = "load data local infile '" + tempDir + "/Newt/" + newfilename + "' into table Newt." + table
                                       + " fields terminated by '" + NewtState.fieldTerminator + "' lines terminated by '" 
                 		              + NewtState.lineTerminator + "'";
 
