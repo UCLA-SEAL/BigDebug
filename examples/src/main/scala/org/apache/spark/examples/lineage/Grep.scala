@@ -37,7 +37,8 @@ object Grep {
     linRdd.collect().foreach(println)
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)
-//    linRdd.show
+    linRdd.show
+    linRdd = linRdd.goNext()
     sc.stop()
 	}
 }

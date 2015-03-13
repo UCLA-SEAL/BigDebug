@@ -17,12 +17,8 @@
  */
 package org.apache.spark.examples.sparkmix
 
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import java.util.Properties
-import java.io.{File, FileInputStream}
-
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 
@@ -30,26 +26,22 @@ import org.apache.spark.lineage.LineageContext._
 object L4 {
   def main(args: Array[String]) {
 
-    val properties = SparkMixUtils.loadPropertiesFile()
-
     val dataSize = args(0)
     val lineage: Boolean = args(1).toBoolean
 
-    val pigMixPath = properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
-    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
+    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
 
-    new File(outputRoot).mkdir()
-
-    val conf = new SparkConf().setAppName("SparkMix").setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+    val conf = new SparkConf()
+      .setAppName("SparkMix")
+      .setMaster("local[2]")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
-    val pageViews = lc.textFile(pageViewsPath)
 
     lc.setCaptureLineage(lineage)
 
-    val start = System.currentTimeMillis()
+    val pageViews = lc.textFile(pageViewsPath)
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0),
       SparkMixUtils.safeSplit(x, "\u0001", 1), SparkMixUtils.safeSplit(x, "\u0001", 2),
@@ -60,17 +52,16 @@ object L4 {
 
     val B = A.map(x => (x._1, x._2))
 
-    val C = B.groupByKey(properties.getProperty("PARALLEL").toInt)
+    val C = B.groupByKey()
 
     val D = C.mapValues(_.toSet.size)
-
-    val end = System.currentTimeMillis()
 
     D.collect
 
     lc.setCaptureLineage(false)
 
-    println(end - start)
+    //    var linRdd = C.getLineage()
+    //    linRdd.collect().foreach(println)
 
     sc.stop()
 

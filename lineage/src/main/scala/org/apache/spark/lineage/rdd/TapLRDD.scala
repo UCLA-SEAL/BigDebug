@@ -59,7 +59,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
-  override def materializeRecordInfo: Array[Any] = inputIdStore.zip(outputIdStore).toArray
+  override def materializeRecordInfo: Array[Any] = outputIdStore.zip(inputIdStore).toArray
 
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {

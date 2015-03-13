@@ -63,8 +63,9 @@ trait Lineage[T] extends RDD[T] {
     if(getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(getTap())
       return getTap().get match {
-        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] => new LineageRDD(getTap().get.map(r => ((0, r.asInstanceOf[((Int), (Int, Int))]._1), r.asInstanceOf[((Int), (Int, Int))]._2)))
-        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => ((0, r.asInstanceOf[(Int, Int)]._1), (0, r.asInstanceOf[(Int, Int)]._2))))
+        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] =>
+          new LineageRDD(getTap().get.map(r => ((r.asInstanceOf[((Int), (Int, Int))]._1), r.asInstanceOf[((Int), (Int, Int))]._2)))
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => (r.asInstanceOf[(Int, Int)]._1, r.asInstanceOf[(Int, Int)]._2)))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")

@@ -35,8 +35,13 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
 
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
-  override def materializeRecordInfo: Array[Any] = inputIdStore.iterator.map(r =>
-      new Tuple2(new Tuple2(PackShortIntoInt(tContext.stageId, splitId), r._1), inputIdStore2(r._2 -1))).toArray
+  override def materializeRecordInfo: Array[Any] =
+    inputIdStore.iterator.map(r =>
+      new Tuple2(
+        new Tuple2(
+          PackShortIntoInt(tContext.stageId, splitId), r._1)
+        , inputIdStore2(r._2 -1))
+    ).toArray
 
   override def initializeStores() = {
     inputIdStore = new PrimitiveKeyOpenHashMap

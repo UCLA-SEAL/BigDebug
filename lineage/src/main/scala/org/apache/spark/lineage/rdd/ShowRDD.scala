@@ -50,7 +50,7 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
   override def getLineage(): LineageRDD = {
     val position = prev.lineageContext.getCurrentLineagePosition.get
     position match {
-      case _: TapParallelCollectionLRDD[_] => new LineageRDD(position)
+      case _: TapParallelCollectionLRDD[_] => new LineageRDD(position.asInstanceOf[Lineage[(_, _)]])
       case _ => {
         var right = position
         val shuffled: Lineage[(RecordId, Any)] = position match {
@@ -74,7 +74,7 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
           case _: TapCoGroupLRDD[_] => join.map(r => (r._2, r._1)).cache()
           case _ => join.cache()
         }
-        new LineageRDD(join)
+        new LineageRDD(join.asInstanceOf[Lineage[(Any, Any)]])
       }
     }
   }

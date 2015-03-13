@@ -2,7 +2,7 @@
  * Created by shrinidhihudli on 2/4/15.
  *
  * -- This script tests reading from a map, flattening a bag of maps, and use of bincond.
- *    register $PIGMIX_JAR
+ *    register $PIGMIX_JAR (register /home/clash/pig-0.14.0/test/perf/pigmix/pigmix.jar)
  *    A = load '$HDFS_ROOT/page_views' using org.apache.pig.test.pigmix.udf.PigPerformanceLoader()
  *        as (user, action, timespent, query_term, ip_addr, timestamp, estimated_revenue, page_info, page_links);
  *    B = foreach A generate user, (int)action as action, (map[])page_info as page_info,
@@ -57,7 +57,7 @@ object L1 {
 
     val E = D.map(x => (x._1, x._2.size))
 
-    E.collect
+    E.collect.foreach(println)
 
     lc.setCaptureLineage(false)
 
