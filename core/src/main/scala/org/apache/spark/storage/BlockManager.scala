@@ -1216,25 +1216,6 @@ private[spark] class BlockManager(
     broadcastCleaner.cancel()
     logInfo("BlockManager stopped")
   }
-
-  // Matteo
-  private var gcRunned: Boolean = false
-
-  private var gcCount: Int = 0
-
-  def runGc() = synchronized {
-    if(!gcRunned) {
-      gcRunned = true
-//      gcCount = 0
-      System.gc()
-      println("GC")
-//    } else {
-//      gcCount += 1
-//      if(gcCount > 56) {
-//        gcRunned = false
-//      }
-    }
-  }
 }
 
 

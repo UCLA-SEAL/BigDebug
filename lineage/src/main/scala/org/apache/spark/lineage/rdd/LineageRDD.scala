@@ -195,11 +195,11 @@ extends RDD[Any](prev) with Lineage[Any]
         case _: TapHadoopLRDD[_, _] =>
           result = new ShowRDD(
             join3Way(
-              prev.map(r => r._1).asInstanceOf[Lineage[(Int, Int)]],
+              prev.map(r => (0, r._1)).asInstanceOf[Lineage[(Int, Int)]],
               position.get.asInstanceOf[Lineage[(Long, Int)]],
               position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                 .map(r=> (r._1.get(), r._2.toString))
-            ).map(r => (r._1, r._2)).cache() // Added dummy id. To be removed
+            ).map(r => ((0, r._1), r._2)).cache() // Added dummy id. To be removed
           )
         case _: TapParallelCollectionLRDD[_] =>
           result = new ShowRDD(

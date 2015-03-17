@@ -66,6 +66,14 @@ private[spark] class ShuffleMapTask(
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
+
+      // The reduce size requires a certain amount of free heap memory in order to work properly.
+      // If freeMemory is not enough, we call the garbage collector
+      // Matteo
+      if(Runtime.getRuntime.freeMemory() < 9000000000L) {
+        System.gc()
+      }
+
       return writer.stop(success = true).get
     } catch {
       case e: Exception =>

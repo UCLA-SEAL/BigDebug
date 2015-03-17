@@ -19,7 +19,6 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.{LineageContext, PrimitiveKeyOpenHashMap}
-import org.apache.spark.util.PackShortIntoInt
 import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.ArrayBuffer
@@ -35,17 +34,22 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
 
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
-  override def materializeRecordInfo: Array[Any] =
-    inputIdStore.iterator.map(r =>
-      new Tuple2(
-        new Tuple2(
-          PackShortIntoInt(tContext.stageId, splitId), r._1)
-        , inputIdStore2(r._2 -1))
-    ).toArray
+  override def materializeRecordInfo: Array[Any] = {
+    inputIdStore = null
+    inputIdStore2.clear()
+    inputIdStore2 = null
+    Array()
+  }
+//    inputIdStore.iterator.map(r =>
+//      new Tuple2(
+//        new Tuple2(
+//          PackIntIntoLong(tContext.stageId, splitId), r._1)
+//        , inputIdStore2(r._2 -1))
+//    ).toArray
 
   override def initializeStores() = {
-    inputIdStore = new PrimitiveKeyOpenHashMap
-    inputIdStore2 = new ArrayBuffer(1)
+    inputIdStore = new PrimitiveKeyOpenHashMap(2097152)
+    inputIdStore2 = new ArrayBuffer(2097152)
   }
 
   override def tap(record: T) = {

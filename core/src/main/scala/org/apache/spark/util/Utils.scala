@@ -1911,12 +1911,12 @@ private[spark] class RedirectThread(
 }
 
 // Matteo
-object PackShortIntoInt {
-  private final val RIGHT: Int = 0xFFFF;
+object PackIntIntoLong {
+  private final val RIGHT: Long = 0xFFFFFFFFL
 
-  def apply(left: Int, right: Int) = (left << 16) | (right & RIGHT);
+  def apply(left: Int, right: Int) = left.toLong << 32 | right & 0xFFFFFFFFL
 
-  def getLeft(value: Int): Int = value >>> 16 // >>> operator 0-fills from left
+  def getLeft(value: Long): Int = (value >>> 32).toInt // >>> operator 0-fills from left
 
-  def getRight(value: Int): Int = value & RIGHT
+  def getRight(value: Long): Int = (value & RIGHT).toInt
 }

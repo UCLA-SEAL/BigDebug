@@ -56,17 +56,17 @@ class LAggregator[K, V, C] (
       if(!isLineage) {
         combiners.insertAll(iter)
       } else {
-        var pair: Product2[K, Product2[V, Int]] = null
-        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] =
-          new PrimitiveKeyOpenHashMap
+        var pair: Product2[K, Product2[V, Long]] = null
+        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
+          new PrimitiveKeyOpenHashMap(2097152)
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Int]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
           combiners.insert(pair._1, pair._2._1)
           inputStore.changeValue(
             pair._1.hashCode(),
             CompactBuffer(pair._2._2),
-            (old: CompactBuffer[Int]) => old += pair._2._2)
+            (old: CompactBuffer[Long]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
       }
@@ -103,17 +103,17 @@ class LAggregator[K, V, C] (
           combiners.insert(pair._1, pair._2)
         }
       } else {
-        var pair: Product2[K, Product2[C, Int]] = null
-        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] =
-          new PrimitiveKeyOpenHashMap
+        var pair: Product2[K, Product2[C, Long]] = null
+        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
+          new PrimitiveKeyOpenHashMap(2097152)
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[C, Int]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[C, Long]]]
           combiners.insert(pair._1, pair._2._1)
           inputStore.changeValue(
             pair._1.hashCode(),
             CompactBuffer(pair._2._2),
-            (old: CompactBuffer[Int]) => old += pair._2._2)
+            (old: CompactBuffer[Long]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
       }

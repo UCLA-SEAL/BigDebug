@@ -33,16 +33,9 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
 //
   def initMaterialization[T](
       rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
-    ) = {
-    // The reduce size requires a certain amount of free heap memory in order to work properly.
-    // If freeMemory is not enough, we call the garbage collector
-  if(Runtime.getRuntime.freeMemory() < 13000000000L) {
-    //blockManager.runGc
-  }
-    underMaterialization.synchronized {
+    ) = underMaterialization.synchronized {
       underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
   }
-}
 
   def materialize(
       split: Int,
@@ -53,19 +46,19 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
          val t = new Runnable() {
            override def run() {
              val key = RDDBlockId(table._1.id, split)
-             val arr = table._1.materializeRecordInfo.clone()
-             try {
-               updatedBlocks ++=
-                 blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-               logInfo(s"Trying to materialize Block $key")
-             } catch {
-               case e: Exception => println(e)
-             } finally {
+             val arr = table._1.materializeRecordInfo//.clone()
+//             try {
+//               updatedBlocks ++=
+//                 blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
+//               logInfo(s"Trying to materialize Block $key")
+//             } catch {
+//               case e: Exception => println(e)
+             //} finally {
                underMaterialization.synchronized {
                  underMaterialization.remove(table)
                }
-               logInfo(s"Block $key materialized")
-             }
+               //logInfo(s"Block $key materialized")
+             //}
            }
          }
 
@@ -84,5 +77,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
     materialize(split, context, effectiveStorageLevel)
     //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
+
   }
 }

@@ -17,8 +17,9 @@
 
 package org.apache.spark.util.collection
 
-import scala.reflect._
 import com.google.common.hash.Hashing
+
+import scala.reflect._
 
 /**
  * A simple, fast hash set optimized for non-null insertion-only use case, where keys are never
@@ -48,7 +49,7 @@ class OpenHashSet[@specialized(Long, Int) T: ClassTag](
   require(loadFactor < 1.0, "Load factor must be less than 1.0")
   require(loadFactor > 0.0, "Load factor must be greater than 0.0")
 
-  import OpenHashSet._
+  import org.apache.spark.util.collection.OpenHashSet._
 
   def this(initialCapacity: Int) = this(initialCapacity, 0.7)
 

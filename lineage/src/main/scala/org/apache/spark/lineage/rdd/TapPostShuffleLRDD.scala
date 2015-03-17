@@ -30,9 +30,12 @@ class TapPostShuffleLRDD[T: ClassTag](
 {
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def materializeRecordInfo: Array[Any] =
-    tContext.currentInputStore.toArray.zipWithIndex.flatMap(
-      r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
+  override def materializeRecordInfo: Array[Any] = {
+    tContext.currentInputStore = null
+    Array()
+  }
+//    tContext.currentInputStore.toArray.zipWithIndex.flatMap(
+//      r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId

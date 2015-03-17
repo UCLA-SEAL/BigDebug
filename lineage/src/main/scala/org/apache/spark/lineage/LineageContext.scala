@@ -30,6 +30,7 @@ import scala.reflect.ClassTag
 
 object LineageContext {
   type RecordId = (Int, Int)
+  type RecordIdNew = (Long, Int)
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 

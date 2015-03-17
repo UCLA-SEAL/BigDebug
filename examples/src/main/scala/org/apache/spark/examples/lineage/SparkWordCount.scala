@@ -25,8 +25,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
-    var lineage = false
-    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/"
+    var lineage = true
+    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/size-200000000000"
     if(args.size < 2) {
       //logFile = "../../datasets/output.txt"
       //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"

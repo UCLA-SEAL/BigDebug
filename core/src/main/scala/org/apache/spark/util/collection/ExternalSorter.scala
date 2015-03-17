@@ -25,7 +25,7 @@ import org.apache.spark._
 import org.apache.spark.executor.ShuffleWriteMetrics
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
-import org.apache.spark.util.PackShortIntoInt
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -757,7 +757,7 @@ private[spark] class ExternalSorter[K, V, C](
             for (elem <- elements) {
               writer.write(
                 new Tuple2(elem._1,
-                  new Tuple2(elem._2, PackShortIntoInt(context.stageId, context.partitionId))))
+                  new Tuple2(elem._2, PackIntIntoLong(context.stageId, context.partitionId))))
             }
           }
           writer.commitAndClose()
