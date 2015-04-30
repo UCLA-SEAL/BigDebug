@@ -20,8 +20,7 @@ package org.apache.spark
 import java.util.concurrent.ThreadPoolExecutor
 
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.lineage.PrimitiveKeyOpenHashMap
-import org.apache.spark.util.collection.CompactBuffer
+import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 import org.apache.spark.util.{TaskCompletionListener, TaskCompletionListenerException}
 
 import scala.collection.mutable.ArrayBuffer

@@ -50,7 +50,7 @@ class HadoopLRDD[K, V](
       keyClass: Class[K],
       valueClass: Class[V],
       minPartitions: Int
-  ) = { this(
+  ) = this(
       lc,
       lc.sparkContext.broadcast(new SerializableWritable(conf))
         .asInstanceOf[Broadcast[SerializableWritable[Configuration]]],
@@ -60,7 +60,6 @@ class HadoopLRDD[K, V](
       valueClass,
       minPartitions
     )
-  }
 
   override def ttag = classTag[(K, V)]
 

@@ -63,9 +63,10 @@ trait Lineage[T] extends RDD[T] {
     if(getTap().isDefined) {
       lineageContext.setCurrentLineagePosition(getTap())
       return getTap().get match {
-        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] | _: TapHadoopLRDD[_, _] =>
-          new LineageRDD(getTap().get.map(r => ((r.asInstanceOf[((Int), (Int, Int))]._1), r.asInstanceOf[((Int), (Int, Int))]._2)))
-        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => (r.asInstanceOf[(Int, Int)]._1, r.asInstanceOf[(Int, Int)]._2)))
+        case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
+          new LineageRDD(getTap().get.map(r => (r.asInstanceOf[((Int), (Int, Int))])))
+        case tap: TapHadoopLRDD[_, _] => new LineageRDD(tap.map(r => (r.asInstanceOf[(Long, Int)])).map(r => (r._2, r._1)))
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => r.asInstanceOf[(Int, Int)]))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -127,6 +128,24 @@ trait Lineage[T] extends RDD[T] {
         val hashSet = new java.util.HashSet[(Int, Int)]()
         var rowKey: (Int, Int) = null
 
+        // Create a Hash set of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()._1
+          val keyExists = hashSet.contains(rowKey)
+          if (!keyExists) {
+            hashSet.add(rowKey)
+          }
+        }
+
+        streamIter.filter(current => { hashSet.contains(current._1) })
+    }
+  }
+
+  private[spark] def rightJoinSuperShort(prev: Lineage[(Int, Any)], next: Lineage[((Int, Int), Any)]) = {
+    prev.zipPartitions(next) {
+      (buildIter, streamIter) =>
+        val hashSet = new java.util.HashSet[Int]()
+        var rowKey: Int = null.asInstanceOf[Int]
 
         // Create a Hash set of buildKeys
         while (buildIter.hasNext) {

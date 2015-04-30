@@ -29,13 +29,11 @@ import scala.reflect._
  * Under the hood, it uses our OpenHashSet implementation.
  */
 private[spark]
-class PrimitiveKeyOpenHashMap[@specialized(Long, Int) K: ClassTag,
+class PrimitiveKeyIncrementalValueOpenHashMap[@specialized(Long, Int) K: ClassTag,
                               @specialized(Long, Int, Double) V: ClassTag](
-    initialCapacity: Int)
+    initialValue: V, increment: (V) => V, initialCapacity: Int = 2097152)
   extends Iterable[(K, V)]
   with Serializable {
-
-  def this() = this(64)
 
   require(classTag[K] == classTag[Long] || classTag[K] == classTag[Int])
 
@@ -48,66 +46,27 @@ class PrimitiveKeyOpenHashMap[@specialized(Long, Int) K: ClassTag,
 
   private var _oldValues: Array[V] = null
 
-  override def size = _keySet.size
-
-  /** Get the value for a given key */
-  def apply(k: K): V = {
-    val pos = _keySet.getPos(k)
-    _values(pos)
-  }
-
-  /** Get the value for a given key, or returns elseValue if it doesn't exist. */
-  def getOrElse(k: K, elseValue: V): V = {
-    val pos = _keySet.getPos(k)
-    if (pos >= 0) _values(pos) else elseValue
-  }
-
-  /** Set the value for a key */
-  def update(k: K, v: V) {
-    val pos = _keySet.addWithoutResize(k) & OpenHashSet.POSITION_MASK
-    _values(pos) = v
-    _keySet.rehashIfNeeded(k, grow, move)
-    _oldValues = null
-  }
-
-  private[spark] var nextRecord: Int = 0
+  private var nextRecord: V = initialValue
 
   private[spark] def newRecordId = {
-    nextRecord += 1
+    nextRecord = increment(nextRecord)
     nextRecord
   }
+
+  override def size = _keySet.size
 
   /** Set an incremental value for a key */
   def update(k: K): V = {
     val pos = _keySet.addWithoutResize(k) & OpenHashSet.POSITION_MASK
     val old = _values(pos)
     if(old == 0) {
-      val index = newRecordId.asInstanceOf[V]
+      val index = newRecordId
       _values(pos) = index
       _keySet.rehashIfNeeded(k, grow, move)
       _oldValues = null
       index
     } else {
       old
-    }
-  }
-
-  /**
-   * If the key doesn't exist yet in the hash map, set its value to defaultValue; otherwise,
-   * set its value to mergeValue(oldValue).
-   *
-   * @return the newly updated value.
-   */
-  def changeValue(k: K, defaultValue: => V, mergeValue: (V) => V): V = {
-    val pos = _keySet.addWithoutResize(k)
-    if ((pos & OpenHashSet.NONEXISTENCE_MASK) != 0) {
-      val newValue = defaultValue
-      _values(pos & OpenHashSet.POSITION_MASK) = newValue
-      _keySet.rehashIfNeeded(k, grow, move)
-      newValue
-    } else {
-      _values(pos) = mergeValue(_values(pos))
-      _values(pos)
     }
   }
 

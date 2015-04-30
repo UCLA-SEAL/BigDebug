@@ -47,18 +47,18 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
            override def run() {
              val key = RDDBlockId(table._1.id, split)
              val arr = table._1.materializeRecordInfo//.clone()
-//             try {
-//               updatedBlocks ++=
-//                 blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-//               logInfo(s"Trying to materialize Block $key")
-//             } catch {
-//               case e: Exception => println(e)
-             //} finally {
+             try {
+               updatedBlocks ++=
+                 blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
+               logInfo(s"Trying to materialize Block $key")
+             } catch {
+               case e: Exception => println(e)
+           } finally {
                underMaterialization.synchronized {
                  underMaterialization.remove(table)
                }
-               //logInfo(s"Block $key materialized")
-             //}
+               logInfo(s"Block $key materialized")
+             }
            }
          }
 

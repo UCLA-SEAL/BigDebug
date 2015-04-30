@@ -22,18 +22,17 @@ import java.lang.management.ManagementFactory
 import java.nio.ByteBuffer
 import java.util.concurrent._
 
-import scala.collection.JavaConversions._
-import scala.collection.mutable.{ArrayBuffer, HashMap}
-import scala.util.control.NonFatal
-
-import akka.actor.{Props, ActorSystem}
-
+import akka.actor.{ActorSystem, Props}
 import org.apache.spark._
 import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.scheduler._
 import org.apache.spark.shuffle.FetchFailedException
 import org.apache.spark.storage.{StorageLevel, TaskResultBlockId}
-import org.apache.spark.util.{SparkUncaughtExceptionHandler, AkkaUtils, Utils}
+import org.apache.spark.util.{AkkaUtils, SparkUncaughtExceptionHandler, Utils}
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{ArrayBuffer, HashMap}
+import scala.util.control.NonFatal
 
 /**
  * Spark executor used with Mesos, YARN, and the standalone scheduler.
@@ -121,8 +120,6 @@ private[spark] class Executor(
 
   // Maintains the list of running tasks.
   private val runningTasks = new ConcurrentHashMap[Long, TaskRunner]
-
-  //val pool: ExecutorService = Executors.newCachedThreadPool() //Matteo
 
   startDriverHeartbeater()
 

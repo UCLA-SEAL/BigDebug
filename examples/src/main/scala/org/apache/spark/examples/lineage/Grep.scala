@@ -26,19 +26,48 @@ object Grep {
     conf.setAppName("Grep-" + lineage + "-" + logFile)
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
+
     lc.setCaptureLineage(lineage)
+
+    // Job
     val lines = lc.textFile(logFile, 2)
     val result = lines.filter(line => line.contains("spark"))
-    //print(result.count())
 		println(result.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
+
+    // Full Trace backward
     var linRdd = result.getLineage()
     linRdd.collect().foreach(println)
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)
     linRdd.show
+
+    // Trace backward one record
+    linRdd = result.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(0)
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full Trace forward
+    linRdd = lines.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show()
     linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+
+    // Trace forward one record
+    linRdd = lines.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show()
+    linRdd = linRdd.filter(9)
+    linRdd.collect.foreach(println)
+    linRdd.show()
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
     sc.stop()
 	}
 }

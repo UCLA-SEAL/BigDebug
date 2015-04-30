@@ -26,7 +26,7 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
-    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/size-200000000000"
+    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/"
     if(args.size < 2) {
       //logFile = "../../datasets/output.txt"
       //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
@@ -54,12 +54,12 @@ object SparkWordCount {
 //    linRdd.collect.foreach(println)
 //    //lineage.dumpTrace
 //    linRdd = linRdd.filter(r => r.equals(0,95))
-//    lin.collect.foreach(println)
-//    lin.show
+//    linRdd.collect.foreach(println)
+//    linRdd.show
 //    //lineage = show.getLineage()
 //    linRdd = linRdd.goBack()
 //    linRdd.collect.foreach(println)
-//    lin.show
+//    linRdd.show
 //    //lineage = show.getLineage()
 //    //var show = lineage.show().filter(r => r.equals("(programs,1)"))
 //    //show.collect.foreach(println)
@@ -69,14 +69,14 @@ object SparkWordCount {
 //    linRdd.collect.foreach(println)
 //    linRdd.show
 //    //lineage = show.getLineage()
-//    lin.collect.foreach(println)
-//    lin = lin.goNext()
-//    lin.collect.foreach(println)
-//    lin.show
-//    lin = lin.goNext()
-//    lin.collect.foreach(println)
-//    lin.show
-    //lineage = show.getLineage()
-    sc.stop()
+//    linRdd.collect.foreach(println)
+//    linRdd = linRdd.goNext()
+//    linRdd.collect.foreach(println)
+//    linRdd.show
+//    linRdd = linRdd.goNext()
+//    linRdd.collect.foreach(println)
+//    linRdd.show
+//    //lineage = show.getLineage()
+//    sc.stop()
   }
 }

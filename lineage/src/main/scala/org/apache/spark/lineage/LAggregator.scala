@@ -18,7 +18,7 @@
 package org.apache.spark.lineage
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{AppendOnlyMap, CompactBuffer, ExternalAppendOnlyMap}
+import org.apache.spark.util.collection.{PrimitiveKeyOpenHashMap, AppendOnlyMap, CompactBuffer, ExternalAppendOnlyMap}
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
 /**
@@ -58,7 +58,7 @@ class LAggregator[K, V, C] (
       } else {
         var pair: Product2[K, Product2[V, Long]] = null
         val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
-          new PrimitiveKeyOpenHashMap(2097152)
+          new PrimitiveKeyOpenHashMap()
 
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
@@ -105,7 +105,7 @@ class LAggregator[K, V, C] (
       } else {
         var pair: Product2[K, Product2[C, Long]] = null
         val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
-          new PrimitiveKeyOpenHashMap(2097152)
+          new PrimitiveKeyOpenHashMap
 
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[C, Long]]]

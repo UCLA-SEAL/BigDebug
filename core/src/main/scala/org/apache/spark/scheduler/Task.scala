@@ -21,13 +21,12 @@ import java.io.{ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
 import java.util.concurrent.ThreadPoolExecutor
 
-import scala.collection.mutable.HashMap
-
-import org.apache.spark.{TaskContextHelper, TaskContextImpl, TaskContext}
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.serializer.SerializerInstance
-import org.apache.spark.util.ByteBufferInputStream
-import org.apache.spark.util.Utils
+import org.apache.spark.util.{ByteBufferInputStream, Utils}
+import org.apache.spark.{TaskContext, TaskContextHelper, TaskContextImpl}
+
+import scala.collection.mutable.HashMap
 
 
 /**

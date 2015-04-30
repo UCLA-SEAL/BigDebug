@@ -40,12 +40,15 @@ extends RDD[Any](prev) with Lineage[Any]
   override def compute(split: Partition, context: TaskContext) =
     firstParent[(Any, Any)].iterator(split, context).map(r => r._1)
 
+  var prevResult = Array[(Int, (Any, Any))]()
+
   override def collect(): Array[Any] =
   {
-    val results = prev.context.runJob(
-      prev.map(r => r._1), (iter: Iterator[Any]) => iter.toArray.distinct
+    val result = prev.context.runJob(
+      prev, (iter: Iterator[(Any, Any)]) => iter.toArray.distinct
     )
-    Array.concat(results: _*)
+    prevResult = Array.concat(result: _*).zipWithIndex.map(r => (r._2, r._1))
+    prevResult.map(r => (r._1, r._2._1))
   }
 
   override def filter(f: (Any) => Boolean): LineageRDD =
@@ -53,32 +56,46 @@ extends RDD[Any](prev) with Lineage[Any]
     new LineageRDD(firstParent[(Any, Any)].filter(r => f(r._1)).cache())
   }
 
+  def filter(f: Int): LineageRDD =
+  {
+    val values = prevResult.filter(r => r._1 == f).map(_._2)
+    new LineageRDD(firstParent[(Any, Any)].filter(r => values.contains(r)).cache())
+  }
+
   def dump: RDD[(Any, Any)] = prev
 
   def goNext(): LineageRDD =
   {
     val next = prev.lineageContext.getForward
-    var shuffled: Lineage[(_, _)] = prev.lineageContext.getCurrentLineagePosition.get match {
+    val shuffled: Lineage[(_, _)] = prev.lineageContext.getCurrentLineagePosition.get match {
       case _: TapPostShuffleLRDD[_] =>
         val part = new LocalityAwarePartitioner(next.partitions.size)
         new ShuffledLRDD[Any, Any, Any](prev, part).setMapSideCombine(false)
       case _ => prev
     }
 
-    if(prev.lineageContext.getCurrentLineagePosition.get.isInstanceOf[TapPostShuffleLRDD[_]]) {
-      new LineageRDD(
-        rightJoin(shuffled, next)
-          .map(r => (r._2, r._1))
-          .asInstanceOf[Lineage[(Any, Any)]]
-          .cache()
-      )
-    } else {
-      new LineageRDD(
-        rightJoinShort(shuffled.map(r => ((r._1.asInstanceOf[(Int, Int)]._1, r._1.asInstanceOf[(Int, Int)]._2), r._2)), next)
-          .map(r => (r._2, r._1))
-          .asInstanceOf[Lineage[(Any, Any)]]
-          .cache()
-      )
+    prev.lineageContext.getCurrentLineagePosition.get match {
+      case _: TapPostShuffleLRDD[_] =>
+        new LineageRDD(
+          rightJoin(shuffled, next)
+            .map(r => (r._2, r._1))
+            .asInstanceOf[Lineage[(Any, Any)]]
+            .cache()
+        )
+      case _: TapLRDD[_] =>
+        new LineageRDD(
+          rightJoinSuperShort(shuffled.map(r => r.asInstanceOf[(Int, Any)]), next)
+            .map(r => (r._2, r._1))
+            .asInstanceOf[Lineage[(Any, Any)]]
+            .cache()
+        )
+      case _ => // Check this
+        new LineageRDD(
+          rightJoinShort(shuffled.map(r => ((r._1.asInstanceOf[(Int, Int)]._1, r._1.asInstanceOf[(Int, Int)]._2), r._2)), next)
+            .map(r => (r._2, r._1))
+            .asInstanceOf[Lineage[(Any, Any)]]
+            .cache()
+        )
     }
   }
 

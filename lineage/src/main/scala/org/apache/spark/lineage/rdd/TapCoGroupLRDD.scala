@@ -18,8 +18,8 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.{LineageContext, PrimitiveKeyOpenHashMap}
-import org.apache.spark.util.collection.CompactBuffer
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 
 import scala.reflect.ClassTag
 

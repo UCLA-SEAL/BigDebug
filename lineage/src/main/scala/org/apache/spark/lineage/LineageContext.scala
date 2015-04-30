@@ -49,8 +49,9 @@ class LineageContext(@transient val sparkContext: SparkContext)
    * Hadoop-supported file system URI, and return it as an RDD of Strings.
    */
   def textFile(path: String, minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
-    hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
-      minPartitions).map(pair => pair._2.toString).setName(path)
+    val tmpRdd = hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
+      minPartitions)
+    tmpRdd.map(pair => pair._2.toString).setName(path).setTap(tmpRdd)
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -195,6 +196,10 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def getCurrentLineagePosition = currentLineagePosition
 
   def setCurrentLineagePosition(initialRDD: Option[Lineage[_]]) = {
+    // Cleaning up
+    prevLineagePosition.clear()
+    lastOperation = None
+
     if(lastLineagePosition.isDefined && lastLineagePosition.get != initialRDD.get) {
       currentLineagePosition = lastLineagePosition
 
@@ -248,7 +253,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
     }
   }
 
-  def getForward: Lineage[((Short, Int), Any)] = {
+  def getForward = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -260,7 +265,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
     currentLineagePosition
       .get
-      .asInstanceOf[Lineage[((Short, Short, Int), (Short, Int))]]
+      .asInstanceOf[Lineage[(Any, (Int, Int))]]
       .map(r => (r._2, r._1))
   }
 }
