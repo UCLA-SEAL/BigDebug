@@ -689,12 +689,11 @@ object DiffTest
     val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' '))
     val filter = input.filter(_.length() >= 3)
     val workflow = filter.map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
-    val origResults = workflow.collect()
-    println("orig computation done")
+    time(_ => workflow.collect(), "orig computation done")
 
     filter.setNewFilter(_.length() > 3)
-    val incrResults = workflow.incrCollect()
-    println("incr computation done")
+    var incrResults: Array[Diff[(String, Int)]] = null
+    time(_ => incrResults = workflow.incrCollect(), "incr computation done")
 
     //origResults.foreach(println)
     incrResults.foreach(println)
@@ -705,12 +704,11 @@ object DiffTest
     val input = new DiffTextFileGenerator("README.md", null, spark).flatMap(line => line.trim().split(' ')).map((_, 1)).reduceByKey(_ + _, _ - _, _ == 0)
     val filter = input.filter(_ => true)
     val workflow = filter
-    val origResults = workflow.collect()
-    println("orig computation done")
+    time(_ => workflow.collect(), "orig computation done")
 
     filter.setNewFilter(r => !r._1.contains("ar"))
-    val incrResults = workflow.incrCollect()
-    println("incr computation done")
+    var incrResults: Array[Diff[(String, Int)]] = null
+    time(_ => incrResults = workflow.incrCollect(), "incr computation done")
 
     //origResults.foreach(println)
     incrResults.foreach(println)
