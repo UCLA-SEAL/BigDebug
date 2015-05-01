@@ -183,15 +183,20 @@ class ReduceByKey[K: ClassTag, V: ClassTag]
   override def commuteWith[K3: ClassTag, V3: ClassTag](other: Transformer[K, V, K3, V3]): Option[SomeTransformer] = None
 }
 
-class WorkFlow(@transient var logicalPlan: List[Transformer[_, _, _, _]] = List())
+class WorkFlow()
 {
   type SomeTransformer = Transformer[_, _, _, _]
   type LogicalIndex = Int
   type PhysicalIndex = Int
 
+  @transient var logicalPlan: List[SomeTransformer] = null
   @transient var physicalPlan: List[SomeTransformer] = null
 
-  def this(source: Source[_, _]) = this(List(source))
+  def this(source: Source[_, _]) = {
+    this()
+    source.logical = Some(source)
+    logicalPlan = List(source)
+  }
 
   //doing it this way so child's type which is returned is what is expected
   //(i.e. it's not converted into a generic Transformer[K2, V2, K3, V3]
@@ -199,12 +204,13 @@ class WorkFlow(@transient var logicalPlan: List[Transformer[_, _, _, _]] = List(
   {
     assert(physicalPlan == null, "Already have a physical plan, should use inject instead")
     val (parent, child) = pair
-    val parentIndex = planIndex(parent, logicalPlan)
+    val parentIndex = logicalIndex(parent)
     assert(parentIndex.isDefined, "Cannot find the parent")
     assert(parentIndex.get == logicalPlan.length - 1, "Cannot add multiple children currently")
     logicalPlan = logicalPlan :+ child
+    child.logical = Some(child)
     //return the child for further chaining
-    pair._2
+    child
   }
 
   def createPhysicalPlan() =
@@ -215,7 +221,6 @@ class WorkFlow(@transient var logicalPlan: List[Transformer[_, _, _, _]] = List(
     //identity mapping
     for (t <- logicalPlan) {
       t.physical = Some(t)
-      t.logical = Some(t)
     }
 
     //invalidate previous results
@@ -251,12 +256,7 @@ class WorkFlow(@transient var logicalPlan: List[Transformer[_, _, _, _]] = List(
   def logicalIndex(transformer: SomeTransformer): Option[LogicalIndex] = planIndex(transformer.logical.get, logicalPlan)
   def physicalIndex(transformer: SomeTransformer): Option[PhysicalIndex] = planIndex(transformer.physical.get, physicalPlan)
 
-  def printPlan(plan: List[SomeTransformer]) =
-  {
-    plan.foreach(t => print(t.name + " -> "))
-    println("done")
-  }
-
+  def printPlan(plan: List[SomeTransformer]) = println(plan.map(_.name).mkString(" -> "))
   def printLogicalPlan() = printPlan(logicalPlan)
   def printPhysicalPlan() = printPlan(physicalPlan)
 
@@ -353,7 +353,7 @@ class WorkFlow(@transient var logicalPlan: List[Transformer[_, _, _, _]] = List(
         optimizedTransformer.logical = Some(child)
     }
 
-    pair._2
+    child
   }
 }
 
