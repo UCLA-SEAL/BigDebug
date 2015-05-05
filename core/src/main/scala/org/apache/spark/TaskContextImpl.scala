@@ -46,7 +46,6 @@ private[spark] class TaskContextImpl(val stageId: Int,
   @transient var currentInputId: Int = 0 // Added by Matteo
 
   // Used to pipeline records through taps inside the same stage
-  //@transient var currentInputStore: ArrayListMultimap[Int, Int] = null // Added by Matteo
   @transient var currentInputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = null // Added by Matteo
 
   @transient var pool: ThreadPoolExecutor = null // Matteo

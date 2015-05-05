@@ -30,21 +30,11 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
-  //@transient private var inputIdStore: PrimitiveKeyIncrementalValueOpenHashMap[Int, Int] = null
   @transient private var inputIdStore: Int2ObjectOpenHashMap[RoaringBitmap] = null
-  //@transient private var inputIdStore: ExternalIncrementalAppendOnlyMap = null
-  //@transient private var inputIdStore2: ArrayBuffer[RoaringBitmap] = null
-
-  //private var recordIndex : Int = 0
 
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
   override def materializeRecordInfo: Array[Any] = {
-    inputIdStore.clear()
-    inputIdStore = null
-    //inputIdStore = null
-    //inputIdStore2.clear()
-    //inputIdStore2 = null
     inputIdStore.keySet().toIntArray.map(k =>
       new Tuple2(
         new Tuple2(
@@ -53,12 +43,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     ).toArray
   }
 
-  override def initializeStores() = {
-    inputIdStore = new Int2ObjectOpenHashMap[RoaringBitmap](2097152)
-
-    //inputIdStore = new PrimitiveKeyIncrementalValueOpenHashMap(0, (prev: Int) => prev + 1)
-    //inputIdStore2 = new ArrayBuffer(2097152)
-  }
+  override def initializeStores() = inputIdStore = new Int2ObjectOpenHashMap[RoaringBitmap](2097152)
 
   override def tap(record: T) = {
     val key = record._1.hashCode()
@@ -68,13 +53,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     } else {
       inputIdStore.put(key, {old.add(tContext.currentInputId); old})
     }
-    //val index = inputIdStore.update(record._1.hashCode()) -1
-    //val index = inputIdStore.insert(record._1.hashCode()) -1
-//    if (inputIdStore2.size == index) {
-//      inputIdStore2.append(RoaringBitmap.bitmapOf(tContext.currentInputId))
-//    } else {
-//      inputIdStore2(index).add(tContext.currentInputId)
-//    }
+
     record
   }
 

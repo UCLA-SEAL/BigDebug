@@ -23,6 +23,7 @@ import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
+import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
@@ -214,6 +215,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
 
+  def getlastOperation = lastOperation
+
   private[spark] var prevLineagePosition = new Stack[Lineage[_]]()
 
   private[spark] var lastOperation: Option[Direction] = None
@@ -264,9 +267,14 @@ class LineageContext(@transient val sparkContext: SparkContext)
     currentLineagePosition = Some(prevLineagePosition.pop())
 
     currentLineagePosition
-      .get
-      .asInstanceOf[Lineage[(Any, (Int, Int))]]
-      .map(r => (r._2, r._1))
+      .get match {
+      case pre: TapPreShuffleLRDD[_] =>
+        pre.asInstanceOf[Lineage[(Any, RoaringBitmap)]].flatMap(r => r._2.toArray.map(r2 => ((0L, r2), r._1)))
+      case pre: TapPostShuffleLRDD[_] =>
+        pre.asInstanceOf[Lineage[(Any, (Long, Int))]].map(r => (r._2, r._1))
+      case other: TapLRDD[_] =>
+        other.asInstanceOf[Lineage[(Any, Int)]].map(r => ((0L, r._2), r._1))
+    }
   }
 }
 

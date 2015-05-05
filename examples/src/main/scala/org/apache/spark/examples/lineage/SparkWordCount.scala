@@ -28,8 +28,6 @@ object SparkWordCount {
     var lineage = true
     var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/"
     if(args.size < 2) {
-      //logFile = "../../datasets/output.txt"
-      //val logFile = "../../datasets/data-MicroBenchmarks/lda_wiki1w_2"
       logFile = "README.md"
       conf.setMaster("local[2]")
       lineage = true
@@ -41,42 +39,104 @@ object SparkWordCount {
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
+
     lc.setCaptureLineage(lineage)
+
+    // Job
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
     val counts = pairs.reduceByKey(_ + _)
-    //counts.collect().foreach(println)
-    print(counts.count())
+    println(counts.collect().mkString("\n"))
 
-    // Get the lineage
-//    lc.setCaptureLineage(false)
-//    var linRdd = counts.getLineage()
-//    linRdd.collect.foreach(println)
-//    //lineage.dumpTrace
-//    linRdd = linRdd.filter(r => r.equals(0,95))
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//    //lineage = show.getLineage()
-//    linRdd = linRdd.goBack()
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//    //lineage = show.getLineage()
-//    //var show = lineage.show().filter(r => r.equals("(programs,1)"))
-//    //show.collect.foreach(println)
-//    //lineage = show.getLineage.goNext()
-//    //lineage.show
-//    linRdd = linRdd.goBack()
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//    //lineage = show.getLineage()
-//    linRdd.collect.foreach(println)
-//    linRdd = linRdd.goNext()
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//    linRdd = linRdd.goNext()
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//    //lineage = show.getLineage()
-//    sc.stop()
+    lc.setCaptureLineage(false)
+
+    // Step by step full trace backward
+    var linRdd = counts.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward
+    linRdd = counts.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = counts.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(262)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = counts.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(262)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step full trace forward
+    linRdd = file.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace forward
+    linRdd = file.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNextAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace forward one record
+    linRdd = file.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(2)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace forward one record
+    linRdd = file.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(2)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNextAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+     sc.stop()
   }
 }

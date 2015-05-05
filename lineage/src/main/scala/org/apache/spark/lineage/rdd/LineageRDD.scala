@@ -23,6 +23,7 @@ import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.{Direction, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.collection.CompactBuffer
 import org.roaringbitmap.RoaringBitmap
 
 import scala.reflect._
@@ -69,22 +70,22 @@ extends RDD[Any](prev) with Lineage[Any]
     val next = prev.lineageContext.getForward
     val shuffled: Lineage[(_, _)] = prev.lineageContext.getCurrentLineagePosition.get match {
       case _: TapPostShuffleLRDD[_] =>
-        val part = new LocalityAwarePartitioner(next.partitions.size)
-        new ShuffledLRDD[Any, Any, Any](prev, part).setMapSideCombine(false)
+        val part = new HashPartitioner(next.partitions.size)
+        new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[((Long, Int), Any)]].map(r => (r._1._2, r._2)), part).setMapSideCombine(false)
       case _ => prev
     }
 
     prev.lineageContext.getCurrentLineagePosition.get match {
       case _: TapPostShuffleLRDD[_] =>
         new LineageRDD(
-          rightJoin(shuffled, next)
+          rightJoinSuperShort(shuffled.asInstanceOf[Lineage[(Int, Any)]], next.asInstanceOf[Lineage[((CompactBuffer[Long], Int), Any)]].map(r => (r._1._2, r._2)))
             .map(r => (r._2, r._1))
             .asInstanceOf[Lineage[(Any, Any)]]
             .cache()
         )
       case _: TapLRDD[_] =>
         new LineageRDD(
-          rightJoinSuperShort(shuffled.map(r => r.asInstanceOf[(Int, Any)]), next)
+          rightJoinShort(shuffled.map(r => r.asInstanceOf[((Int, Int), Any)]), next)
             .map(r => (r._2, r._1))
             .asInstanceOf[Lineage[(Any, Any)]]
             .cache()
@@ -112,7 +113,7 @@ extends RDD[Any](prev) with Lineage[Any]
 
       if (next.get.isInstanceOf[TapPreShuffleLRDD[_]]) {
         new LineageRDD(
-          rightJoin(shuffled, next.get)
+          rightJoinNew(shuffled.asInstanceOf[Lineage[((Long, Int), Any)]], next.get.asInstanceOf[Lineage[((Long, Int), Any)]])
             .flatMap(r => r._2.asInstanceOf[RoaringBitmap].toArray.map(r2 => ((r._1._1, r2), r._1)))
             .asInstanceOf[Lineage[(Any, Any)]])
           .cache()
@@ -128,6 +129,8 @@ extends RDD[Any](prev) with Lineage[Any]
         case _: TapCoGroupLRDD[_] =>
           val filter = lineageContext.getCurrentLineagePosition.get.id
           prev.filter(r => r._2.asInstanceOf[(RecordId)]._1.equals(filter))
+        case _: TapPreShuffleLRDD[_] =>
+          prev.asInstanceOf[Lineage[(Any, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.map(r2 => (r1._1, (r2, r1._2._2))))
         case _ => prev
       }
       new LineageRDD(
@@ -167,17 +170,17 @@ extends RDD[Any](prev) with Lineage[Any]
 //    result4
 //  }
 
-  def showForDump(): RDD[((Short, Int), String)] = {
-    val position = prev.lineageContext.getCurrentLineagePosition
-      val result: RDD[((Short, Int), String)] = rightJoinShort(
-            prev.map(r => ((r._1.asInstanceOf[(Int, Int)]._1, r._1.asInstanceOf[(Int, Int)]._2), r._2)),
-            position.get.asInstanceOf[TapPostShuffleLRDD[_]]
-              .getCachedData.setCaptureLineage(false)
-              .asInstanceOf[Lineage[((Any, Any), (Int, Int))]]
-              .map(r => (r._2, (r._1._1, r._1._2).toString()))
-          ).asInstanceOf[RDD[((Short, Int), String)]].cache() // Added dummy id. To be removed
-      result
-  }
+//  def showForDump(): RDD[((Short, Int), String)] = {
+//    val position = prev.lineageContext.getCurrentLineagePosition
+//      val result: RDD[((Short, Int), String)] = rightJoinShort(
+//            prev.map(r => ((r._1.asInstanceOf[(Int, Int)]._1, r._1.asInstanceOf[(Int, Int)]._2), r._2)),
+//            position.get.asInstanceOf[TapPostShuffleLRDD[_]]
+//              .getCachedData.setCaptureLineage(false)
+//              .asInstanceOf[Lineage[((Any, Any), (Int, Int))]]
+//              .map(r => (r._2, (r._1._1, r._1._2).toString()))
+//          ).asInstanceOf[RDD[((Short, Int), String)]].cache() // Added dummy id. To be removed
+//      result
+//  }
 
 //  def dumpTrace: Unit = {
 //    val current = lineageContext.getCurrentLineagePosition
@@ -212,7 +215,7 @@ extends RDD[Any](prev) with Lineage[Any]
         case _: TapHadoopLRDD[_, _] =>
           result = new ShowRDD(
             join3Way(
-              prev.map(r => (0, r._1)).asInstanceOf[Lineage[(Int, Int)]],
+              prev.map(r => (r._1)).asInstanceOf[Lineage[(Long, Int)]],
               position.get.asInstanceOf[Lineage[(Long, Int)]],
               position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                 .map(r=> (r._1.get(), r._2.toString))
@@ -241,26 +244,44 @@ extends RDD[Any](prev) with Lineage[Any]
               left, new ShuffledLRDD[RecordId, Any, Any](right, part).setMapSideCombine(false)
             ).cache())
         case _: TapPreShuffleLRDD[_] =>
-          result = new ShowRDD(rightJoin(
-              prev,
-              position.get.asInstanceOf[TapPreShuffleLRDD[_]]
-                .getCachedData
-                .asInstanceOf[Lineage[(Any, (Any, RecordId))]]
-                .map(r => (r._2._2, ((r._1, r._2._1), r._2._2._2).toString()))
-            ).cache()
+          val current = if(!prev.lineageContext.getlastOperation.isDefined) {
+            prev.asInstanceOf[Lineage[((Long, Int), Any)]]
+          } else {
+            prev.lineageContext.getlastOperation.get match {
+              case Direction.FORWARD =>
+                val part = new HashPartitioner(prev.partitions.size)
+                new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[((Long, Int), Any)]].map(r => (r._1._2, r)), part).setMapSideCombine(false)
+                  .map(r => r._2).asInstanceOf[Lineage[((Long, Int), Any)]]
+              case Direction.BACKWARD => prev.asInstanceOf[Lineage[((Long, Int), Any)]]
+            }
+          }
+          result = new ShowRDD(rightJoinNew(
+            current,
+            position.get.asInstanceOf[TapPreShuffleLRDD[_]]
+              .getCachedData
+              .asInstanceOf[Lineage[(Any, (Any, Long))]]
+              .map { r =>
+              val hash = r._1.hashCode()
+              ((r._2._2, hash), ((r._1, r._2._1), hash).toString())
+            }
+          ).cache().asInstanceOf[Lineage[((Int, Int), Any)]]
           )
         case _: TapPostShuffleLRDD[_] =>
-          prev.collect().foreach(println)
-          position.get.asInstanceOf[TapPostShuffleLRDD[_]]
-            .getCachedData.setCaptureLineage(false)
-            .asInstanceOf[Lineage[((Any, Any), Int)]].collect().foreach(println)
-          result = new ShowRDD(rightJoinShort(
-              prev.map(r => ((r._1.asInstanceOf[(Int, Int)]._1, r._1.asInstanceOf[(Int, Int)]._2), r._2)),
+          val current = if(!prev.lineageContext.getlastOperation.isDefined) {
+            prev.map(r => (r._2.asInstanceOf[(CompactBuffer[Long], Int)]._2, r._1))
+          } else {
+            prev.lineageContext.getlastOperation.get match {
+              case Direction.FORWARD => prev.map(r => (r._2, r._1))
+              case _ => prev.map(r => (r._2.asInstanceOf[(CompactBuffer[Long], Int)]._2, r._1))
+            }
+          }
+          result = new ShowRDD(rightJoinSuperShort(
+            current.asInstanceOf[Lineage[(Int, Any)]],
               position.get.asInstanceOf[TapPostShuffleLRDD[_]]
                 .getCachedData.setCaptureLineage(false)
-                .asInstanceOf[Lineage[((Any, Any), Int)]]
-                .map(r => ((0, r._2), ((r._1._1, r._1._2), r._2).toString()))
-            ).map(r => ((r._1._1, r._1._2), r._2)).cache() // Added dummy id. To be removed
+                .asInstanceOf[Lineage[(String, Int)]]
+                .map(r => (r._1.hashCode, r.toString()))
+            ).map(r => ((0, r._1), r._2)).cache() // Added dummy id. To be removed
           )
         case _: TapCoGroupLRDD[_] =>
           val part = new LocalityAwarePartitioner(

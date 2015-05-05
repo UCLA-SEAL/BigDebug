@@ -65,8 +65,9 @@ trait Lineage[T] extends RDD[T] {
       return getTap().get match {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
           new LineageRDD(getTap().get.map(r => (r.asInstanceOf[((Int), (Int, Int))])))
-        case tap: TapHadoopLRDD[_, _] => new LineageRDD(tap.map(r => (r.asInstanceOf[(Long, Int)])).map(r => (r._2, r._1)))
-        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => r.asInstanceOf[(Int, Int)]))
+        case tap: TapHadoopLRDD[_, _] =>
+          new LineageRDD(tap.map(r => (r.asInstanceOf[(Long, Int)])).map(r => ((0, r._2), r._1)))
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => r.asInstanceOf[(Int, Int)]).map(r => ((0, r._1), (0, r._2))))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -81,6 +82,8 @@ trait Lineage[T] extends RDD[T] {
     this.isPreShuffleCache = Some(false)
     this
   }
+
+  def debug() = super.collect.foreach(println)
 
   private[spark] def rightJoin(prev: Lineage[(RecordId, Any)], next: Lineage[(RecordId, Any)]) = {
     prev.zipPartitions(next) {
@@ -102,11 +105,11 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def bitmapJoin(prev: Lineage[(RecordId, Any)], next: Lineage[(RecordId, Any)]) = {
+  private[spark] def rightJoinNew(prev: Lineage[(RecordIdNew, Any)], next: Lineage[(RecordIdNew, Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
-        val hashSet = new java.util.HashSet[RecordId]()
-        var rowKey: RecordId = null
+        val hashSet = new java.util.HashSet[RecordIdNew]()
+        var rowKey: RecordIdNew = null
 
 
         // Create a Hash set of buildKeys
@@ -122,7 +125,7 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def rightJoinShort(prev: Lineage[((Int, Int), Any)], next: Lineage[((Int, Int), Any)]) = {
+  private[spark] def rightJoinShort(prev: Lineage[((Int, Int), Any)], next: Lineage[((Long, Int), Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[(Int, Int)]()
@@ -141,7 +144,7 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def rightJoinSuperShort(prev: Lineage[(Int, Any)], next: Lineage[((Int, Int), Any)]) = {
+  private[spark] def rightJoinSuperShort(prev: Lineage[(Int, Any)], next: Lineage[(Int, Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[Int]()
@@ -156,11 +159,12 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
-        streamIter.filter(current => { hashSet.contains(current._1) })
+        streamIter.filter(current => { hashSet.contains(current._1) }
+        )
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[(Int, Int)],
+  private[spark] def join3Way(prev: Lineage[(Long, Int)],
       next1: Lineage[(Long, Int)],
       next2: Lineage[(Long, String)]
     ) = {
