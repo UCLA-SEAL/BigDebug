@@ -17,8 +17,11 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.util.collection.PrimitiveKeyOpenHashMap
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -30,13 +33,35 @@ class TapPostShuffleLRDD[T: ClassTag](
 {
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def materializeRecordInfo: Array[Any] =
-    tContext.currentInputStore.toArray.zipWithIndex.map(
-      r1 => (r1._2, (r1._1._2, r1._1._1)))
+  override def materializeBuffer: Array[Any] = {
+    val map: PrimitiveKeyOpenHashMap[Int, util.ArrayDeque[Long]] = new PrimitiveKeyOpenHashMap()
+    val iterator = tContext.currentBuffer.iterator
+
+    while(iterator.hasNext) {
+      val next = iterator.next()
+      map.changeValue(
+        next._2,
+        { val tmp = new util.ArrayDeque[Long](); tmp.add(next._1); tmp },
+        (old: util.ArrayDeque[Long]) => { old.add(next._1); old})
+    }
+
+    // We release the buffer here because not needed anymore
+    releaseBuffer()
+
+    map.toArray.zipWithIndex.map(
+     r1 => (r1._2, (r1._1._2, r1._1._1)))
+  }
+
+  override def releaseBuffer = {
+    if(tContext.currentBuffer != null) {
+      tContext.currentBuffer.clear()
+      tContext.addToBufferPool(tContext.currentBuffer.getData)
+      tContext.currentBuffer = null
+    }
+  }
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId
-
     record
   }
 }

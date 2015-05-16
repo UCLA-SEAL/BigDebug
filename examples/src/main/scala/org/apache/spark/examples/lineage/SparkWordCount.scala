@@ -26,7 +26,7 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
-    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/newData/"
+    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/data/"
     if(args.size < 2) {
       logFile = "README.md"
       conf.setMaster("local[2]")
@@ -37,6 +37,8 @@ object SparkWordCount {
       conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
     }
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
+//    conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+//    conf.registerKryoClasses(Array(classOf[RoaringBitmap], classOf[CompactBuffer[Long]]))
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
@@ -44,8 +46,9 @@ object SparkWordCount {
 
     // Job
     val file = lc.textFile(logFile, 2)
-    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word, 1))
+    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
     val counts = pairs.reduceByKey(_ + _)
+//  println(counts.count)
     println(counts.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)

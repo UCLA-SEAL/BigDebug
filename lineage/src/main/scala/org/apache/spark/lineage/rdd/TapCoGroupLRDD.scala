@@ -32,9 +32,9 @@ class TapCoGroupLRDD[T: ClassTag](
 
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def initializeStores() = inputIdStore = new PrimitiveKeyOpenHashMap
+  override def initializeBuffer() = inputIdStore = new PrimitiveKeyOpenHashMap
 
-  override def materializeRecordInfo: Array[Any] =
+  override def materializeBuffer: Array[Any] =
     inputIdStore.toArray.zipWithIndex.flatMap(
       r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
 

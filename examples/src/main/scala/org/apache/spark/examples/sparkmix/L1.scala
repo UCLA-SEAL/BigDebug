@@ -61,6 +61,95 @@ object L1 {
 
     lc.setCaptureLineage(false)
 
+    // Step by step full trace backward
+    var linRdd = E.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward
+    linRdd = E.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(3360)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(3360)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step full trace forward
+    linRdd = pageViews.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+
+    // Full trace forward
+    linRdd = pageViews.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNextAll()
+    linRdd.collect.foreach(println)
+
+    // Step by step full trace forward one record
+    linRdd = pageViews.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(2)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+
+    // Full trace forward one record
+    linRdd = pageViews.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(2)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNextAll()
+    linRdd.collect.foreach(println)
     sc.stop()
   }
 

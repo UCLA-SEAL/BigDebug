@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
@@ -29,7 +31,7 @@ import org.roaringbitmap.RoaringBitmap
 import scala.reflect._
 
 private[spark]
-class LineageRDD(prev: Lineage[(Any, Any)])
+class LineageRDD(val prev: Lineage[(Any, Any)])
 extends RDD[Any](prev) with Lineage[Any]
 {
   override def ttag = classTag[Any]
@@ -79,7 +81,7 @@ extends RDD[Any](prev) with Lineage[Any]
       case _: TapPostShuffleLRDD[_] =>
         new LineageRDD(
           rightJoinSuperShort(shuffled.asInstanceOf[Lineage[(Int, Any)]], next.asInstanceOf[Lineage[((CompactBuffer[Long], Int), Any)]].map(r => (r._1._2, r._2)))
-            .map(r => (r._2, r._1))
+            .map(r => ((0L, r._2), r._1))
             .asInstanceOf[Lineage[(Any, Any)]]
             .cache()
         )
@@ -118,11 +120,9 @@ extends RDD[Any](prev) with Lineage[Any]
             .asInstanceOf[Lineage[(Any, Any)]])
           .cache()
       } else {
-          new LineageRDD(
-            rightJoin(shuffled, next.get)
-              .map(r => (r._2, r._1))
-              .asInstanceOf[Lineage[(Any, Any)]])
-            .cache()
+        new LineageRDD(rightJoin(shuffled, next.get)
+          .map(r => (r._2, r._1))
+          .asInstanceOf[Lineage[(Any, Any)]]).cache()
       }
     } else {
       val previous = lineageContext.getCurrentLineagePosition.get match {
@@ -130,7 +130,7 @@ extends RDD[Any](prev) with Lineage[Any]
           val filter = lineageContext.getCurrentLineagePosition.get.id
           prev.filter(r => r._2.asInstanceOf[(RecordId)]._1.equals(filter))
         case _: TapPreShuffleLRDD[_] =>
-          prev.asInstanceOf[Lineage[(Any, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.map(r2 => (r1._1, (r2, r1._2._2))))
+          prev.asInstanceOf[Lineage[(Any, (util.ArrayDeque[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => (r1._1, (r2, r1._2._2))))
         case _ => prev
       }
       new LineageRDD(
@@ -255,6 +255,7 @@ extends RDD[Any](prev) with Lineage[Any]
               case Direction.BACKWARD => prev.asInstanceOf[Lineage[((Long, Int), Any)]]
             }
           }
+
           result = new ShowRDD(rightJoinNew(
             current,
             position.get.asInstanceOf[TapPreShuffleLRDD[_]]
@@ -270,9 +271,13 @@ extends RDD[Any](prev) with Lineage[Any]
           val current = if(!prev.lineageContext.getlastOperation.isDefined) {
             prev.map(r => (r._2.asInstanceOf[(CompactBuffer[Long], Int)]._2, r._1))
           } else {
-            prev.lineageContext.getlastOperation.get match {
-              case Direction.FORWARD => prev.map(r => (r._2, r._1))
-              case _ => prev.map(r => (r._2.asInstanceOf[(CompactBuffer[Long], Int)]._2, r._1))
+            val tmp = prev.lineageContext.getCurrentLineagePosition.get match {
+              case _: TapPreShuffleLRDD[_] | _: TapPreCoGroupLRDD[_] | _: TapPostShuffleLRDD[_] => prev
+              case _: TapLRDD[_] => rightJoinSuperShort(prev.asInstanceOf[Lineage[((Int, Int), Any)]].map(r => (r._1._2, r._2)), position.get.asInstanceOf[Lineage[(Int, Any)]])
+            }
+            tmp.lineageContext.getlastOperation.get match {
+              case Direction.FORWARD => tmp.map(r => (r._2, r._1))
+              case _ => tmp.map(r => (r._2.asInstanceOf[(CompactBuffer[Long], Int)]._2, r._1))
             }
           }
           result = new ShowRDD(rightJoinSuperShort(

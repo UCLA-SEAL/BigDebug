@@ -30,9 +30,9 @@ import scala.collection.mutable.{ArrayBuffer, HashSet}
 private[spark] class LCacheManager(blockManager: BlockManager) extends CacheManager(blockManager) {
 
   private var underMaterialization = new HashSet[(RDD[_], Int, StorageLevel)]
-//
+
   def initMaterialization[T](
-      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
+      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_AND_DISK_SER
     ) = underMaterialization.synchronized {
       underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
   }
@@ -46,25 +46,23 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
          val t = new Runnable() {
            override def run() {
              val key = RDDBlockId(table._1.id, split)
-             val arr = table._1.materializeRecordInfo//.clone()
+             val arr = table._1.materializeBuffer
              try {
                updatedBlocks ++=
                  blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-               logInfo(s"Trying to materialize Block $key")
              } catch {
                case e: Exception => println(e)
            } finally {
+               table._1.releaseBuffer()
                underMaterialization.synchronized {
                  underMaterialization.remove(table)
                }
-               logInfo(s"Block $key materialized")
              }
            }
          }
 
-         //context.pool.synchronized {
-        context.asInstanceOf[TaskContextImpl].pool.execute(t)
-         //}
+
+        context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
       })
     val metrics = context.taskMetrics
     val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
@@ -74,9 +72,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   override def finalizeTaskCache(
       rdd: RDD[_],
       split: Int, context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_AND_DISK_SER)) = {
     materialize(split, context, effectiveStorageLevel)
-    //underMaterialization.filter(r => r._2 == split).foreach(table => underMaterialization.remove(table))
-
   }
 }

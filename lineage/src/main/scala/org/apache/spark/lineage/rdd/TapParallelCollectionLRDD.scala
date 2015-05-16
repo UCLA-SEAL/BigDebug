@@ -35,12 +35,12 @@ class TapParallelCollectionLRDD[T: ClassTag](
 
   @transient private var outputIdStore: ListBuffer[Int] = null
 
-  override def initializeStores() = {
+  override def initializeBuffer() = {
     inputIdStore = new ListBuffer
     outputIdStore = new ListBuffer
   }
 
-  override def materializeRecordInfo: Array[Any] = inputIdStore.zip(outputIdStore).toArray
+  override def materializeBuffer: Array[Any] = inputIdStore.zip(outputIdStore).toArray
 
   override def tap(record: T) = {
     inputIdStore += record

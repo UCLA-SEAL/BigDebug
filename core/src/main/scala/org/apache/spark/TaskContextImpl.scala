@@ -17,10 +17,10 @@
 
 package org.apache.spark
 
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.{ConcurrentLinkedQueue, ThreadPoolExecutor}
 
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
+import org.apache.spark.lineage.util.ByteBuffer
 import org.apache.spark.util.{TaskCompletionListener, TaskCompletionListenerException}
 
 import scala.collection.mutable.ArrayBuffer
@@ -42,15 +42,46 @@ private[spark] class TaskContextImpl(val stageId: Int,
   // Whether the task has completed.
   @volatile private var completed: Boolean = false
 
+  /** Matteo *************************************************************************************/
   // Used to pipeline records through taps inside the same stage
-  @transient var currentInputId: Int = 0 // Added by Matteo
+  @transient var currentInputId: Int = 0
 
   // Used to pipeline records through taps inside the same stage
-  @transient var currentInputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = null // Added by Matteo
+  @transient var currentBuffer: ByteBuffer[Long, Int] = null
 
-  @transient var pool: ThreadPoolExecutor = null // Matteo
+  @transient var threadPool: ThreadPoolExecutor = null
 
-  def setPool(pool: ThreadPoolExecutor) = this.pool = pool // Matteo
+  @transient private var bufferPool: ConcurrentLinkedQueue[Array[Byte]] = null
+
+  @transient private var bufferPoolLarge: ConcurrentLinkedQueue[Array[Byte]] = null
+
+  def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
+
+  def setBufferPool(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPool = pool
+
+  def setBufferPoolLarge(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPoolLarge = pool
+
+  def getFromBufferPool(): Array[Byte] = {
+    val buffer = bufferPool.poll()
+    if(buffer == null) {
+      return new Array[Byte](64 * 1024 * 128)
+    }
+    buffer
+  }
+
+  def getFromBufferPoolLarge(): Array[Byte] = {
+    val buffer = bufferPoolLarge.poll()
+    if(buffer == null) {
+      return new Array[Byte](64 * 1024 * 1024)
+    }
+    buffer
+  }
+
+  def addToBufferPool(data: Array[Byte]) = bufferPool.add(data)
+
+  def addToBufferPoolLarge(data: Array[Byte]) = bufferPoolLarge.add(data)
+
+  /***********************************************************************************************/
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     onCompleteCallbacks += listener

@@ -55,9 +55,9 @@ test ("TestAppendOnlyIncrementalHash") {
   }
 
   private def testPrimitiveKeyOpenMap(keys: ArrayBuffer[Int]): Unit = {
-    val start = System.nanoTime()
     val map: PrimitiveKeyIncrementalValueOpenHashMap[Int, Int] =
       new PrimitiveKeyIncrementalValueOpenHashMap(0, (prev: Int) => prev + 1)
+    val start = System.nanoTime()
 
     for(key <- keys) {
       map.update(key)
@@ -69,8 +69,8 @@ test ("TestAppendOnlyIncrementalHash") {
 
   private def testKolobokeMap(keys: ArrayBuffer[Int]): Unit = {
     var recordIndex : Int = 0
-    val start = System.nanoTime()
     val map: HashIntIntMap = HashIntIntMaps.newMutableMap()
+    val start = System.nanoTime()
 
     for(key <- keys) {
       var index = map.getOrDefault(key, -1)
@@ -87,9 +87,9 @@ test ("TestAppendOnlyIncrementalHash") {
 
   private def testFastUtilMap(keys: ArrayBuffer[Int]): Unit = {
     var recordIndex : Int = 0
-    val start = System.nanoTime()
     val map: Int2IntOpenHashMap = new Int2IntOpenHashMap()
     map.defaultReturnValue(-1)
+    val start = System.nanoTime()
 
     for(key <- keys) {
       var index = map.get(key)

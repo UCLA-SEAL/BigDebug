@@ -118,6 +118,13 @@ private[spark] class Executor(
   // Start worker thread pool
   val threadPool = Utils.newDaemonCachedThreadPool("Executor task launch worker")
 
+  // Matteo
+  // TODO make the number of buffers configurable from conf
+  val bufferPool = new ConcurrentLinkedQueue[Array[Byte]]()
+  val bufferPoolLarge = new ConcurrentLinkedQueue[Array[Byte]]()
+  for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 * 128))
+  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1024))
+
   // Maintains the list of running tasks.
   private val runningTasks = new ConcurrentHashMap[Long, TaskRunner]
 
@@ -194,7 +201,9 @@ private[spark] class Executor(
         logDebug("Task " + taskId + "'s epoch is " + task.epoch)
         env.mapOutputTracker.updateEpoch(task.epoch)
 
-        task.setPool(threadPool) // Matteo
+        task.setThreadPool(threadPool) // Matteo
+        task.setBufferPool(bufferPool) // Matteo
+        task.setBufferPoolLarge(bufferPoolLarge) // Matteo
 
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()

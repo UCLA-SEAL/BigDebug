@@ -1,7 +1,6 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.{Partitioner, OneToOneDependency}
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
 import org.apache.spark.lineage.LineageContext
@@ -10,6 +9,7 @@ import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.CompactBuffer
+import org.apache.spark.{OneToOneDependency, Partitioner}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag

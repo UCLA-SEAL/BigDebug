@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage
 
+import java.util.ArrayDeque
+
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
@@ -52,7 +54,12 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def textFile(path: String, minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
     val tmpRdd = hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
       minPartitions)
-    tmpRdd.map(pair => pair._2.toString).setName(path).setTap(tmpRdd)
+      val map = tmpRdd.map(pair => pair._2.toString).setName(path)
+    if(isLineageActive) {
+      map.setTap(tmpRdd)
+    } else {
+      map
+    }
   }
 
   /** Get an RDD for a Hadoop file with an arbitrary InputFormat
@@ -215,6 +222,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
 
+  def getLastLineagePosition = lastLineagePosition
+
   def getlastOperation = lastOperation
 
   private[spark] var prevLineagePosition = new Stack[Lineage[_]]()
@@ -249,6 +258,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
         case _: TapCoGroupLRDD[_] =>
           val filter = getCurrentLineagePosition.get.id
           prevLineagePosition.head.asInstanceOf[RDD[(RecordId, RecordId)]].filter(r => r._2._1.equals(filter))
+        case _: TapPreShuffleLRDD[_] => prevLineagePosition.head.asInstanceOf[Lineage[(Int, (ArrayDeque[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => ((0L, r1._1), (r2, r1._2._2))))
         case _ => prevLineagePosition.head
       }
 

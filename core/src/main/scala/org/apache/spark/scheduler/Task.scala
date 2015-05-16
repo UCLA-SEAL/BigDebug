@@ -19,7 +19,7 @@ package org.apache.spark.scheduler
 
 import java.io.{ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
-import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.{ConcurrentLinkedQueue, ThreadPoolExecutor}
 
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.serializer.SerializerInstance
@@ -48,7 +48,9 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
     context = new TaskContextImpl(stageId, partitionId, attemptId, runningLocally = false)
     TaskContextHelper.setTaskContext(context)
     context.taskMetrics.hostname = Utils.localHostName()
-    context.setPool(pool) //Matteo
+    context.setThreadPool(threadPool) //Matteo
+    context.setBufferPool(bufferPool) //Matteo
+    context.setBufferPoolLarge(bufferPoolLarge) //Matteo
     taskThread = Thread.currentThread()
     if (_killed) {
       kill(interruptThread = false)
@@ -80,9 +82,21 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) ex
   // initialized when kill() is invoked.
   @volatile @transient private var _killed = false
 
-  var pool: ThreadPoolExecutor = null // Matteo
+  /** Matteo *************************************************************************************/
 
-  def setPool(pool: ThreadPoolExecutor) = this.pool = pool // Matteo
+  var threadPool: ThreadPoolExecutor = null
+
+  var bufferPool: ConcurrentLinkedQueue[Array[Byte]] = null
+
+  var bufferPoolLarge: ConcurrentLinkedQueue[Array[Byte]] = null
+
+  def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
+
+  def setBufferPool(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPool = pool
+
+  def setBufferPoolLarge(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPoolLarge = pool
+
+  /** Matteo *************************************************************************************/
 
   /**
    * Whether the task has been killed.

@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.util.collection.PrimitiveVector
+import org.apache.spark.lineage.util.LongIntByteBuffer
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -29,22 +29,20 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var inputIdStore: PrimitiveVector[Long] = _
+  @transient private var buffer: LongIntByteBuffer = _
 
-  @transient private var outputIdStore: PrimitiveVector[Int] = _
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
 
-  override def materializeRecordInfo: Array[Any] = inputIdStore.array.zip(outputIdStore.array)
+  override def initializeBuffer = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
 
-  override def initializeStores = {
-    inputIdStore = new PrimitiveVector
-    outputIdStore = new PrimitiveVector
+  override def releaseBuffer() = {
+    buffer.clear()
+    tContext.addToBufferPool(buffer.getData)
   }
 
   override def tap(record: (K, V)) = {
     tContext.currentInputId = newRecordId
-    outputIdStore += tContext.currentInputId
-    inputIdStore += record._1.asInstanceOf[LongWritable].get
-
+    buffer.put(record._1.asInstanceOf[LongWritable].get, tContext.currentInputId)
     record
   }
 }

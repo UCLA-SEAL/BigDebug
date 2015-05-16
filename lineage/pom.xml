@@ -67,7 +67,6 @@
         <groupId>net.openhft</groupId>
         <artifactId>koloboke-impl-jdk6-7</artifactId>
         <version>0.6.6</version>
-        <scope>runtime</scope>
     </dependency>
       <dependency>
         <groupId>it.unimi.dsi</groupId>

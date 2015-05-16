@@ -18,7 +18,8 @@
 package org.apache.spark.lineage
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.util.collection.{PrimitiveKeyOpenHashMap, AppendOnlyMap, CompactBuffer, ExternalAppendOnlyMap}
+import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
 /**
@@ -57,18 +58,14 @@ class LAggregator[K, V, C] (
         combiners.insertAll(iter)
       } else {
         var pair: Product2[K, Product2[V, Long]] = null
-        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
-          new PrimitiveKeyOpenHashMap()
+        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
           combiners.insert(pair._1, pair._2._1)
-          inputStore.changeValue(
-            pair._1.hashCode(),
-            CompactBuffer(pair._2._2),
-            (old: CompactBuffer[Long]) => old += pair._2._2)
+          buffer.put(pair._2._2, pair._1.hashCode())
         }
-        context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
+        context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }
 
       // Update task metrics if context is not null
@@ -104,18 +101,14 @@ class LAggregator[K, V, C] (
         }
       } else {
         var pair: Product2[K, Product2[C, Long]] = null
-        val inputStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] =
-          new PrimitiveKeyOpenHashMap
+        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[C, Long]]]
           combiners.insert(pair._1, pair._2._1)
-          inputStore.changeValue(
-            pair._1.hashCode(),
-            CompactBuffer(pair._2._2),
-            (old: CompactBuffer[Long]) => old += pair._2._2)
+          buffer.put(pair._2._2, pair._1.hashCode())
         }
-        context.asInstanceOf[TaskContextImpl].currentInputStore = inputStore
+        context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }
 
       // Update task metrics if context is not null

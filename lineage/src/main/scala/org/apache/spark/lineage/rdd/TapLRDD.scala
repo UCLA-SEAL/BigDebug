@@ -18,10 +18,10 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
 
-import scala.collection.mutable.ListBuffer
 import scala.reflect._
 
 private[spark]
@@ -34,13 +34,9 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var tContext: TaskContextImpl = _
 
-  @transient private[spark] var recordId: (Short, Short, Int) = (0, 0, 0)
-
   @transient private[spark] var nextRecord: Int = 0
 
-  @transient private var inputIdStore: ListBuffer[Int] = _
-
-  @transient private var outputIdStore: ListBuffer[Int] = _
+  @transient private var buffer: IntIntByteBuffer = _
 
   private[spark] var shuffledData: Lineage[_] = _
 
@@ -59,15 +55,13 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   override def getPartitions: Array[Partition] = firstParent[T].partitions
 
-  override def materializeRecordInfo: Array[Any] = outputIdStore.zip(inputIdStore).toArray
-
   override def compute(split: Partition, context: TaskContext) = {
     if(tContext == null) {
       tContext = context.asInstanceOf[TaskContextImpl]
     }
     splitId = split.index.toShort
 
-    initializeStores()
+    initializeBuffer()
 
     SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
 
@@ -84,16 +78,18 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeStores() = {
-    inputIdStore = new ListBuffer
-    outputIdStore = new ListBuffer
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
+
+  def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
+
+  override def releaseBuffer(): Unit = {
+    buffer.clear()
+    tContext.addToBufferPool(buffer.getData)
   }
 
   def tap(record: T) = {
-    inputIdStore += tContext.currentInputId
-    tContext.currentInputId = newRecordId()
-    outputIdStore += tContext.currentInputId
-
+    buffer.put(newRecordId(), tContext.currentInputId)
+    tContext.currentInputId = nextRecord
     record
   }
 }

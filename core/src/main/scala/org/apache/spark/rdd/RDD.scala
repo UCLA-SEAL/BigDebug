@@ -94,14 +94,16 @@ abstract class RDD[T: ClassTag](
 
   private[spark] def conf = sc.conf
 
-/** Added by Matteo ########################################################################## */
+ /** Added by Matteo ########################################################################## */
 
   def updateDependencies(_deps: Seq[Dependency[_]]) = {
     deps = _deps
     dependencies_ = deps
   }
 
-  def materializeRecordInfo: Array[Any] =  Array[Any]()
+  def materializeBuffer: Array[Any] =  Array[Any]()
+
+  def releaseBuffer(): Unit = throw new UnsupportedOperationException("No buffer to release")
 
   /** ########################################################################################## */
 
