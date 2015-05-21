@@ -201,7 +201,11 @@ class LineageContext(@transient val sparkContext: SparkContext)
 
   private var lastLineagePosition: Option[Lineage[_]] = None
 
+  private var lastLineageSeen: Option[Lineage[_]] = None
+
   def getCurrentLineagePosition = currentLineagePosition
+
+  def getLastLineageSeen = lastLineageSeen
 
   def setCurrentLineagePosition(initialRDD: Option[Lineage[_]]) = {
     // Cleaning up
@@ -218,6 +222,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
       }
     }
     currentLineagePosition = initialRDD
+    lastLineageSeen = currentLineagePosition
   }
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
@@ -242,11 +247,13 @@ class LineageContext(@transient val sparkContext: SparkContext)
   def getBackward(path: Int = 0) = {
     // CurrentLineagePosition should be always set at this point
     if(currentLineagePosition.get.dependencies.size == 0 ||
-      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[HadoopRDD[_, _]]) {
+      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[HadoopRDD[_, _]] ||
+      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[ParallelCollectionRDD[_]]) {
       throw new UnsupportedOperationException("unsopported operation")
     }
 
     prevLineagePosition.push(currentLineagePosition.get)
+    lastLineageSeen = currentLineagePosition
 
     currentLineagePosition = Some(currentLineagePosition.get.dependencies(path).rdd)
 
@@ -255,9 +262,9 @@ class LineageContext(@transient val sparkContext: SparkContext)
       None
     } else {
       val result: Lineage[_] = getCurrentLineagePosition.get match {
-        case _: TapCoGroupLRDD[_] =>
+        case _: TapPostCoGroupLRDD[_] =>
           val filter = getCurrentLineagePosition.get.id
-          prevLineagePosition.head.asInstanceOf[RDD[(RecordId, RecordId)]].filter(r => r._2._1.equals(filter))
+          prevLineagePosition.head.asInstanceOf[RDD[(Any, RecordId)]].filter(r => r._2._1.equals(filter))
         case _: TapPreShuffleLRDD[_] => prevLineagePosition.head.asInstanceOf[Lineage[(Int, (ArrayDeque[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => ((0L, r1._1), (r2, r1._2._2))))
         case _ => prevLineagePosition.head
       }
@@ -274,6 +281,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
       throw new UnsupportedOperationException("unsopported operation")
     }
 
+    lastLineageSeen = currentLineagePosition
     currentLineagePosition = Some(prevLineagePosition.pop())
 
     currentLineagePosition

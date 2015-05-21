@@ -37,6 +37,7 @@ object L2 {
     val powerUsersPath = pigMixPath + "power_users"
 
     lc.setCaptureLineage(lineage)
+
     val pageViews = lc.textFile(pageViewsPath)
     val powerUsers = lc.textFile(powerUsersPath)
 
@@ -56,15 +57,45 @@ object L2 {
     val beta = alpha.map(x => (x._1, 1))
 
     val C = B.join(beta).map(x => (x._1, x._2._1, x._1))
-    //TODO replicate join
 
-    C.collect
+    C.collect.foreach(println)
 
     lc.setCaptureLineage(false)
 
-//    var linRdd = C.getLineage()
-//    linRdd.collect().foreach(println)
+    // Step by step full trace backward
+    var linRdd = C.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
 
+    // Full trace backward
+    linRdd = C.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = C.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
     sc.stop()
   }
 }

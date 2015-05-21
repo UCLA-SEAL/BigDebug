@@ -44,7 +44,7 @@ private[spark] class TaskContextImpl(val stageId: Int,
 
   /** Matteo *************************************************************************************/
   // Used to pipeline records through taps inside the same stage
-  @transient var currentInputId: Int = 0
+  @transient var currentInputId: Int = -1
 
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null

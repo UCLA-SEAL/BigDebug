@@ -17,39 +17,66 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
+import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.util.collection.PrimitiveKeyOpenHashMap
 
 import scala.reflect.ClassTag
 
 private[spark]
-class TapCoGroupLRDD[T: ClassTag](
+class TapPostCoGroupLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps)
 {
-  @transient private var inputIdStore: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = null
+  @transient private var buffer: LongIntByteBuffer = null
 
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def initializeBuffer() = inputIdStore = new PrimitiveKeyOpenHashMap
+  override def materializeBuffer: Array[Any] = {
+      val map: PrimitiveKeyOpenHashMap[Int, util.ArrayDeque[Long]] = new PrimitiveKeyOpenHashMap()
+      val iterator = buffer.iterator
 
-  override def materializeBuffer: Array[Any] =
-    inputIdStore.toArray.zipWithIndex.flatMap(
-      r1 => r1._1._2.toArray.map(r2 => (r1._2, (r2, r1._1._1))))
+      while (iterator.hasNext) {
+        val next = iterator.next()
+        map.changeValue(
+        next._2, {
+          val tmp = new util.ArrayDeque[Long](); tmp.add(next._1); tmp
+        },
+        (old: util.ArrayDeque[Long]) => {
+          old.add(next._1); old
+        })
+      }
+
+      // We release the buffer here because not needed anymore
+      releaseBuffer()
+
+      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
+  }
+
+  override def initializeBuffer() = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
+
+  override def releaseBuffer() = {
+    if(buffer != null) {
+      buffer.clear()
+      tContext.addToBufferPool(buffer.getData)
+      buffer = null
+    }
+  }
 
   override def tap(record: T) = {
-    var trace = CompactBuffer[Int]
-    val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Int)]])]
+    val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Long)]])]
+    val hash = key.hashCode
     val iters = for(iter <- values) yield({
       iter.map(r => {
-        trace += r._2
+        buffer.put(r._2, hash)
         r._1
       })
     })
     tContext.currentInputId = newRecordId()
-    inputIdStore.update(key.hashCode, trace)
 
-    (key, iters).asInstanceOf[T]
+    (key, iters.reverse).asInstanceOf[T]
   }
 }

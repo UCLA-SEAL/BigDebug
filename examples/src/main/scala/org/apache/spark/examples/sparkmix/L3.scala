@@ -63,7 +63,7 @@ object L3 {
     val C = B.join(beta)//.map(x => (x._1, x._1, x._2._1))
     C.collect
 
-    val D = C.map(x => (x._1, x._1, x._2._1)).groupBy(_._1) //TODO add $PARALLEL
+    val D = C.map(x => (x._1, x._1, x._2._1)).groupBy(_._1)
 
     D.collect
     val E = D.map(x => (x._1, x._2.reduce((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3)))).map(x => (x._1, x._2._3))

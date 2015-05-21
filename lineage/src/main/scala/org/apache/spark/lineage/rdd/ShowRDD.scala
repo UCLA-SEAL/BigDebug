@@ -40,7 +40,7 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
   override def collect(): Array[String] = {
     val results = prev.context.runJob(
       prev.map(r => r._2), (iter: Iterator[String]) => iter.toArray.distinct
-    )
+    ).filter(_ != null)
     Array.concat(results: _*)
   }
 
@@ -57,7 +57,7 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
           case _: TapPreShuffleLRDD[_] =>
             val part = new LocalityAwarePartitioner(position.partitions.size)
             new ShuffledLRDD[RecordId, Any, Any](prev, part).setMapSideCombine(false)
-          case _: TapCoGroupLRDD[_] =>
+          case _: TapPostCoGroupLRDD[_] =>
             val part = new LocalityAwarePartitioner(position.partitions.size)
             right = new ShuffledLRDD[RecordId, Any, Any](position.map {
                 case (a, b) => (b.asInstanceOf[RecordId], a)
@@ -71,7 +71,7 @@ class ShowRDD(prev: Lineage[(RecordId, String)])
           right
         )
         join = position match {
-          case _: TapCoGroupLRDD[_] => join.map(r => (r._2, r._1)).cache()
+          case _: TapPostCoGroupLRDD[_] => join.map(r => (r._2, r._1)).cache()
           case _ => join.cache()
         }
         new LineageRDD(join.asInstanceOf[Lineage[(Any, Any)]])

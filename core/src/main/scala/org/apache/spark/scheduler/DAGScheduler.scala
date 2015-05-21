@@ -848,11 +848,19 @@ class DAGScheduler(
         return
     }
 
+    // Matteo
+    // Empty tasks are not executed only if enable is true. The first condition in the shuffle case
+    // is required otherwise the execution may freeze
     val tasks: Seq[Task[_]] = if (stage.isShuffleMap) {
       partitionsToCompute.map { id =>
         val locs = getPreferredLocs(stage.rdd, id)
         val part = stage.rdd.partitions(id)
-        new ShuffleMapTask(stage.id, taskBinary, part, locs)
+        val size = if(!stage.parents.isEmpty) stage.parents.flatMap(s =>
+            s.outputLocs.map(m =>
+              m.head.getSizeForBlock(id))).sum
+        else 1
+        val enable = !stage.parents.filter(p => !p.outputLocs.isEmpty).isEmpty && size == 0
+        new ShuffleMapTask(stage.id, taskBinary, part, locs, enable)
       }
     } else {
       val job = stage.resultOfJob.get
@@ -860,7 +868,10 @@ class DAGScheduler(
         val p: Int = job.partitions(id)
         val part = stage.rdd.partitions(p)
         val locs = getPreferredLocs(stage.rdd, p)
-        new ResultTask(stage.id, taskBinary, part, locs, id)
+        val size = if(!stage.parents.isEmpty) stage.parents.flatMap(s =>
+          s.outputLocs.map(m => m.head.getSizeForBlock(p))).sum
+        else 1
+        new ResultTask(stage.id, taskBinary, part, locs, id, size == 0)
       }
     }
 
@@ -1003,8 +1014,16 @@ class DAGScheduler(
 
           case smt: ShuffleMapTask =>
             updateAccumulators(event)
-            val status = event.result.asInstanceOf[MapStatus]
-            val execId = status.location.executorId
+            // Modified by Matteo
+            var status = event.result.asInstanceOf[MapStatus]
+            var execId = event.taskInfo.executorId
+            if(status == null) {
+              val compressedSizes = Array.fill(stage.numPartitions)(0L)
+              val location = stage.parents.filter(p => !p.outputLocs.isEmpty).head.outputLocs.head.head.location
+              status = MapStatus(location, compressedSizes)
+            } else {
+              execId = status.location.executorId
+            }
             logDebug("ShuffleMapTask finished on " + execId)
             if (failedEpoch.contains(execId) && smt.epoch <= failedEpoch(execId)) {
               logInfo("Ignoring possibly bogus ShuffleMapTask completion from " + execId)

@@ -32,7 +32,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   private var underMaterialization = new HashSet[(RDD[_], Int, StorageLevel)]
 
   def initMaterialization[T](
-      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.MEMORY_AND_DISK_SER
+      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
     ) = underMaterialization.synchronized {
       underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
   }
@@ -42,28 +42,32 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       context: TaskContext,
       effectiveStorageLevel: Option[StorageLevel]) = {
     val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
-      underMaterialization.filter(r => r._2 == split).foreach(table => {
-         val t = new Runnable() {
-           override def run() {
-             val key = RDDBlockId(table._1.id, split)
-             val arr = table._1.materializeBuffer
-             try {
-               updatedBlocks ++=
-                 blockManager.putArray(key, arr, table._3, true, effectiveStorageLevel)
-             } catch {
-               case e: Exception => println(e)
-           } finally {
-               table._1.releaseBuffer()
-               underMaterialization.synchronized {
-                 underMaterialization.remove(table)
-               }
-             }
-           }
-         }
+    val toMaterialize = underMaterialization.synchronized {
+      val rdds = underMaterialization.filter(r => r._2 == split)
+      rdds.foreach(underMaterialization.remove(_))
+      rdds
+    }
+
+    toMaterialize.foreach(tap => {
+      val t = new Runnable() {
+        override def run() {
+          val key = RDDBlockId(tap._1.id, split)
+          val arr = tap._1.materializeBuffer
+          try {
+            updatedBlocks ++=
+              blockManager.putArray(key, arr, tap._3, true, effectiveStorageLevel)
+          } catch {
+            case e: Exception => println(e)
+          } finally {
+            tap._1.releaseBuffer()
+          }
+        }
+      }
 
 
-        context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
-      })
+      context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
+    })
+
     val metrics = context.taskMetrics
     val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
     metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
@@ -72,7 +76,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   override def finalizeTaskCache(
       rdd: RDD[_],
       split: Int, context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_AND_DISK_SER)) = {
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
     materialize(split, context, effectiveStorageLevel)
   }
 }

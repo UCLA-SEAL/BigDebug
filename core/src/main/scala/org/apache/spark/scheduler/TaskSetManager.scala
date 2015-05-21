@@ -258,7 +258,16 @@ private[spark] class TaskSetManager(
         // This should almost always be list.trimEnd(1) to remove tail
         list.remove(indexOffset)
         if (copiesRunning(index) == 0 && !successful(index)) {
-          return Some(index)
+          if(!tasks(index).isEmpty) {
+            return Some(index)
+          } else {
+            val taskId = sched.newTaskId()
+            val info = new TaskInfo(sched.newTaskId(), index, 0, 0,
+              execId, execId, TaskLocality.ANY, false)
+            taskInfos(index) = info
+            sched.dagScheduler.taskStarted(tasks(index), info)
+            handleSuccessfulTask(index, new DirectTaskResult)
+          }
         }
       }
     }

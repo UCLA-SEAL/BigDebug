@@ -42,7 +42,7 @@ import scala.collection.mutable.HashMap
  * @param stageId id of the stage this task belongs to
  * @param partitionId index of the number in the RDD
  */
-private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int) extends Serializable {
+private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int, val isEmpty: Boolean = false) extends Serializable {
 
   final def run(attemptId: Long): T = {
     context = new TaskContextImpl(stageId, partitionId, attemptId, runningLocally = false)

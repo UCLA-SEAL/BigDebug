@@ -40,7 +40,8 @@ class DirectTaskResult[T](var valueBytes: ByteBuffer, var accumUpdates: Map[Long
     var metrics: TaskMetrics)
   extends TaskResult[T] with Externalizable {
 
-  def this() = this(null.asInstanceOf[ByteBuffer], null, null)
+  // Matteo
+  def this() = this(ByteBuffer.wrap(Array[Byte]()), null, null)
 
   override def writeExternal(out: ObjectOutput): Unit = Utils.tryOrIOException {
 
@@ -74,8 +75,13 @@ class DirectTaskResult[T](var valueBytes: ByteBuffer, var accumUpdates: Map[Long
     metrics = in.readObject().asInstanceOf[TaskMetrics]
   }
 
+  // Matteo
   def value(): T = {
-    val resultSer = SparkEnv.get.serializer.newInstance()
-    resultSer.deserialize(valueBytes)
+    if(valueBytes.array().size != 0) {
+      val resultSer = SparkEnv.get.serializer.newInstance()
+      resultSer.deserialize(valueBytes)
+    } else {
+      null.asInstanceOf[T]
+    }
   }
 }

@@ -34,7 +34,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var tContext: TaskContextImpl = _
 
-  @transient private[spark] var nextRecord: Int = 0
+  @transient private[spark] var nextRecord: Int = _
 
   @transient private var buffer: IntIntByteBuffer = _
 
@@ -60,6 +60,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
       tContext = context.asInstanceOf[TaskContextImpl]
     }
     splitId = split.index.toShort
+    nextRecord = -1
 
     initializeBuffer()
 
@@ -89,7 +90,6 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def tap(record: T) = {
     buffer.put(newRecordId(), tContext.currentInputId)
-    tContext.currentInputId = nextRecord
     record
   }
 }

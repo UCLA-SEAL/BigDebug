@@ -17,10 +17,11 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 
-import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 private[spark]
@@ -31,22 +32,17 @@ class TapParallelCollectionLRDD[T: ClassTag](
   def this(@transient prev: ParallelCollectionLRDD[_]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var inputIdStore: ListBuffer[Any] = null
+  @transient private var buffer: util.ArrayDeque[(T, Int)] = null
 
-  @transient private var outputIdStore: ListBuffer[Int] = null
+  override def initializeBuffer() = buffer = new util.ArrayDeque[(T, Int)]()
 
-  override def initializeBuffer() = {
-    inputIdStore = new ListBuffer
-    outputIdStore = new ListBuffer
-  }
+  override def materializeBuffer = buffer.toArray().asInstanceOf[Array[Any]]
 
-  override def materializeBuffer: Array[Any] = inputIdStore.zip(outputIdStore).toArray
+  override def releaseBuffer = buffer = null
 
   override def tap(record: T) = {
-    inputIdStore += record
     tContext.currentInputId = newRecordId
-    outputIdStore += tContext.currentInputId
-
+    buffer.add(record, nextRecord)
     record
   }
 }

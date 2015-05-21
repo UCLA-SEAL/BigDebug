@@ -42,8 +42,9 @@ private[spark] class ShuffleMapTask(
     stageId: Int,
     taskBinary: Broadcast[Array[Byte]],
     partition: Partition,
-    @transient private var locs: Seq[TaskLocation])
-  extends Task[MapStatus](stageId, partition.index) with Logging {
+    @transient private var locs: Seq[TaskLocation],
+    @transient override val isEmpty: Boolean = false)
+  extends Task[MapStatus](stageId, partition.index, isEmpty) with Logging {
 
   /** A constructor used only in test suites. This does not require passing in an RDD. */
   def this(partitionId: Int) {

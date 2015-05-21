@@ -798,9 +798,11 @@ abstract class RDD[T: ClassTag](
 
   /**
    * Return an array that contains all of the elements in this RDD.
+   * Modified by Matteo: null values are filtered out. Null may appear because of empty tasks
+   * not being executed
    */
   def collect(): Array[T] = {
-    val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray)
+    val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray).filter(_ != null)
     Array.concat(results: _*)
   }
 

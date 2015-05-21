@@ -17,11 +17,9 @@
 
 package org.apache.spark.lineage.rdd
 
-import java.util
-
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.util.collection.PrimitiveKeyOpenHashMap
+import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -34,22 +32,21 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
   override def materializeBuffer: Array[Any] = {
-    val map: PrimitiveKeyOpenHashMap[Int, util.ArrayDeque[Long]] = new PrimitiveKeyOpenHashMap()
+    val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
     val iterator = tContext.currentBuffer.iterator
 
     while(iterator.hasNext) {
       val next = iterator.next()
       map.changeValue(
         next._2,
-        { val tmp = new util.ArrayDeque[Long](); tmp.add(next._1); tmp },
-        (old: util.ArrayDeque[Long]) => { old.add(next._1); old})
+        { val tmp = new CompactBuffer[Long](); tmp += (next._1); tmp },
+        (old: CompactBuffer[Long]) => { old += (next._1); old})
     }
 
     // We release the buffer here because not needed anymore
     releaseBuffer()
 
-    map.toArray.zipWithIndex.map(
-     r1 => (r1._2, (r1._1._2, r1._1._1)))
+    map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
   }
 
   override def releaseBuffer = {

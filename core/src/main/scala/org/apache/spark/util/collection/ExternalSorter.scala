@@ -749,7 +749,7 @@ private[spark] class ExternalSorter[K, V, C](
             blockId, outputFile, ser, fileBufferSize, context.taskMetrics.shuffleWriteMetrics.get)
           // Modified by Matteo
           // currentInputId == 0 if the lineage is not active (or no record exist for partition)
-          if (context.asInstanceOf[TaskContextImpl].currentInputId == 0) {
+          if (context.asInstanceOf[TaskContextImpl].currentInputId == -1) {
             for (elem <- elements) {
               writer.write(elem)
             }

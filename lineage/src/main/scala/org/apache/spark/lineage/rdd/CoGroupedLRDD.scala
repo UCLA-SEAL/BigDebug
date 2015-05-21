@@ -17,10 +17,9 @@
 
 package org.apache.spark.lineage.rdd
 
+import org.apache.spark._
 import org.apache.spark.lineage.rdd.PairLRDDFunctions._
 import org.apache.spark.rdd._
-import org.apache.spark._
-import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.util.collection.AppendOnlyMap
 
 import scala.collection.mutable.{ArrayBuffer, Stack}
@@ -103,7 +102,7 @@ class CoGroupedLRDD[K: ClassTag](var lrdds: Seq[RDD[_ <: Product2[K, _]]], part:
   }
 
   override def tapRight(): TapLRDD[(K, Array[Iterable[_]])] = {
-    val tap = new TapCoGroupLRDD[(K, Array[Iterable[_]])](
+    val tap = new TapPostCoGroupLRDD[(K, Array[Iterable[_]])](
       lineageContext, Seq(new OneToOneDependency[(K, Array[Iterable[_]])](this))
     )
     setTap(tap)
