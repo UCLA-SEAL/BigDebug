@@ -17,14 +17,13 @@
 
 package org.apache.spark.lineage
 
-import java.util.ArrayDeque
-
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
+import org.apache.spark.util.collection.CompactBuffer
 import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.{HashSet, Stack}
@@ -265,7 +264,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
         case _: TapPostCoGroupLRDD[_] =>
           val filter = getCurrentLineagePosition.get.id
           prevLineagePosition.head.asInstanceOf[RDD[(Any, RecordId)]].filter(r => r._2._1.equals(filter))
-        case _: TapPreShuffleLRDD[_] => prevLineagePosition.head.asInstanceOf[Lineage[(Int, (ArrayDeque[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => ((0L, r1._1), (r2, r1._2._2))))
+        case _: TapPreShuffleLRDD[_] => prevLineagePosition.head.asInstanceOf[Lineage[(Int, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => ((0L, r1._1), (r2, r1._2._2))))
         case _ => prevLineagePosition.head
       }
 

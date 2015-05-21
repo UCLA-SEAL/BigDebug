@@ -849,7 +849,7 @@ class DAGScheduler(
     }
 
     // Matteo
-    // Empty tasks are not executed only if enable is true. The first condition in the shuffle case
+    // Empty tasks are not executed only if enable is true. The last condition in the shuffle case
     // is required otherwise the execution may freeze
     val tasks: Seq[Task[_]] = if (stage.isShuffleMap) {
       partitionsToCompute.map { id =>
@@ -859,7 +859,7 @@ class DAGScheduler(
             s.outputLocs.map(m =>
               m.head.getSizeForBlock(id))).sum
         else 1
-        val enable = !stage.parents.filter(p => !p.outputLocs.isEmpty).isEmpty && size == 0
+        val enable = (size == 0) && (!stage.rdd.isLineageActive) && (!stage.parents.filter(p => !p.outputLocs.isEmpty).isEmpty)
         new ShuffleMapTask(stage.id, taskBinary, part, locs, enable)
       }
     } else {
@@ -871,7 +871,8 @@ class DAGScheduler(
         val size = if(!stage.parents.isEmpty) stage.parents.flatMap(s =>
           s.outputLocs.map(m => m.head.getSizeForBlock(p))).sum
         else 1
-        new ResultTask(stage.id, taskBinary, part, locs, id, size == 0)
+        val enable = (size == 0) && (!stage.rdd.isLineageActive)
+        new ResultTask(stage.id, taskBinary, part, locs, id, enable)
       }
     }
 

@@ -22,8 +22,6 @@ trait Lineage[T] extends RDD[T] {
 
   protected var tapRDD : Option[TapLRDD[_]] = None
 
-  private[spark] var captureLineage: Boolean = false
-
   // None = no cache, true = pre, false = post
   private[spark] var isPreShuffleCache: Option[Boolean] = None
 
@@ -56,8 +54,6 @@ trait Lineage[T] extends RDD[T] {
     captureLineage = newLineage
     this
   }
-
-  def isLineageActive: Boolean = captureLineage
 
   def getLineage(): LineageRDD = {
     if(getTap().isDefined) {

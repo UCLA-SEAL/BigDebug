@@ -248,6 +248,7 @@ private[spark] class TaskSetManager(
    * Return None if the list is empty.
    * This method also cleans up any tasks in the list that have already
    * been launched, since we want that to happen lazily.
+   * Modified by Matteo
    */
   private def findTaskFromList(execId: String, list: ArrayBuffer[Int]): Option[Int] = {
     var indexOffset = list.size
@@ -262,7 +263,7 @@ private[spark] class TaskSetManager(
             return Some(index)
           } else {
             val taskId = sched.newTaskId()
-            val info = new TaskInfo(sched.newTaskId(), index, 0, 0,
+            val info = new TaskInfo(sched.newTaskId(), index, 0, System.currentTimeMillis(),
               execId, execId, TaskLocality.ANY, false)
             taskInfos(index) = info
             sched.dagScheduler.taskStarted(tasks(index), info)
