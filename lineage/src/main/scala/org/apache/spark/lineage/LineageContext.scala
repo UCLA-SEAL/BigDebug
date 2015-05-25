@@ -23,7 +23,6 @@ import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
-import org.apache.spark.util.collection.CompactBuffer
 import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.{HashSet, Stack}
@@ -39,6 +38,10 @@ object LineageContext {
   implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
       (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) =
     new PairLRDDFunctions(lrdd)
+
+  implicit def lRDDToOrderedLRDDFunctions[K : Ordering : ClassTag, V: ClassTag](
+      lrdd: Lineage[(K, V)]) =
+    new OrderedLRDDFunctions[K, V, (K, V)](lrdd)
 }
 
 import org.apache.spark.lineage.LineageContext._
@@ -261,13 +264,10 @@ class LineageContext(@transient val sparkContext: SparkContext)
       None
     } else {
       val result: Lineage[_] = getCurrentLineagePosition.get match {
-        case _: TapPostCoGroupLRDD[_] =>
-          val filter = getCurrentLineagePosition.get.id
-          prevLineagePosition.head.asInstanceOf[RDD[(Any, RecordId)]].filter(r => r._2._1.equals(filter))
-        case _: TapPreShuffleLRDD[_] => prevLineagePosition.head.asInstanceOf[Lineage[(Int, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.toArray.map(r2 => ((0L, r1._1), (r2, r1._2._2))))
-        case _ => prevLineagePosition.head
+        case _: TapPostCoGroupLRDD[_] => currentLineagePosition.get.asInstanceOf[Lineage[(Int, Any)]].map(r => ((0, r._1), r._2))
+        case _: TapHadoopLRDD[_,_] => currentLineagePosition.get.map(r => r.asInstanceOf[(Long, Int)].swap).map(r => ((0, r._1), r._2))
+        case _ => currentLineagePosition.get
       }
-
       Some(result.asInstanceOf[Lineage[(RecordId, Any)]])
     }
   }

@@ -38,6 +38,14 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * For each key k in `this` or `other`, return a resulting RDD that contains a tuple with the
    * list of values for that key in `this` as well as `other`.
    */
+  override def cogroup[W](other: RDD[(K, W)]): Lineage[(K, (Iterable[V], Iterable[W]))] = {
+    cogroup(other, defaultPartitioner(self, other))
+  }
+
+  /**
+   * For each key k in `this` or `other`, return a resulting RDD that contains a tuple with the
+   * list of values for that key in `this` as well as `other`.
+   */
   override def cogroup[W](other: RDD[(K, W)], partitioner: Partitioner)
   : Lineage[(K, (Iterable[V], Iterable[W]))]  = {
     if (partitioner.isInstanceOf[HashPartitioner] && keyClass.isArray) {
@@ -91,6 +99,33 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   }
 
   /**
+   * Group the values for each key in the RDD into a single sequence. Hash-partitions the
+   * resulting RDD with the existing partitioner/parallelism level. The ordering of elements
+   * within each group is not guaranteed, and may even differ each time the resulting RDD is
+   * evaluated.
+   *
+   * Note: This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
+   * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
+   */
+  override def groupByKey(): Lineage[(K, Iterable[V])] = {
+    groupByKey(defaultPartitioner(self))
+  }
+
+  /**
+   * Group the values for each key in the RDD into a single sequence. Hash-partitions the
+   * resulting RDD with into `numPartitions` partitions. The ordering of elements within
+   * each group is not guaranteed, and may even differ each time the resulting RDD is evaluated.
+   *
+   * Note: This operation may be very expensive. If you are grouping in order to perform an
+   * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
+   * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
+   */
+  override def groupByKey(numPartitions: Int): Lineage[(K, Iterable[V])] = {
+    groupByKey(new HashPartitioner(numPartitions))
+  }
+
+  /**
    * Group the values for each key in the RDD into a single sequence. Allows controlling the
    * partitioning of the resulting key-value pair RDD by passing a Partitioner.
    * The ordering of elements within each group is not guaranteed, and may even differ
@@ -139,6 +174,11 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def reduceByKey(func: (V, V) => V, numPartitions: Int): Lineage[(K, V)] = {
     reduceByKey(new HashPartitioner(numPartitions), func)
   }
+
+  /**
+   * Return an RDD with the values of each tuple.
+   */
+  override def values: Lineage[V] = self.map(_._2)
 
   /**
    * Return an RDD containing all pairs of elements with matching keys in `this` and `other`. Each

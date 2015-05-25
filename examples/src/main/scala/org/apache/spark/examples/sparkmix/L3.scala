@@ -61,20 +61,70 @@ object L3 {
     val beta = alpha.map(x => (x._1, 1))
 
     val C = B.join(beta)//.map(x => (x._1, x._1, x._2._1))
-    C.collect
 
     val D = C.map(x => (x._1, x._1, x._2._1)).groupBy(_._1)
 
-    D.collect
     val E = D.map(x => (x._1, x._2.reduce((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3)))).map(x => (x._1, x._2._3))
 
-    E.collect
+    E.collect.foreach(println)
 
     lc.setCaptureLineage(false)
 
-    //    var linRdd = C.getLineage()
-    //    linRdd.collect().foreach(println)
+    // Step by step full trace backward
+    var linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
 
+    // Full trace backward
+    linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = E.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
     sc.stop()
   }
 }

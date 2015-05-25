@@ -56,6 +56,12 @@ class ShuffledLRDD[K, V, C](
     this
   }
 
+  /** Set key ordering for RDD's shuffle. */
+  override def setKeyOrdering(keyOrdering: Ordering[K]): ShuffledLRDD[K, V, C] = {
+    this.keyOrdering = Option(keyOrdering)
+    this
+  }
+
   override def tapRight(): TapLRDD[(K, C)] = {
     val tap = new TapPostShuffleLRDD[(K, C)](
       lineageContext, Seq(new OneToOneDependency[(K, C)](this))

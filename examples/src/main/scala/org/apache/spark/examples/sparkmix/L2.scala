@@ -96,6 +96,15 @@ object L2 {
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)
     linRdd.show
+
+    // Full trace backward one record
+    linRdd = C.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
     sc.stop()
   }
 }

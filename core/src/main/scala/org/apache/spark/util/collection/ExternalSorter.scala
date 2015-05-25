@@ -23,6 +23,7 @@ import java.util.Comparator
 import com.google.common.io.ByteStreams
 import org.apache.spark._
 import org.apache.spark.executor.ShuffleWriteMetrics
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
 import org.apache.spark.util.PackIntIntoLong
@@ -187,6 +188,7 @@ private[spark] class ExternalSorter[K, V, C](
     elementsPerPartition: Array[Long])
   private val spills = new ArrayBuffer[SpilledFile]
 
+  // Matteo
   def insertAll(records: Iterator[_ <: Product2[K, V]]): Unit = {
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
@@ -219,6 +221,56 @@ private[spark] class ExternalSorter[K, V, C](
         val kv = records.next()
         buffer.insert((getPartition(kv._1), kv._1), kv._2.asInstanceOf[C])
         maybeSpillCollection(usingMap = false)
+      }
+    }
+  }
+
+  def insertAll(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false, context: TaskContext): Unit = {
+    // TODO: stop combining if we find that the reduction factor isn't high
+    val shouldCombine = aggregator.isDefined
+
+    if (shouldCombine) {
+      // Combine values in-memory first using our AppendOnlyMap
+      val mergeValue = aggregator.get.mergeValue
+      val createCombiner = aggregator.get.createCombiner
+      var kv: Product2[K, V] = null
+      val update = (hadValue: Boolean, oldValue: C) => {
+        if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)
+      }
+      while (records.hasNext) {
+        addElementsRead()
+        kv = records.next()
+        map.changeValue((getPartition(kv._1), kv._1), update)
+        maybeSpillCollection(usingMap = true)
+      }
+    } else if (bypassMergeSort) {
+      // SPARK-4479: Also bypass buffering if merge sort is bypassed to avoid defensive copies
+      if (records.hasNext) {
+        spillToPartitionFiles(records.map { kv =>
+          ((getPartition(kv._1), kv._1), kv._2.asInstanceOf[C])
+        })
+      }
+    } else {
+      // Stick values into our buffer
+      if(!isLineage) {
+        while (records.hasNext) {
+          addElementsRead()
+          val kv = records.next()
+          buffer.insert((getPartition(kv._1), kv._1), kv._2.asInstanceOf[C])
+          maybeSpillCollection(usingMap = false)
+        }
+      } else {
+        var pair: Product2[K, Product2[V, Long]] = null
+        val lineageBuffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+
+        while (records.hasNext) {
+          addElementsRead()
+          pair = records.next().asInstanceOf[Product2[K, Product2[V, Long]]]
+          buffer.insert((getPartition(pair._1), pair._1), pair._2._1.asInstanceOf[C])
+          lineageBuffer.put(pair._2._2, pair._1.hashCode())
+          maybeSpillCollection(usingMap = false)
+        }
+        context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer
       }
     }
   }

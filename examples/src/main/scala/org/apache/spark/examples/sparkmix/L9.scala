@@ -12,14 +12,9 @@
  */
 package org.apache.spark.examples.sparkmix
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import java.util.Properties
-import java.io.FileInputStream
 import java.io._
 
-import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.lineage.LineageContext
 
 
@@ -35,16 +30,14 @@ object L9 {
 
     new File(outputRoot).mkdir()
 
-    val conf = new SparkConf().setAppName("SparkMix").setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+    val conf = new SparkConf().setAppName("SparkMix").setMaster("local[2]")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
-    val pageViews = lc.textFile(pageViewsPath)
 
     lc.setCaptureLineage(lineage)
-
-    val start = System.currentTimeMillis()
+    val pageViews = lc.textFile(pageViewsPath)
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), 
       SparkMixUtils.safeSplit(x, "\u0001", 1), SparkMixUtils.safeSplit(x, "\u0001", 2), 
@@ -55,14 +48,53 @@ object L9 {
 
     val B = A.sortBy(_._4, true, properties.getProperty("PARALLEL").toInt)
 
-    val end = System.currentTimeMillis()
-
-    B.collect
+    B.collect.foreach(println)
 
     lc.setCaptureLineage(false)
 
-    println(end - start)
+    // Step by step full trace backward
+    var linRdd = B.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
 
+    // Full trace backward
+    linRdd = B.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = B.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = B.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
     sc.stop()
   }
 }

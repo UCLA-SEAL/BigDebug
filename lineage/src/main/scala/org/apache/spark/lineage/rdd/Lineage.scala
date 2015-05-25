@@ -332,9 +332,28 @@ trait Lineage[T] extends RDD[T] {
   }
 
   /**
+   * Creates tuples of the elements in this RDD by applying `f`.
+   */
+  override def keyBy[K](f: T => K): Lineage[(K, T)] = {
+    map(x => (f(x), x))
+  }
+
+  /**
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = new MappedLRDD(this, sparkContext.clean(f))
+
+  /**
+   * Return this RDD sorted by the given key function.
+   */
+  override def sortBy[K](
+     f: (T) => K,
+     ascending: Boolean = true,
+     numPartitions: Int = this.partitions.size)
+   (implicit ord: Ordering[K], ctag: ClassTag[K]): Lineage[T] =
+    this.keyBy[K](f)
+      .sortByKey(ascending, numPartitions)
+      .values
 
   /**
    * Return the union of this RDD and another one. Any identical elements will appear multiple

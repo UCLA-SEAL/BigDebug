@@ -44,7 +44,7 @@ class ShuffledRDD[K, V, C](
 
   private var serializer: Option[Serializer] = None
 
-  private var keyOrdering: Option[Ordering[K]] = None
+  protected var keyOrdering: Option[Ordering[K]] = None // Matteo
 
   private var aggregator: Option[Aggregator[K, V, C]] = None
 

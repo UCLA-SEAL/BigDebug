@@ -65,13 +65,53 @@ object L5 {
 
     val E = D.map(_._1)
 
-    E.collect
+    E.collect.foreach(println)
 
     lc.setCaptureLineage(false)
 
-    //    var linRdd = C.getLineage()
-    //    linRdd.collect().foreach(println)
+    // Step by step full trace backward
+    var linRdd = D.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
 
+    // Full trace backward
+    linRdd = D.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Step by step trace backward one record
+    linRdd = D.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = D.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(1)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
     sc.stop()
   }
 }

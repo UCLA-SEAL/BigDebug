@@ -36,7 +36,14 @@ class TapParallelCollectionLRDD[T: ClassTag](
 
   override def initializeBuffer() = buffer = new util.ArrayDeque[(T, Int)]()
 
-  override def materializeBuffer = buffer.toArray().asInstanceOf[Array[Any]]
+  override def materializeBuffer = {
+    if (buffer != null) {
+      buffer.toArray().asInstanceOf[Array[Any]]
+    } else {
+      Array()
+    }
+  }
+
 
   override def releaseBuffer = buffer = null
 

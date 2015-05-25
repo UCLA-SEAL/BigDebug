@@ -32,21 +32,31 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
   override def materializeBuffer: Array[Any] = {
-    val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
-    val iterator = tContext.currentBuffer.iterator
+    if(tContext.currentBuffer != null) {
+      val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
+      val iterator = tContext.currentBuffer.iterator
 
-    while(iterator.hasNext) {
-      val next = iterator.next()
-      map.changeValue(
-        next._2,
-        { val tmp = new CompactBuffer[Long](); tmp += (next._1); tmp },
-        (old: CompactBuffer[Long]) => { old += (next._1); old})
+      while (iterator.hasNext) {
+        val next = iterator.next()
+        map.changeValue(
+        next._2, {
+          val tmp = new CompactBuffer[Long]()
+          tmp += (next._1)
+          tmp
+        },
+        (old: CompactBuffer[Long]) => {
+          old += (next._1)
+          old
+        })
+      }
+
+      // We release the buffer here because not needed anymore
+      releaseBuffer()
+
+      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
+    } else {
+      Array()
     }
-
-    // We release the buffer here because not needed anymore
-    releaseBuffer()
-
-    map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
   }
 
   override def releaseBuffer = {
