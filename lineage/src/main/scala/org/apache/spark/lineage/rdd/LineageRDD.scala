@@ -141,15 +141,13 @@ extends RDD[Any](prev) with Lineage[Any]
           .asInstanceOf[Lineage[(Any, Any)]]).cache()
       }
     } else {
-      val previous = lineageContext.getCurrentLineagePosition.get match {
+      new LineageRDD(lineageContext.getCurrentLineagePosition.get match {
         case _: TapPreShuffleLRDD[_] =>
           val part = new LocalityAwarePartitioner(prev.partitions.size)
-          new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[(Any, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.map(r2 => ((r2, r1._2._2), (0, r1._1)))), part).setMapSideCombine(false).map(r => r.swap)
-        case _ => prev
-      }
-      new LineageRDD(
-        previous.map(r => (r._2, r._1)).cache()
-      )
+          val tmp = new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[(Any, (CompactBuffer[Long], Int))]].flatMap(r1 => r1._2._1.map(r2 => ((r2, r1._2._2), (0, r1._1)))), part).setMapSideCombine(false)
+          rightJoinNew(tmp.asInstanceOf[Lineage[((Long, Int), Any)]], lineageContext.getCurrentLineagePosition.get.asInstanceOf[Lineage[((Long, Int), Any)]]).asInstanceOf[Lineage[(Any, RoaringBitmap)]].flatMap(r => r._2.toArray.map(b => (r._1, (0, b)))).asInstanceOf[Lineage[(Any, Any)]]
+        case _ => prev.map(_.swap)
+      }).cache()
     }
   }
 

@@ -70,7 +70,7 @@ object L5 {
     lc.setCaptureLineage(false)
 
     // Step by step full trace backward
-    var linRdd = D.getLineage()
+    var linRdd = E.getLineage()
     linRdd.collect().foreach(println)
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)
@@ -83,14 +83,14 @@ object L5 {
     linRdd.show
 
     // Full trace backward
-    linRdd = D.getLineage()
+    linRdd = E.getLineage()
     linRdd.collect().foreach(println)
     linRdd = linRdd.goBackAll()
     linRdd.collect.foreach(println)
     linRdd.show
 
     // Step by step trace backward one record
-    linRdd = D.getLineage()
+    linRdd = E.getLineage()
     linRdd.collect().foreach(println)
     linRdd = linRdd.filter(1)
     linRdd.collect.foreach(println)
@@ -105,7 +105,7 @@ object L5 {
     linRdd.show
 
     // Full trace backward one record
-    linRdd = D.getLineage()
+    linRdd = E.getLineage()
     linRdd.collect().foreach(println)
     linRdd = linRdd.filter(1)
     linRdd.collect.foreach(println)

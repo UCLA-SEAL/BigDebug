@@ -31,7 +31,7 @@ object L11 {
     val dataSize = args(0)
     val lineage: Boolean = args(1).toBoolean
 
-    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"//properties.getProperty("pigMix") + "pigmix_" + dataSize + "/"
+    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
     val outputRoot = "../../datasets/output/"  + "pigmix_" + dataSize + "/"//properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
 
     new File(outputRoot).mkdir()

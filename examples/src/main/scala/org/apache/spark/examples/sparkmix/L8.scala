@@ -14,14 +14,9 @@
  */
 package org.apache.spark.examples.sparkmix
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import java.util.Properties
-import java.io.FileInputStream
 import java.io._
 
-import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.lineage.LineageContext
 
 
@@ -42,11 +37,10 @@ object L8 {
     val lc = new LineageContext(sc)
 
     val pageViewsPath = pigMixPath + "page_views/"
-    val pageViews = lc.textFile(pageViewsPath)
 
     lc.setCaptureLineage(lineage)
+    val pageViews = lc.textFile(pageViewsPath)
 
-    val start = System.currentTimeMillis()
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), 
       SparkMixUtils.safeSplit(x, "\u0001", 1), SparkMixUtils.safeSplit(x, "\u0001", 2), 
@@ -63,16 +57,12 @@ object L8 {
 
     val E = (D._2, D._3 / C.filter(x => x._3 != 0).count())
 
-    val end = System.currentTimeMillis()
-
     //if (lc != null)
     lc.setCaptureLineage(false)
 
     //val pw = new PrintWriter(new File(outputPath))
     //pw.write(E.toString())
     //pw.close()
-
-    println(end - start)
 
     sc.stop()
 
