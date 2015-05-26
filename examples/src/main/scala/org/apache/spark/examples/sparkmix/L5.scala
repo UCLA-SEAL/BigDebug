@@ -59,7 +59,7 @@ object L5 {
 
     val beta = alpha.map(x => (x._1, x._1))
 
-    val C = beta.cogroup(B)
+    val C = B.cogroup(beta)
 
     val D = C.filter(x => x._2._1.size == 0)
 
@@ -92,7 +92,7 @@ object L5 {
     // Step by step trace backward one record
     linRdd = E.getLineage()
     linRdd.collect().foreach(println)
-    linRdd = linRdd.filter(1)
+    linRdd = linRdd.filter(100)
     linRdd.collect.foreach(println)
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)
@@ -105,9 +105,10 @@ object L5 {
     linRdd.show
 
     // Full trace backward one record
+    // This will not work because goBackAll will always go into the firs RDD, which in this case
     linRdd = E.getLineage()
     linRdd.collect().foreach(println)
-    linRdd = linRdd.filter(1)
+    linRdd = linRdd.filter(100)
     linRdd.collect.foreach(println)
     linRdd = linRdd.goBackAll()
     linRdd.collect.foreach(println)
