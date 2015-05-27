@@ -25,23 +25,29 @@ import org.apache.spark.lineage.LineageContext._
 
 object L7 {
   def main(args: Array[String]) {
+    val conf = new SparkConf()
+    var lineage = false
+    var saveToHdfs = false
+    var path = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/pigmix_"
+    if(args.size < 2) {
+      path = "../../datasets/pigMix/"  + "pigmix_10M/"
+      conf.setMaster("local[2]")
+      lineage = true
+    } else {
+      lineage = args(0).toBoolean
+      path += args(1) + "G"
+      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      saveToHdfs = true
+    }
+    conf.setAppName("SparkMix-L7" + lineage + "-" + path)
 
-    val properties = SparkMixUtils.loadPropertiesFile()
-    val dataSize = args(0)
-    val lineage: Boolean = args(1).toBoolean
-
-    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
-    val outputRoot = properties.getProperty("output") + "pigmix_" + dataSize + "_" + (System.currentTimeMillis() / 100000 % 1000000) + "/"
-
-    //new File(outputRoot).mkdir()
-
-    val conf = new SparkConf().setAppName("SparkMix").setMaster("local[2]")
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
-    val pageViewsPath = pigMixPath + "page_views/"
+    val pageViewsPath = path + "page_views/"
 
     lc.setCaptureLineage(lineage)
+
     val pageViews = lc.textFile(pageViewsPath)
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), 
@@ -53,12 +59,16 @@ object L7 {
 
     val B = A.map(x => (x._1, SparkMixUtils.safeInt(x._6)))
 
-    val C = B.groupByKey(properties.getProperty("PARALLEL").toInt)
+    val C = B.groupByKey()
 
     val D = C.mapValues(x => x.map(y => if (y < 43200) "morning" else "afternoon"))
       .map(x => (x._1, x._2.groupBy(identity))).map(x => (x._1, x._2.mapValues(x => x.size).map(identity)))
 
-    D.collect.foreach(println)
+    if(saveToHdfs) {
+      D.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L7-" + args(1) + "G")
+    } else {
+      D.collect.foreach(println)
+    }
 
     lc.setCaptureLineage(false)
 

@@ -25,20 +25,27 @@ import org.apache.spark.lineage.LineageContext._
 
 object L3 {
   def main(args: Array[String]) {
-
-    val dataSize = args(0)
-    val lineage: Boolean = args(1).toBoolean
-
-    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
-
     val conf = new SparkConf()
-      .setAppName("SparkMix")
-      .setMaster("local[2]")
+    var lineage = false
+    var saveToHdfs = false
+    var path = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/pigmix_"
+    if(args.size < 2) {
+      path = "../../datasets/pigMix/"  + "pigmix_10M/"
+      conf.setMaster("local[2]")
+      lineage = true
+    } else {
+      lineage = args(0).toBoolean
+      path += args(1) + "G"
+      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      saveToHdfs = true
+    }
+    conf.setAppName("SparkMix-L3" + lineage + "-" + path)
+
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
-    val pageViewsPath = pigMixPath + "page_views/"
-    val usersPath = pigMixPath + "users/"
+    val pageViewsPath = path + "page_views/"
+    val usersPath = path + "users/"
 
     lc.setCaptureLineage(lineage)
 
@@ -60,13 +67,17 @@ object L3 {
 
     val beta = alpha.map(x => (x._1, 1))
 
-    val C = B.join(beta)//.map(x => (x._1, x._1, x._2._1))
+    val C = B.join(beta)
 
     val D = C.map(x => (x._1, x._1, x._2._1)).groupBy(_._1)
 
     val E = D.map(x => (x._1, x._2.reduce((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3)))).map(x => (x._1, x._2._3))
 
-    E.collect.foreach(println)
+    if(saveToHdfs) {
+      E.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L3-" + args(1) + "G")
+    } else {
+      E.collect.foreach(println)
+    }
 
     lc.setCaptureLineage(false)
 

@@ -21,20 +21,27 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object L2 {
   def main(args: Array[String]) {
-
-    val dataSize = args(0)
-    val lineage: Boolean = args(1).toBoolean
-
-    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
-
     val conf = new SparkConf()
-      .setAppName("SparkMix")
-      .setMaster("local[2]")
+    var lineage = false
+    var saveToHdfs = false
+    var path = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/pigmix_"
+    if(args.size < 2) {
+      path = "../../datasets/pigMix/"  + "pigmix_10M/"
+      conf.setMaster("local[2]")
+      lineage = true
+    } else {
+      lineage = args(0).toBoolean
+      path += args(1) + "G"
+      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      saveToHdfs = true
+    }
+    conf.setAppName("SparkMix-L2" + lineage + "-" + path)
+
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
-    val pageViewsPath = pigMixPath + "page_views/"
-    val powerUsersPath = pigMixPath + "power_users"
+    val pageViewsPath = path + "page_views/"
+    val powerUsersPath = path + "power_users/"
 
     lc.setCaptureLineage(lineage)
 
@@ -58,12 +65,32 @@ object L2 {
 
     val C = B.join(beta).map(x => (x._1, x._2._1, x._1))
 
-    C.collect.foreach(println)
+    if(saveToHdfs) {
+      C.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L2-" + args(1) + "G")
+    } else {
+      C.collect.foreach(println)
+    }
 
     lc.setCaptureLineage(false)
 
     // Step by step full trace backward
-    var linRdd = C.getLineage()
+    //var linRdd = C.getLineage()
+    // Step by step full trace forward one record
+    var linRdd = pageViews.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.filter(2)
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goNext()
+    linRdd.collect.foreach(println)
+
     linRdd.collect.foreach(println)
     linRdd = linRdd.goBack()
     linRdd.collect.foreach(println)

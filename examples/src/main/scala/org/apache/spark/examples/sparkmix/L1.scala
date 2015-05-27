@@ -23,20 +23,26 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object L1 {
   def main(args: Array[String]) {
-
-    val properties = SparkMixUtils.loadPropertiesFile()
-    val dataSize = args(0)
-    val lineage: Boolean = args(1).toBoolean
-
-    val pigMixPath = "../../datasets/pigMix/"  + "pigmix_" + dataSize + "/"
-
     val conf = new SparkConf()
-      .setAppName("SparkMix")
-      .setMaster("local[2]")
+    var lineage = false
+    var saveToHdfs = false
+    var path = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/pigmix_"
+    if(args.size < 2) {
+      path = "../../datasets/pigMix/"  + "pigmix_10M/"
+      conf.setMaster("local[2]")
+      lineage = true
+    } else {
+      lineage = args(0).toBoolean
+      path += args(1) + "G"
+      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      saveToHdfs = true
+    }
+    conf.setAppName("SparkMix-L1" + lineage + "-" + path)
+
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
-    val pageViewsPath = pigMixPath + "page_views/"
+    val pageViewsPath = path + "page_views/"
 
     lc.setCaptureLineage(lineage)
 
@@ -57,7 +63,11 @@ object L1 {
 
     val E = D.map(x => (x._1, x._2.size))
 
-    E.collect.foreach(println)
+    if(saveToHdfs) {
+      E.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L1-" + args(1) + "G")
+    } else {
+      E.collect.foreach(println)
+    }
 
     lc.setCaptureLineage(false)
 
