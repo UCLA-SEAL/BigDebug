@@ -70,14 +70,14 @@ extends RDD[Any](prev) with Lineage[Any]
   def goNext(): LineageRDD =
   {
     val next = prev.lineageContext.getForward
-    val shuffled: Lineage[(_, _)] = prev.lineageContext.getCurrentLineagePosition.get match {
-      case _: TapPostShuffleLRDD[_] =>
+    val shuffled: Lineage[(_, _)] = lineageContext.getCurrentLineagePosition.get match {
+      case post: TapPostShuffleLRDD[_] =>
         val part = new HashPartitioner(next.partitions.size)
         new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[((Long, Int), Any)]].map(r => (r._1._2, r._2)), part).setMapSideCombine(false)
       case _ => prev
     }
 
-    prev.lineageContext.getCurrentLineagePosition.get match {
+    lineageContext.getCurrentLineagePosition.get match {
       case _: TapPostShuffleLRDD[_] =>
         new LineageRDD(
           rightJoinSuperShort(shuffled.asInstanceOf[Lineage[(Int, Any)]], next.asInstanceOf[Lineage[((CompactBuffer[Long], Int), Any)]].map(r => (r._1._2, r._2)))
@@ -86,6 +86,8 @@ extends RDD[Any](prev) with Lineage[Any]
             .cache()
         )
       case _: TapLRDD[_] =>
+        shuffled.debug()
+        next.debug()
         new LineageRDD(
           rightJoinShort(shuffled.map(r => r.asInstanceOf[((Int, Int), Any)]), next)
             .map(r => (r._2, r._1))
