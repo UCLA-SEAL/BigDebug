@@ -21,7 +21,7 @@ import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.lineage.{Direction, LocalityAwarePartitioner}
+import org.apache.spark.lineage.{HashAwarePartitioner, Direction, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
@@ -72,19 +72,16 @@ extends RDD[Any](prev) with Lineage[Any]
     val next = prev.lineageContext.getForward
     val shuffled: Lineage[(_, _)] = lineageContext.getCurrentLineagePosition.get match {
       case post: TapPostShuffleLRDD[_] =>
-        val part = new HashPartitioner(next.partitions.size)
+        val part = new HashAwarePartitioner(next.partitions.size) //post.getPar
         new ShuffledLRDD[Any, Any, Any](prev.asInstanceOf[Lineage[((Long, Int), Any)]].map(r => (r._1._2, r._2)), part).setMapSideCombine(false)
       case _ => prev
     }
 
     lineageContext.getCurrentLineagePosition.get match {
       case _: TapPostShuffleLRDD[_] =>
-        new LineageRDD(
-          rightJoinSuperShort(shuffled.asInstanceOf[Lineage[(Int, Any)]], next.asInstanceOf[Lineage[((CompactBuffer[Long], Int), Any)]].map(r => (r._1._2, r._2)))
-            .map(r => ((0L, r._2), r._1))
-            .asInstanceOf[Lineage[(Any, Any)]]
-            .cache()
-        )
+        new LineageRDD(rightJoinSuperShort(shuffled.asInstanceOf[Lineage[(Int, Any)]], next.asInstanceOf[Lineage[((CompactBuffer[Long], Int), Any)]].map(r => (r._1._2, r._2)))
+          .map(r => ((0L, r._2), r._1))
+          .asInstanceOf[Lineage[(Any, Any)]]).cache
       case _: TapLRDD[_] =>
         shuffled.debug()
         next.debug()

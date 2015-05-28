@@ -218,13 +218,25 @@ class LineageContext(@transient val sparkContext: SparkContext)
       currentLineagePosition = lastLineagePosition
 
       // We are starting from the middle, fill the stack with prev positions
-      while(currentLineagePosition.get != initialRDD.get) {
-        prevLineagePosition.push(currentLineagePosition.get)
-        currentLineagePosition = Some(currentLineagePosition.get.dependencies(0).rdd)
+      if(currentLineagePosition.get != initialRDD.get) {
+        prevLineagePosition.pushAll(search(List(currentLineagePosition.get), initialRDD.get).tail.reverse)
       }
     }
     currentLineagePosition = initialRDD
     lastLineageSeen = currentLineagePosition
+  }
+
+  // TODO This method will exaustively look for all the path. We actually need one
+  def search(path: List[Lineage[_]], initialRDD: Lineage[_]): List[Lineage[_]] = {
+    if(path.head.dependencies.isEmpty) {
+      if(path.tail.head == initialRDD) {
+        return path.tail
+      }
+      Nil
+    } else {
+      val paths = path.head.dependencies.map(dep => search(dep.rdd.asInstanceOf[Lineage[_]] +: path, initialRDD)).filter(p => !p.isEmpty)
+      return if(paths.isEmpty) path else paths.head
+    }
   }
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
