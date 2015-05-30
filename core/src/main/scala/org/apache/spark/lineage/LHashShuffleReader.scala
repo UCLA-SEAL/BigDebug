@@ -23,18 +23,13 @@ import org.apache.spark.shuffle.hash.{BlockStoreShuffleFetcher, HashShuffleReade
 import org.apache.spark.util.collection.ExternalSorter
 import org.apache.spark.{InterruptibleIterator, TaskContext}
 
-import scala.collection.mutable.ListBuffer
-
 private[spark] class LHashShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
     startPartition: Int,
     endPartition: Int,
     context: TaskContext,
     var lineage: Boolean = false
-  ) extends HashShuffleReader[K, C](handle, startPartition, endPartition, context)
-{
-  require(endPartition == startPartition + 1,
-    "Hash shuffle currently only supports fetching one partition")
+  ) extends HashShuffleReader[K, C](handle, startPartition, endPartition, context) {
 
   private val dep = handle.dependency
 
@@ -53,7 +48,9 @@ private[spark] class LHashShuffleReader[K, C](
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
-        new InterruptibleIterator(context, dep.aggregator.get.combineCombinersByKey(tappedIter, context))
+        new InterruptibleIterator(
+          context,
+          dep.aggregator.get.combineCombinersByKey(tappedIter, context))
       } else {
         new InterruptibleIterator(context,
           dep.aggregator.get.combineValuesByKey(tappedIter, context))
@@ -78,9 +75,5 @@ private[spark] class LHashShuffleReader[K, C](
       case None =>
         aggregatedIter
     }
-  }
-
-  private[spark] def update(value: (Short, Short, Int)) = (hadValue: Boolean, oldValue: ListBuffer[(Short, Short, Int)]) => {
-    if (hadValue) oldValue += value else new ListBuffer += value
   }
 }

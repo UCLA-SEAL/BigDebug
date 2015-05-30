@@ -153,10 +153,12 @@ class OpenHashSet[@specialized(Long, Int) T: ClassTag](
    * @param moveFunc Callback invoked when we move the key from one position (in the old data array)
    *                 to a new position (in the new data array).
    */
-  def rehashIfNeeded(k: T, allocateFunc: (Int) => Unit, moveFunc: (Int, Int) => Unit) {
+  def rehashIfNeeded(k: T, allocateFunc: (Int) => Unit, moveFunc: (Int, Int) => Unit): Boolean = {
     if (_size > _growThreshold) {
       rehash(k, allocateFunc, moveFunc)
+      return true
     }
+  false
   }
 
   /**
@@ -280,7 +282,7 @@ object OpenHashSet {
    * in the specialized implementation of OpenHashSet.
    */
   sealed class Hasher[@specialized(Long, Int) T] extends Serializable {
-    def hash(o: T): Int = o.hashCode()
+    def hash(o: T): Int = o.asInstanceOf[Int].hashCode()
   }
 
   class LongHasher extends Hasher[Long] {

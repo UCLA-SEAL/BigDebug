@@ -4,6 +4,7 @@ import scala.reflect.ClassTag
 
 abstract class ByteBuffer[@specialized(Long, Int) V1: ClassTag,
     @specialized(Long, Int) V2: ClassTag] (var data: Array[Byte]) {
+
   private[spark] val pageSize = 64
   private[spark] var capacity = data.size
   private[spark] val deltaIncrease = 1024 // We increase by a factor of 64 * deltaIncrease

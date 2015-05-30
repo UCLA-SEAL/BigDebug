@@ -20,12 +20,20 @@ package org.apache.spark.util.collection
 /**
  * An append-only map that keeps track of its estimated size in bytes.
  */
-private[spark] class SizeTrackingAppendOnlyMap[K, V]
-  extends AppendOnlyMap[K, V] with SizeTracker with SizeTrackingPairCollection[K, V]
+private[spark] class SizeTrackingAppendOnlyMap[K, V](initialCapacity: Int = 64)
+  extends AppendOnlyMap[K, V](initialCapacity) with SizeTracker with SizeTrackingPairCollection[K, V]
 {
+
   override def update(key: K, value: V): Unit = {
     super.update(key, value)
     super.afterUpdate()
+  }
+
+  // Matteo
+  override def update(key: Int): Int = {
+    val result = super.update(key)
+    super.afterUpdate()
+    result
   }
 
   override def changeValue(key: K, updateFunc: (Boolean, V) => V): V = {

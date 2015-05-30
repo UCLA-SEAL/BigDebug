@@ -17,10 +17,9 @@
 
 package org.apache.spark.util.collection
 
-import java.util.{Arrays, Comparator}
+import java.util.Comparator
 
 import com.google.common.hash.Hashing
-
 import org.apache.spark.annotation.DeveloperApi
 
 /**
@@ -81,6 +80,37 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
       }
     }
     null.asInstanceOf[V]
+  }
+
+  private[spark] var nextRecord: Int = 0
+
+  private[spark] def newRecordId = {
+    nextRecord += 1
+    nextRecord
+  }
+
+  // Matteo
+  /** Set an incremental value for a key */
+  def update(k: Int): Int = {
+    var pos = rehash(k) & mask
+    var i = 1
+    while (true) {
+      val curKey = data(2 * pos)
+      if (curKey.eq(null)) {
+        val result = newRecordId
+        data(2 * pos) = k.asInstanceOf[AnyRef]
+        data(2 * pos + 1) = result.asInstanceOf[AnyRef]
+        incrementSize()  // Since we added a new key
+        return result
+      } else if (k.equals(curKey.asInstanceOf[Int])) {
+        return data(2 * pos + 1).asInstanceOf[Int]
+      } else {
+        val delta = i
+        pos = (pos + delta) & mask
+        i += 1
+      }
+    }
+    0
   }
 
   /** Set the value for a key */

@@ -64,7 +64,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
         }
       }
 
-
       context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
     })
 
@@ -76,7 +75,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   override def finalizeTaskCache(
       rdd: RDD[_],
       split: Int, context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) = {
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
     materialize(split, context, effectiveStorageLevel)
-  }
 }

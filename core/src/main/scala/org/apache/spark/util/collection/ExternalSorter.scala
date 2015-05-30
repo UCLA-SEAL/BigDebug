@@ -130,7 +130,7 @@ private[spark] class ExternalSorter[K, V, C](
   // local aggregation and sorting, write numPartitions files directly and just concatenate them
   // at the end. This avoids doing serialization and deserialization twice to merge together the
   // spilled files, which would happen with the normal code path. The downside is having multiple
-  // files open at a time and thus more memory allocated to buffers.
+  // files open at a time and thus more memory allocated to buffers. Matteo
   private val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 1)
   private val bypassMergeSort =
     (numPartitions <= bypassMergeThreshold && aggregator.isEmpty && ordering.isEmpty)
@@ -188,7 +188,6 @@ private[spark] class ExternalSorter[K, V, C](
     elementsPerPartition: Array[Long])
   private val spills = new ArrayBuffer[SpilledFile]
 
-  // Matteo
   def insertAll(records: Iterator[_ <: Product2[K, V]]): Unit = {
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
@@ -225,6 +224,7 @@ private[spark] class ExternalSorter[K, V, C](
     }
   }
 
+  // Matteo
   def insertAll(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false, context: TaskContext): Unit = {
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
