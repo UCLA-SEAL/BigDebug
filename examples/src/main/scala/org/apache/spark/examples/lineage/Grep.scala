@@ -31,8 +31,8 @@ object Grep {
     // Job
     val lines = lc.textFile(logFile, 2)
     val result = lines.filter(line => line.contains("spark"))
-    //println(result.count)
-    println(result.collect().mkString("\n"))
+    println(result.count)
+    //println(result.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
 
