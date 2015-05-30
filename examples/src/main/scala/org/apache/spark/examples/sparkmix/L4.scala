@@ -18,36 +18,29 @@
 package org.apache.spark.examples.sparkmix
 
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.SparkContext._
 
 
 object L4 {
   def main(args: Array[String]) {
     val conf = new SparkConf()
-    var lineage = false
     var saveToHdfs = false
     var path = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/pigmix_"
-    if(args.size < 2) {
+    if(args.size < 1) {
       path = "../../datasets/pigMix/"  + "pigmix_10M/"
       conf.setMaster("local[2]")
-      lineage = true
     } else {
-      lineage = args(0).toBoolean
-      path += args(1) + "G"
+      path += args(0) + "G"
       conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
       saveToHdfs = true
     }
-    conf.setAppName("SparkMix-L4" + lineage + "-" + path)
+    conf.setAppName("SparkMix-L4-" + path)
 
     val sc = new SparkContext(conf)
-    val lc = new LineageContext(sc)
 
     val pageViewsPath = path + "page_views/"
 
-    lc.setCaptureLineage(lineage)
-
-    val pageViews = lc.textFile(pageViewsPath)
+    val pageViews = sc.textFile(pageViewsPath)
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0),
       SparkMixUtils.safeSplit(x, "\u0001", 1), SparkMixUtils.safeSplit(x, "\u0001", 2),
@@ -63,102 +56,11 @@ object L4 {
     val D = C.mapValues(_.toSet.size)
 
     if(saveToHdfs) {
-      D.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L4-" + args(1) + "G")
+      D.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/pigmix-spark/output-L4-" + args(0) + "G")
     } else {
       D.collect.foreach(println)
     }
 
-    lc.setCaptureLineage(false)
-
-    // Step by step full trace backward
-    var linRdd = D.getLineage()
-    linRdd.collect().foreach(println)
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-
-    // Full trace backward
-    linRdd = D.getLineage()
-    linRdd.collect().foreach(println)
-    linRdd = linRdd.goBackAll()
-    linRdd.collect.foreach(println)
-    linRdd.show
-
-    // Step by step trace backward one record
-    linRdd = D.getLineage()
-    linRdd.collect().foreach(println)
-    linRdd = linRdd.filter(1)
-    linRdd.collect.foreach(println)
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goBack()
-    linRdd.collect.foreach(println)
-    linRdd.show
-
-    // Full trace backward one record
-    linRdd = D.getLineage()
-    linRdd.collect().foreach(println)
-    linRdd = linRdd.filter(1)
-    linRdd.collect.foreach(println)
-    linRdd = linRdd.goBackAll()
-    linRdd.collect.foreach(println)
-    linRdd.show
-
-    // Step by step trace forward
-    linRdd = pageViews.getLineage()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-
-    // Full trace forward
-    linRdd = pageViews.getLineage()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNextAll()
-    linRdd.collect.foreach(println)
-
-    // Step by step trace forward one record
-    linRdd = pageViews.getLineage()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.filter(0)
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNext()
-    linRdd.collect.foreach(println)
-
-    // Full trace forward one record
-    linRdd = pageViews.getLineage()
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.filter(0)
-    linRdd.collect.foreach(println)
-    linRdd.show
-    linRdd = linRdd.goNextAll()
-    linRdd.collect.foreach(println)
     sc.stop()
 
   }

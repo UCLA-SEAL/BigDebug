@@ -37,8 +37,7 @@ object SparkWordCount {
       conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
     }
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
-//    conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-//    conf.registerKryoClasses(Array(classOf[RoaringBitmap], classOf[CompactBuffer[Long]]))
+
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
@@ -48,11 +47,12 @@ object SparkWordCount {
     val file = lc.textFile(logFile, 2)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
     val counts = pairs.reduceByKey(_ + _)
-//  println(counts.count)
-    println(counts.collect().mkString("\n"))
+    println(counts.count)
+//    println(counts.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
 
+//    Thread.sleep(1000)
     // Step by step full trace backward
     var linRdd = counts.getLineage()
     linRdd.collect.foreach(println)
@@ -68,8 +68,10 @@ object SparkWordCount {
     linRdd = counts.getLineage()
     linRdd.collect.foreach(println)
     linRdd.show
+   // linRdd = linRdd.filter(0)//4508
     linRdd = linRdd.goBackAll()
     linRdd.collect.foreach(println)
+//    println("Done")
     linRdd.show
 
     // Step by step trace backward one record
@@ -140,6 +142,6 @@ object SparkWordCount {
     linRdd = linRdd.goNextAll()
     linRdd.collect.foreach(println)
     linRdd.show
-     sc.stop()
+    sc.stop()
   }
 }

@@ -28,29 +28,34 @@ import scala.util.Random
  * Transitive closure on a graph.
  */
 object SparkTC {
-  val numEdges = 20
-  val numVertices = 10
+  val numEdges = 5
+  val numVertices = 4
   val rand = new Random(42)
 
   def generateGraph = {
     val edges: mutable.Set[(Int, Int)] = mutable.Set.empty
-    while (edges.size < numEdges) {
-      val from = rand.nextInt(numVertices)
-      val to = rand.nextInt(numVertices)
-      if (from != to) edges.+=((from, to))
-    }
+//    while (edges.size < numEdges) {
+//      val from = rand.nextInt(numVertices) + 1
+//      val to = rand.nextInt(numVertices) + 1
+//      if (from != to) edges.+=((from, to))
+//    }
+    edges.add(4,1)
+    edges.add(3,1)
+    edges.add(4,2)
+    edges.add(2,4)
+    edges.add(2,3)
     edges.toSeq
   }
 
   def main(args: Array[String]) {
-    val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkTC")
+    val sparkConf = new SparkConf().setMaster("local[1]").setAppName("SparkTC")
     val sc = new SparkContext(sparkConf)
     val slices = if (args.length > 0) args(0).toInt else 2
-    sc.setCheckpointDir("./tmp/")
     val lc = new LineageContext(sc)
+
     lc.setCaptureLineage(true)
 
-    var tc = lc.parallelize(generateGraph, slices)
+    var tc = lc.parallelize(generateGraph, 2)
 
     // Linear transitive closure: each round grows paths by one edge,
     // by joining the graph's edges with the already-discovered paths.
@@ -58,43 +63,83 @@ object SparkTC {
     // the graph to obtain the path (x, z).
 
     // Because join() joins on keys, the edges are stored in reversed order.
-    val edges = tc.map(x => (x._2, x._1))
+    val edges = tc.map(x => (x._2, x._1 + 1))
 
     // This join is iterated until a fixed point is reached.
     var oldCount = 0L
-    var nextCount = tc.count()
+ //   var nextCount = tc.count()
     var count = 0
-    do {
-      oldCount = nextCount
+ //   do {
+ //     oldCount = nextCount
 //    // Perform the join, obtaining an RDD of (y, (z, x)) pairs,
 //    // then project the result to obtain the new (x, z) paths.
-      tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1))).distinct()
-      nextCount = tc.count()
+ //     tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1))).distinct()
+    tc = tc.union(tc.join(edges).map(x => (x._2._2, x._2._1))).distinct()
+      //nextCount = tc.count()
+    tc.collect().foreach(println)
       count = count + 1
-    } while (nextCount != oldCount)
+//    } while (nextCount != oldCount)
 
-    println("TC has " + nextCount + " edges.")
+//    println("TC has " + tc.count() + " edges.")
     lc.setCaptureLineage(false)
 
-    var lineage = tc.getLineage()
-    lineage.collect().foreach(println)
+    var linRdd = tc.getLineage()
+    linRdd.collect().foreach(println)
+//
+//    for(i<-1 to count-1) {
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show
 
-    for(i<-1 to count-1) {
-      lineage = lineage.goBack()
-      lineage.collect().foreach(println)
-      var show = lineage.show
-      lineage = show.getLineage()
-      lineage = lineage.goBack()
-      lineage.collect().foreach(println)
-      show = lineage.show
-      lineage = show.getLineage()
-      lineage = lineage.goBack()
-      lineage.collect().foreach(println)
-    }
+    // Full trace backward
+    linRdd = tc.getLineage()
+    linRdd.collect.foreach(println)
+    // linRdd = linRdd.filter(0)//4508
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    //    println("Done")
+    linRdd.show
 
-    var show = lineage.show
-    lineage = show.getLineage()
-    lineage.collect().foreach(println)
+    // Step by step trace backward one record
+    linRdd = tc.getLineage()
+    linRdd.collect().foreach(println)
+    linRdd = linRdd.filter(0)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    linRdd.show
+
+    // Full trace backward one record
+    linRdd = tc.getLineage()
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.filter(0)
+    linRdd.collect.foreach(println)
+    linRdd = linRdd.goBackAll()
+    linRdd.collect.foreach(println)
+    linRdd.show
+//    }
+//
+//    var show = lineage.show
+//    lineage = show.getLineage()
+//    lineage.collect().foreach(println)
     sc.stop()
   }
 }
