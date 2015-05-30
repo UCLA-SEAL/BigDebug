@@ -135,6 +135,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
   }
 
+  /**
+   * Run a job on all partitions in an RDD and return the results in an array.
+   */
+  def runJob[T, U: ClassTag](rdd: Lineage[T], func: (TaskContext, Iterator[T]) => U): Array[U] = {
+    val tappedRdd = tapJob(rdd)
+    sparkContext.runJob(tappedRdd, func, 0 until rdd.partitions.size, false)
+  }
+
   def getLineage(rdd: Lineage[_]) = {
     val initialTap: Lineage[_] = rdd.materialize
     val visited = new HashSet[RDD[_]]

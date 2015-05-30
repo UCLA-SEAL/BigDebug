@@ -1,6 +1,7 @@
 package org.apache.spark.lineage.rdd
 
-import org.apache.hadoop.io.{LongWritable, Text}
+import org.apache.hadoop.io.{NullWritable, LongWritable, Text}
+import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.SparkContext._
 import org.apache.spark.lineage.LineageContext
@@ -301,6 +302,31 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = new MappedLRDD(this, sparkContext.clean(f))
+
+  /**
+   * Save this RDD as a text file, using string representations of elements.
+   */
+  override def saveAsTextFile(path: String) {
+    // https://issues.apache.org/jira/browse/SPARK-2075
+    //
+    // NullWritable is a `Comparable` in Hadoop 1.+, so the compiler cannot find an implicit
+    // Ordering for it and will use the default `null`. However, it's a `Comparable[NullWritable]`
+    // in Hadoop 2.+, so the compiler will call the implicit `Ordering.ordered` method to create an
+    // Ordering for `NullWritable`. That's why the compiler will generate different anonymous
+    // classes for `saveAsTextFile` in Hadoop 1.+ and Hadoop 2.+.
+    //
+    // Therefore, here we provide an explicit Ordering `null` to make sure the compiler generate
+    // same bytecodes for `saveAsTextFile`.
+    val nullWritableClassTag = implicitly[ClassTag[NullWritable]]
+    val textClassTag = implicitly[ClassTag[Text]]
+    val r = this.map(x => (NullWritable.get(), new Text(x.toString)))
+    lrddToPairLRDDFunctions(r)(nullWritableClassTag, textClassTag, null)
+      .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path)
+
+    if(lineageContext.isLineageActive) {
+      lineageContext.setLastLineagePosition(this.getTap)
+    }
+  }
 
   /**
    * Return this RDD sorted by the given key function.

@@ -1079,7 +1079,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
     writer.commitJob()
   }
 
-  private def initHadoopOutputMetrics(context: TaskContext, config: Configuration)
+  protected def initHadoopOutputMetrics(context: TaskContext, config: Configuration) // Matteo
     : (OutputMetrics, Option[() => Long]) = {
     val bytesWrittenCallback = Option(config.get("mapreduce.output.fileoutputformat.outputdir"))
       .map(new Path(_))
@@ -1091,7 +1091,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
     (outputMetrics, bytesWrittenCallback)
   }
 
-  private def maybeUpdateOutputMetrics(bytesWrittenCallback: Option[() => Long],
+  protected def maybeUpdateOutputMetrics(bytesWrittenCallback: Option[() => Long], // Matteo
       outputMetrics: OutputMetrics, recordsWritten: Long): Unit = {
     if (recordsWritten % PairRDDFunctions.RECORDS_BETWEEN_BYTES_WRITTEN_METRIC_UPDATES == 0
         && bytesWrittenCallback.isDefined) {
@@ -1117,7 +1117,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
 
   // Note: this needs to be a function instead of a 'val' so that the disableOutputSpecValidation
   // setting can take effect:
-  private def isOutputSpecValidationEnabled: Boolean = {
+  protected[spark] def isOutputSpecValidationEnabled: Boolean = { // Matteo
     val validationDisabled = PairRDDFunctions.disableOutputSpecValidation.value
     val enabledInConf = self.conf.getBoolean("spark.hadoop.validateOutputSpecs", true)
     enabledInConf && !validationDisabled

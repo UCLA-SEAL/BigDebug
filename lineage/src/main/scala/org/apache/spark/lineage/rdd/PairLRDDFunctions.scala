@@ -17,13 +17,18 @@
 
 package org.apache.spark.lineage.rdd
 
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.io.SequenceFile.CompressionType
+import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.hadoop.mapred.{FileOutputCommitter, FileOutputFormat, JobConf, OutputFormat}
 import org.apache.spark.Partitioner._
+import org.apache.spark._
+import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.lineage.LAggregator
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.util.collection.CompactBuffer
-import org.apache.spark.{HashPartitioner, Partitioner, SparkException}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -216,5 +221,119 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = {
     val cleanF = self.context.clean(f)
     new FlatMappedValuesLRDD(self, cleanF)
+  }
+
+  /**
+   * Output the RDD to any Hadoop-supported file system, using a Hadoop `OutputFormat` class
+   * supporting the key and value types K and V in this RDD.
+   */
+  override def saveAsHadoopFile[F <: OutputFormat[K, V]](path: String)(implicit fm: ClassTag[F]) {
+    saveAsHadoopFile(path, keyClass, valueClass, fm.runtimeClass.asInstanceOf[Class[F]])
+  }
+
+  /**
+   * Output the RDD to any Hadoop-supported file system, using a Hadoop `OutputFormat` class
+   * supporting the key and value types K and V in this RDD.
+   * Copied from PairRDDFunctions
+   */
+  override def saveAsHadoopFile(
+      path: String,
+      keyClass: Class[_],
+      valueClass: Class[_],
+      outputFormatClass: Class[_ <: OutputFormat[_, _]],
+      conf: JobConf = new JobConf(self.context.hadoopConfiguration),
+      codec: Option[Class[_ <: CompressionCodec]] = None) {
+    // Rename this as hadoopConf internally to avoid shadowing (see SPARK-2038).
+    val hadoopConf = conf
+    hadoopConf.setOutputKeyClass(keyClass)
+    hadoopConf.setOutputValueClass(valueClass)
+    // Doesn't work in Scala 2.9 due to what may be a generics bug
+    // TODO: Should we uncomment this for Scala 2.10?
+    // conf.setOutputFormat(outputFormatClass)
+    hadoopConf.set("mapred.output.format.class", outputFormatClass.getName)
+    for (c <- codec) {
+      hadoopConf.setCompressMapOutput(true)
+      hadoopConf.set("mapred.output.compress", "true")
+      hadoopConf.setMapOutputCompressorClass(c)
+      hadoopConf.set("mapred.output.compression.codec", c.getCanonicalName)
+      hadoopConf.set("mapred.output.compression.type", CompressionType.BLOCK.toString)
+    }
+
+    // Use configured output committer if already set
+    if (conf.getOutputCommitter == null) {
+      hadoopConf.setOutputCommitter(classOf[FileOutputCommitter])
+    }
+
+    FileOutputFormat.setOutputPath(hadoopConf,
+      SparkHadoopWriter.createPathFromString(path, hadoopConf))
+    saveAsHadoopDataset(hadoopConf)
+  }
+
+  /**
+   * Output the RDD to any Hadoop-supported storage system, using a Hadoop JobConf object for
+   * that storage system. The JobConf should set an OutputFormat and any output paths required
+   * (e.g. a table name to write to) in the same way as it would be configured for a Hadoop
+   * MapReduce job.
+   * Copied from PairRDDFunctions
+   */
+  override def saveAsHadoopDataset(conf: JobConf) {
+    // Rename this as hadoopConf internally to avoid shadowing (see SPARK-2038).
+    val hadoopConf = conf
+    val wrappedConf = new SerializableWritable(hadoopConf)
+    val outputFormatInstance = hadoopConf.getOutputFormat
+    val keyClass = hadoopConf.getOutputKeyClass
+    val valueClass = hadoopConf.getOutputValueClass
+    if (outputFormatInstance == null) {
+      throw new SparkException("Output format class not set")
+    }
+    if (keyClass == null) {
+      throw new SparkException("Output key class not set")
+    }
+    if (valueClass == null) {
+      throw new SparkException("Output value class not set")
+    }
+    SparkHadoopUtil.get.addCredentials(hadoopConf)
+
+    logDebug("Saving as hadoop file of type (" + keyClass.getSimpleName + ", " +
+      valueClass.getSimpleName + ")")
+
+    if (isOutputSpecValidationEnabled) {
+      // FileOutputFormat ignores the filesystem parameter
+      val ignoredFs = FileSystem.get(hadoopConf)
+      hadoopConf.getOutputFormat.checkOutputSpecs(ignoredFs, hadoopConf)
+    }
+
+    val writer = new SparkHadoopWriter(hadoopConf)
+    writer.preSetup()
+
+    val writeToFile = (context: TaskContext, iter: Iterator[(K, V)]) => {
+      val config = wrappedConf.value
+      // Hadoop wants a 32-bit task attempt ID, so if ours is bigger than Int.MaxValue, roll it
+      // around by taking a mod. We expect that no task will be attempted 2 billion times.
+      val attemptNumber = (context.attemptId % Int.MaxValue).toInt
+
+      val (outputMetrics, bytesWrittenCallback) = initHadoopOutputMetrics(context, config)
+
+      writer.setup(context.stageId, context.partitionId, attemptNumber)
+      writer.open()
+      try {
+        var recordsWritten = 0L
+        while (iter.hasNext) {
+          val record = iter.next()
+          writer.write(record._1.asInstanceOf[AnyRef], record._2.asInstanceOf[AnyRef])
+
+          // Update bytes written metric every few records
+          maybeUpdateOutputMetrics(bytesWrittenCallback, outputMetrics, recordsWritten)
+          recordsWritten += 1
+        }
+      } finally {
+        writer.close()
+      }
+      writer.commit()
+      bytesWrittenCallback.foreach { fn => outputMetrics.bytesWritten = fn() }
+    }
+
+    self.lineageContext.runJob(self, writeToFile)
+    writer.commitJob()
   }
 }
