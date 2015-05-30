@@ -30,8 +30,8 @@ import scala.reflect.ClassTag
 
 private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
 (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null)
-  extends PairRDDFunctions[K, V](self)
-{
+  extends PairRDDFunctions[K, V](self) {
+
   def lineageContext = self.lineageContext
 
   /**
@@ -217,8 +217,4 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
     val cleanF = self.context.clean(f)
     new FlatMappedValuesLRDD(self, cleanF)
   }
-}
-
-object PairLRDDFunctions {
-  implicit def RDDToLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 }

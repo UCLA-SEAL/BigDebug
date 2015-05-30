@@ -11,9 +11,10 @@ private[spark] class ParallelCollectionLRDD[T: ClassTag](
     @transient lc: LineageContext,
     @transient data: Seq[T],
     numSlices: Int,
-    locationPrefs: Map[Int, Seq[String]]
-  )extends ParallelCollectionRDD[T](lc.sparkContext, data, numSlices, locationPrefs) with Lineage[T]
-{
+    locationPrefs: Map[Int, Seq[String]])
+  extends ParallelCollectionRDD[T](lc.sparkContext, data, numSlices, locationPrefs)
+  with Lineage[T] {
+
   override def lineageContext = lc
 
   override def ttag: ClassTag[T] = classTag[T]

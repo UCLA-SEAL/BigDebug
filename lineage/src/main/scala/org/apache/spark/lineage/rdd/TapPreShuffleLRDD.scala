@@ -19,7 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.util.IntIntByteBuffer
-import org.apache.spark.lineage.{Int2RoaringBitmapOpenHashMap, LineageContext}
+import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
 import org.apache.spark.util.PackIntIntoLong
 
 import scala.reflect.ClassTag
@@ -34,7 +34,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
   override def materializeBuffer: Array[Any] = {
-    val map = new Int2RoaringBitmapOpenHashMap(16384)
+    val map = new Int2RoaringBitMapOpenHashMap(16384)
     val iterator = buffer.iterator
 
     while(iterator.hasNext) {

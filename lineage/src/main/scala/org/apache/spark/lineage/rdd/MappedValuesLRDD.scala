@@ -23,8 +23,8 @@ import scala.reflect._
 
 private[spark]
 class MappedValuesLRDD[K, V, U](prev: Lineage[_ <: Product2[K, V]], f: V => U)
-  extends MappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)]
-{
+  extends MappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)] {
+
   override def lineageContext = prev.lineageContext
 
   override def ttag: ClassTag[(K, U)] = classTag[(K, U)]

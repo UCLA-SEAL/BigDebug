@@ -25,5 +25,4 @@ import scala.reflect.ClassTag
 private[spark]
 class TapPreCoGroupLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
-  ) extends TapPreShuffleLRDD[T](lc, deps) {
-}
+  ) extends TapPreShuffleLRDD[T](lc, deps)

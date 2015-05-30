@@ -48,7 +48,7 @@ trait Lineage[T] extends RDD[T] {
     this
   }
 
-  def getTap() = tapRDD
+  def getTap = tapRDD
 
   def setCaptureLineage(newLineage :Boolean) = {
     captureLineage = newLineage
@@ -56,14 +56,14 @@ trait Lineage[T] extends RDD[T] {
   }
 
   def getLineage(): LineageRDD = {
-    if(getTap().isDefined) {
-      lineageContext.setCurrentLineagePosition(getTap())
-      return getTap().get match {
+    if(getTap.isDefined) {
+      lineageContext.setCurrentLineagePosition(getTap)
+      return getTap.get match {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
-          new LineageRDD(getTap().get.map(r => (r.asInstanceOf[((Int), (Int, Int))])))
+          new LineageRDD(getTap.get.asInstanceOf[Lineage[(RecordId, (Int, Int))]])//map(r => (r.asInstanceOf[((Int), (Int, Int))])))
         case tap: TapHadoopLRDD[_, _] =>
-          new LineageRDD(tap.map(r => (r.asInstanceOf[(Long, Int)])).map(r => ((0, r._2), r._1)))
-        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => r.asInstanceOf[(Int, Int)]).map(r => ((0, r._1), (0, r._2))))
+          new LineageRDD(tap.map(r => (r.asInstanceOf[(Long, Int)])).map(r => ((0L, r._2), r._1)))
+        case tap: TapLRDD[_] => new LineageRDD(tap.map(r => r.asInstanceOf[(Int, Int)]).map(r => ((0L, r._1), (0L, r._2))))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -79,53 +79,12 @@ trait Lineage[T] extends RDD[T] {
     this
   }
 
-  def debug() = super.collect.foreach(println)
-
   private[spark] def rightJoin(prev: Lineage[(RecordId, Any)], next: Lineage[(RecordId, Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[RecordId]()
         var rowKey: RecordId = null
 
-
-        // Create a Hash set of buildKeys
-        while (buildIter.hasNext) {
-          rowKey = buildIter.next()._1
-          val keyExists = hashSet.contains(rowKey)
-          if (!keyExists) {
-            hashSet.add(rowKey)
-          }
-        }
-
-        streamIter.filter(current => { hashSet.contains(current._1) })
-    }
-  }
-
-  private[spark] def rightJoinNew(prev: Lineage[(RecordIdNew, Any)], next: Lineage[(RecordIdNew, Any)]) = {
-    prev.zipPartitions(next) {
-      (buildIter, streamIter) =>
-        val hashSet = new java.util.HashSet[RecordIdNew]()
-        var rowKey: RecordIdNew = null
-
-
-        // Create a Hash set of buildKeys
-        while (buildIter.hasNext) {
-          rowKey = buildIter.next()._1
-          val keyExists = hashSet.contains(rowKey)
-          if (!keyExists) {
-            hashSet.add(rowKey)
-          }
-        }
-
-        streamIter.filter(current => { hashSet.contains(current._1) })
-    }
-  }
-
-  private[spark] def rightJoinShort(prev: Lineage[((Int, Int), Any)], next: Lineage[((Long, Int), Any)]) = {
-    prev.zipPartitions(next) {
-      (buildIter, streamIter) =>
-        val hashSet = new java.util.HashSet[(Int, Int)]()
-        var rowKey: (Int, Int) = null
 
         // Create a Hash set of buildKeys
         while (buildIter.hasNext) {
@@ -211,7 +170,7 @@ trait Lineage[T] extends RDD[T] {
     val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
 
     if(lineageContext.isLineageActive) {
-      lineageContext.setLastLineagePosition(this.getTap())
+      lineageContext.setLastLineagePosition(this.getTap)
     }
 
     Array.concat(results: _*)
@@ -224,7 +183,7 @@ trait Lineage[T] extends RDD[T] {
     val result = lineageContext.runJob(this, Utils.getIteratorSize _).sum
 
     if(lineageContext.isLineageActive) {
-      lineageContext.setLastLineagePosition(this.getTap())
+      lineageContext.setLastLineagePosition(this.getTap)
     }
 
     result
@@ -246,12 +205,12 @@ trait Lineage[T] extends RDD[T] {
    */
   override def filter(f: T => Boolean): Lineage[T] = {
     if(!lineageContext.isLineageActive) {
-      if(this.getTap().isDefined) {
-        lineageContext.setCurrentLineagePosition(this.getTap())
+      if(this.getTap.isDefined) {
+        lineageContext.setCurrentLineagePosition(this.getTap)
         var result: ShowRDD = null
-        this.getTap().get match {
+        this.getTap.get match {
           case _: TapPreShuffleLRDD[_] =>
-            val tmp = this.getTap().get
+            val tmp = this.getTap.get
               .getCachedData.setCaptureLineage(false)
               .asInstanceOf[Lineage[(Any, (Any, RecordId))]]
             tmp.setTap()
@@ -262,7 +221,7 @@ trait Lineage[T] extends RDD[T] {
             )
             tmp.setTap(lineageContext.getCurrentLineagePosition.get)
           case _: TapPostShuffleLRDD[_] =>
-            val tmp = this.getTap().get
+            val tmp = this.getTap.get
               .getCachedData.setCaptureLineage(false)
               .asInstanceOf[Lineage[(T, RecordId)]]
             tmp.setTap()
@@ -270,7 +229,7 @@ trait Lineage[T] extends RDD[T] {
             tmp.setTap(lineageContext.getCurrentLineagePosition.get)
           case _ => throw new UnsupportedOperationException
         }
-        result.setTap(this.getTap().get)
+        result.setTap(this.getTap.get)
         result
       } else {
         this.dependencies(0).rdd match {
@@ -402,8 +361,26 @@ object Lineage {
   implicit def castLineage5[T](rdd: RDD[(RecordId, T)]): Lineage[(RecordId, String)] =
     rdd.asInstanceOf[Lineage[(RecordId, String)]]
 
-  implicit def castLineage6[T](rdd: Lineage[_]): Lineage[(RecordId, (String, Long))] =
+  implicit def castLineage6(rdd: Lineage[_]): Lineage[(RecordId, (String, Long))] =
     rdd.asInstanceOf[Lineage[(RecordId, (String, Long))]]
+
+  implicit def castLineage8(rdd: Lineage[(_, _)]): Lineage[(RecordId, Any)] =
+    rdd.asInstanceOf[Lineage[(RecordId, Any)]]
+
+  implicit def castLineage9(rdd: Lineage[(_, _)]): Lineage[(Any, Any)] =
+    rdd.asInstanceOf[Lineage[(Any, Any)]]
+
+//  implicit def castLineage10(rdd: Lineage[(Any, Int)]): Lineage[(Int, Any)] =
+//    rdd.asInstanceOf[Lineage[(Int, Any)]]
+
+  implicit def castLineage11(rdd: Lineage[(RecordId, _)]): Lineage[(Int, Any)] =
+    rdd.map(r => (r._1._2, r._2))
+
+//  implicit def castLineage7(rdd: Lineage[(_, _)]): Lineage[(Int, Any)] =
+//    rdd.asInstanceOf[Lineage[(Int, Any)]]
+
+  implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
+    rdd.map(r => ((0L, r._1), r._2))
 
   implicit def castShowToLineage[T](show: ShowRDD): Lineage[T] =
     show.asInstanceOf[Lineage[T]]

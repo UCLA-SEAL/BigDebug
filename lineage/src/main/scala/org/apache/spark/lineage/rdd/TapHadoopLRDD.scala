@@ -24,8 +24,8 @@ import org.apache.spark.lineage.util.LongIntByteBuffer
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
-  extends TapLRDD[(K, V)](lc, deps)
-{
+  extends TapLRDD[(K, V)](lc, deps) {
+
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 

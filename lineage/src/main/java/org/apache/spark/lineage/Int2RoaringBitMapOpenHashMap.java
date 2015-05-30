@@ -71,10 +71,12 @@ import static it.unimi.dsi.fastutil.HashCommon.maxFill;
  * methods} lets you control the size of the table; this is particularly useful
  * if you reuse instances of this class.
  *
+ * <p>Taken from fastutil and modified by Matteo
+ *
  * @see Hash
  * @see HashCommon
  */
-public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringBitmap> implements java.io.Serializable, Cloneable, Hash {
+public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringBitmap> implements java.io.Serializable, Cloneable, Hash {
     private static final long serialVersionUID = 0L;
     private static final boolean ASSERTS = false;
     /** The array of keys. */
@@ -107,7 +109,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * @param f the load factor.
      */
     @SuppressWarnings("unchecked")
-    public Int2RoaringBitmapOpenHashMap( final int expected, final float f ) {
+    public Int2RoaringBitMapOpenHashMap(final int expected, final float f) {
         if ( f <= 0 || f > 1 ) throw new IllegalArgumentException( "Load factor must be greater than 0 and smaller than or equal to 1" );
         if ( expected < 0 ) throw new IllegalArgumentException( "The expected number of elements must be nonnegative" );
         this.f = f;
@@ -122,13 +124,13 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      *
      * @param expected the expected number of elements in the hash map.
      */
-    public Int2RoaringBitmapOpenHashMap( final int expected ) {
+    public Int2RoaringBitMapOpenHashMap(final int expected) {
         this( expected, DEFAULT_LOAD_FACTOR );
     }
     /** Creates a new hash map with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} entries
      * and {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
      */
-    public Int2RoaringBitmapOpenHashMap() {
+    public Int2RoaringBitMapOpenHashMap() {
         this( DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR );
     }
     /** Creates a new hash map copying a given one.
@@ -136,7 +138,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * @param m a {@link Map} to be copied into the new hash map.
      * @param f the load factor.
      */
-    public Int2RoaringBitmapOpenHashMap( final Map<? extends Integer, ? extends RoaringBitmap> m, final float f ) {
+    public Int2RoaringBitMapOpenHashMap(final Map<? extends Integer, ? extends RoaringBitmap> m, final float f) {
         this( m.size(), f );
         putAll( m );
     }
@@ -144,7 +146,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      *
      * @param m a {@link Map} to be copied into the new hash map.
      */
-    public Int2RoaringBitmapOpenHashMap( final Map<? extends Integer, ? extends RoaringBitmap> m ) {
+    public Int2RoaringBitMapOpenHashMap(final Map<? extends Integer, ? extends RoaringBitmap> m) {
         this( m, DEFAULT_LOAD_FACTOR );
     }
     /** Creates a new hash map copying a given type-specific one.
@@ -152,7 +154,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * @param m a type-specific map to be copied into the new hash map.
      * @param f the load factor.
      */
-    public Int2RoaringBitmapOpenHashMap( final Int2ObjectMap <RoaringBitmap> m, final float f ) {
+    public Int2RoaringBitMapOpenHashMap(final Int2ObjectMap<RoaringBitmap> m, final float f) {
         this( m.size(), f );
         putAll( m );
     }
@@ -160,7 +162,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      *
      * @param m a type-specific map to be copied into the new hash map.
      */
-    public Int2RoaringBitmapOpenHashMap( final Int2ObjectMap<RoaringBitmap> m ) {
+    public Int2RoaringBitMapOpenHashMap(final Int2ObjectMap<RoaringBitmap> m) {
         this( m, DEFAULT_LOAD_FACTOR );
     }
     /** Creates a new hash map using the elements of two parallel arrays.
@@ -170,7 +172,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * @param f the load factor.
      * @throws IllegalArgumentException if <code>k</code> and <code>v</code> have different lengths.
      */
-    public Int2RoaringBitmapOpenHashMap( final int[] k, final RoaringBitmap[] v, final float f ) {
+    public Int2RoaringBitMapOpenHashMap(final int[] k, final RoaringBitmap[] v, final float f) {
         this( k.length, f );
         if ( k.length != v.length ) throw new IllegalArgumentException( "The key array and the value array have different lengths (" + k.length + " and " + v.length + ")" );
         for( int i = 0; i < k.length; i++ ) this.put( k[ i ], v[ i ] );
@@ -181,7 +183,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * @param v the array of corresponding values in the new hash map.
      * @throws IllegalArgumentException if <code>k</code> and <code>v</code> have different lengths.
      */
-    public Int2RoaringBitmapOpenHashMap( final int[] k, final RoaringBitmap[] v ) {
+    public Int2RoaringBitMapOpenHashMap(final int[] k, final RoaringBitmap[] v) {
         this( k, v, DEFAULT_LOAD_FACTOR );
     }
     private int realSize() {
@@ -452,7 +454,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         /** A downward counter measuring how many entries must still be returned. */
         int c = size;
         /** A boolean telling us whether we should return the entry with the null key. */
-        boolean mustReturnNullKey = Int2RoaringBitmapOpenHashMap.this.containsNullKey;
+        boolean mustReturnNullKey = Int2RoaringBitMapOpenHashMap.this.containsNullKey;
         /** A lazily allocated list containing keys of entries that have wrapped around the table because of removals. */
         IntArrayList wrapped;
         public boolean hasNext() {
@@ -465,7 +467,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                 mustReturnNullKey = false;
                 return last = n;
             }
-            final int key[] = Int2RoaringBitmapOpenHashMap.this.key;
+            final int key[] = Int2RoaringBitMapOpenHashMap.this.key;
             for(;;) {
                 if ( --pos < 0 ) {
                     // We are just enumerating elements from the wrapped list.
@@ -487,7 +489,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             // Shift entries with the same hash.
             int last, slot;
             int curr;
-            final int[] key = Int2RoaringBitmapOpenHashMap.this.key;
+            final int[] key = Int2RoaringBitMapOpenHashMap.this.key;
             for(;;) {
                 pos = ( ( last = pos ) + 1 ) & mask;
                 for(;;) {
@@ -517,7 +519,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             else if ( pos >= 0 ) shiftKeys( last );
             else {
                 // We're removing wrapped entries.
-                Int2RoaringBitmapOpenHashMap.this.remove( wrapped.getInt( - pos - 1 ) );
+                Int2RoaringBitMapOpenHashMap.this.remove( wrapped.getInt( - pos - 1 ) );
                 last = -1; // Note that we must not decrement size
                 return;
             }
@@ -561,9 +563,9 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             if ( !( o instanceof Map.Entry ) ) return false;
             final Map.Entry<Integer, RoaringBitmap> e = (Map.Entry<Integer, RoaringBitmap>)o;
             final int k = ((e.getKey()).intValue());
-            if ( ( (k) == (0) ) ) return ( Int2RoaringBitmapOpenHashMap.this.containsNullKey && ( (value[ n ]) == null ? ((e.getValue())) == null : (value[ n ]).equals((e.getValue())) ) );
+            if ( ( (k) == (0) ) ) return ( Int2RoaringBitMapOpenHashMap.this.containsNullKey && ( (value[ n ]) == null ? ((e.getValue())) == null : (value[ n ]).equals((e.getValue())) ) );
             int curr;
-            final int[] key = Int2RoaringBitmapOpenHashMap.this.key;
+            final int[] key = Int2RoaringBitMapOpenHashMap.this.key;
             int pos;
             // The starting point.
             if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
@@ -588,7 +590,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                 return false;
             }
             int curr;
-            final int[] key = Int2RoaringBitmapOpenHashMap.this.key;
+            final int[] key = Int2RoaringBitMapOpenHashMap.this.key;
             int pos;
             // The starting point.
             if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
@@ -613,7 +615,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             return size;
         }
         public void clear() {
-            Int2RoaringBitmapOpenHashMap.this.clear();
+            Int2RoaringBitMapOpenHashMap.this.clear();
         }
     }
     public FastEntrySet <RoaringBitmap> int2ObjectEntrySet() {
@@ -643,11 +645,11 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         }
         public boolean remove( int k ) {
             final int oldSize = size;
-            Int2RoaringBitmapOpenHashMap.this.remove( k );
+            Int2RoaringBitMapOpenHashMap.this.remove( k );
             return size != oldSize;
         }
         public void clear() {
-            Int2RoaringBitmapOpenHashMap.this.clear();
+            Int2RoaringBitMapOpenHashMap.this.clear();
         }
     }
     public IntSet keySet() {
@@ -676,7 +678,7 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                 return containsValue( v );
             }
             public void clear() {
-                Int2RoaringBitmapOpenHashMap.this.clear();
+                Int2RoaringBitMapOpenHashMap.this.clear();
             }
         };
         return values;
@@ -783,10 +785,10 @@ public class Int2RoaringBitmapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      *  @return a deep copy of this map.
      */
     @SuppressWarnings("unchecked")
-    public Int2RoaringBitmapOpenHashMap clone() {
-        Int2RoaringBitmapOpenHashMap c;
+    public Int2RoaringBitMapOpenHashMap clone() {
+        Int2RoaringBitMapOpenHashMap c;
         try {
-            c = (Int2RoaringBitmapOpenHashMap )super.clone();
+            c = (Int2RoaringBitMapOpenHashMap)super.clone();
         }
         catch(CloneNotSupportedException cantHappen) {
             throw new InternalError();

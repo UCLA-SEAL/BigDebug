@@ -17,8 +17,9 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.{Partitioner, RangePartitioner, Logging}
 import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.rdd.OrderedRDDFunctions
+import org.apache.spark.{Partitioner, RangePartitioner}
 
 import scala.reflect.ClassTag
 
@@ -43,11 +44,11 @@ import scala.reflect.ClassTag
  * }}}
  */
 class OrderedLRDDFunctions[K : Ordering : ClassTag,
-                          V: ClassTag,
-                          P <: Product2[K, V] : ClassTag] @DeveloperApi() (
+    V: ClassTag,
+    P <: Product2[K, V] : ClassTag] @DeveloperApi() (
     self: Lineage[P])
-  extends Logging with Serializable
-{
+  extends OrderedRDDFunctions[K, V, P](self) {
+
   private val ordering = implicitly[Ordering[K]]
 
   /**
@@ -57,9 +58,8 @@ class OrderedLRDDFunctions[K : Ordering : ClassTag,
    * order of the keys).
    */
   // TODO: this currently doesn't work on P other than Tuple2!
-  def sortByKey(ascending: Boolean = true, numPartitions: Int = self.partitions.size)
-      : Lineage[(K, V)] =
-  {
+  override def sortByKey(ascending: Boolean = true, numPartitions: Int = self.partitions.size)
+      : Lineage[(K, V)] = {
     val part = new RangePartitioner(numPartitions, self, ascending)
     new ShuffledLRDD[K, V, V](self, part)
       .setKeyOrdering(if (ascending) ordering else ordering.reverse)
@@ -72,8 +72,6 @@ class OrderedLRDDFunctions[K : Ordering : ClassTag,
    * This is more efficient than calling `repartition` and then sorting within each partition
    * because it can push the sorting down into the shuffle machinery.
    */
-  def repartitionAndSortWithinPartitions(partitioner: Partitioner): Lineage[(K, V)] = {
+  override def repartitionAndSortWithinPartitions(partitioner: Partitioner): Lineage[(K, V)] =
     new ShuffledLRDD[K, V, V](self, partitioner).setKeyOrdering(ordering)
-  }
-
 }

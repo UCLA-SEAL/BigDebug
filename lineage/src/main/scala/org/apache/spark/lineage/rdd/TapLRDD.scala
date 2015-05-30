@@ -28,8 +28,6 @@ private[spark]
 class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
     extends RDD[T](lc.sparkContext, deps) with Lineage[T] {
 
-  setCaptureLineage(true)
-
   @transient private[spark] var splitId: Short = 0
 
   @transient private[spark] var tContext: TaskContextImpl = _
@@ -39,6 +37,8 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   @transient private var buffer: IntIntByteBuffer = _
 
   private[spark] var shuffledData: Lineage[_] = _
+
+  setCaptureLineage(true)
 
   private[spark] def newRecordId() = {
     nextRecord += 1
@@ -72,6 +72,13 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   override def filter(f: T => Boolean): Lineage[T] =
     new FilteredLRDD[T](this, sparkContext.clean(f))
 
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
+
+  override def releaseBuffer(): Unit = {
+    buffer.clear()
+    tContext.addToBufferPool(buffer.getData)
+  }
+
   def setCached(cache: Lineage[_]): TapLRDD[T] = {
     shuffledData = cache
     this
@@ -79,14 +86,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
-
   def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
-
-  override def releaseBuffer(): Unit = {
-    buffer.clear()
-    tContext.addToBufferPool(buffer.getData)
-  }
 
   def tap(record: T) = {
     buffer.put(newRecordId(), tContext.currentInputId)

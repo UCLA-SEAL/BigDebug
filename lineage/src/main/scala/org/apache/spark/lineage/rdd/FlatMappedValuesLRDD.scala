@@ -24,9 +24,8 @@ import scala.reflect._
 
 private[spark]
 class FlatMappedValuesLRDD[K, V, U](prev: Lineage[_ <: Product2[K, V]], f: V => TraversableOnce[U])
-  extends FlatMappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)]
-{
-  override def ttag = classTag[(K, U)]
-
+  extends FlatMappedValuesRDD[K, V, U](prev, f) with Lineage[(K, U)] {
   override def lineageContext: LineageContext = prev.lineageContext
+
+  override def ttag = classTag[(K, U)]
 }

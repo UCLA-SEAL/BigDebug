@@ -22,8 +22,8 @@ import org.apache.spark.rdd.CoalescedRDD
 import scala.reflect._
 
 private[spark] class CoalescedLRDD[T: ClassTag](prev: Lineage[T], maxPartitions: Int)
-  extends CoalescedRDD[T](prev, maxPartitions) with Lineage[T]
-{
+  extends CoalescedRDD[T](prev, maxPartitions) with Lineage[T] {
+
   override def lineageContext = prev.lineageContext
 
   override def ttag: ClassTag[T] = classTag[T]

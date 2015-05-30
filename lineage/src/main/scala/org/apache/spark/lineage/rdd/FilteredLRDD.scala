@@ -22,9 +22,9 @@ import org.apache.spark.rdd.FilteredRDD
 import scala.reflect._
 
 private[spark] class FilteredLRDD[T: ClassTag](prev: Lineage[T], f: T => Boolean)
-extends FilteredRDD[T](prev, f) with Lineage[T]
-{
-override def lineageContext = prev.lineageContext
+extends FilteredRDD[T](prev, f) with Lineage[T] {
 
-override def ttag: ClassTag[T] = classTag[T]
+  override def lineageContext = prev.lineageContext
+
+  override def ttag: ClassTag[T] = classTag[T]
 }

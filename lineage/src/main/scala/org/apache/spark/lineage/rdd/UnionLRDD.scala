@@ -23,8 +23,8 @@ import org.apache.spark.rdd.UnionRDD
 import scala.reflect._
 
 private[spark] class UnionLRDD[T: ClassTag](@transient lc: LineageContext, rdds: Seq[Lineage[T]])
-  extends UnionRDD[T](lc.sparkContext, rdds) with Lineage[T]
-{
+  extends UnionRDD[T](lc.sparkContext, rdds) with Lineage[T] {
+
   override def lineageContext = lc
 
   override def ttag: ClassTag[T] = classTag[T]

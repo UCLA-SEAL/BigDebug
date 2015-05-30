@@ -30,30 +30,41 @@ import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 object LineageContext {
-  type RecordId = (Int, Int)
-  type RecordIdNew = (Long, Int)
+  type RecordId = (Long, Int)
+  val Dummy = 0L
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
-  implicit def lRDDToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
+  implicit def fromLineageToLineageRDD(lineage: Lineage[(RecordId, Any)]) = new LineageRDD(lineage)
+
+  implicit def fromLineageToLineageRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
+
+  implicit def fromLineageToLineageRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
+
+  implicit def fromLineageToLineageRDD4(lineage: Lineage[((Long, Any), Int)]) = new LineageRDD(lineage)
+
+  implicit def fromLineageToShowRDD(lineage: Lineage[(RecordId, String)]) = new ShowRDD(lineage)
+
+  implicit def lrddToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
       (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) =
     new PairLRDDFunctions(lrdd)
 
-  implicit def lRDDToOrderedLRDDFunctions[K : Ordering : ClassTag, V: ClassTag](
+  implicit def lrddToOrderedLRDDFunctions[K : Ordering : ClassTag, V: ClassTag](
       lrdd: Lineage[(K, V)]) =
     new OrderedLRDDFunctions[K, V, (K, V)](lrdd)
 }
 
 import org.apache.spark.lineage.LineageContext._
 
-class LineageContext(@transient val sparkContext: SparkContext)
-  extends Logging {
+class LineageContext(@transient val sparkContext: SparkContext) extends Logging {
 
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any
    * Hadoop-supported file system URI, and return it as an RDD of Strings.
    */
-  def textFile(path: String, minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
+  def textFile(
+      path: String,
+      minPartitions: Int = sparkContext.defaultMinPartitions): Lineage[String] = {
     val tmpRdd = hadoopFile(path, classOf[TextInputFormat], classOf[LongWritable], classOf[Text],
       minPartitions)
       val map = tmpRdd.map(pair => pair._2.toString).setName(path)
@@ -79,7 +90,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
       minPartitions: Int = sparkContext.defaultMinPartitions
       ): Lineage[(K, V)] = {
     // A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
-    val confBroadcast = sparkContext.broadcast(new SerializableWritable(sparkContext.hadoopConfiguration))
+    val confBroadcast = sparkContext.broadcast(
+      new SerializableWritable(sparkContext.hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
 
     val rdd = new HadoopLRDD(
@@ -104,7 +116,9 @@ class LineageContext(@transient val sparkContext: SparkContext)
     * RDD, the resultant RDD will reflect the modified collection. Pass a copy of
     * the argument to avoid this.
     */
-  def parallelize[T: ClassTag](seq: Seq[T], numSlices: Int = sparkContext.defaultParallelism): Lineage[T] = {
+  def parallelize[T: ClassTag](
+      seq: Seq[T],
+      numSlices: Int = sparkContext.defaultParallelism): Lineage[T] = {
     val rdd = new ParallelCollectionLRDD[T](this, seq, numSlices, Map[Int, Seq[String]]())
     if(isLineageActive) {
       rdd.tapRight()
@@ -168,7 +182,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
           dep match {
             case shufDep: ShuffleDependency[_, _, _] =>
               shufDep.rdd.setTap(rdd.tapLeft())
-              deps += shufDep.tapDependency(shufDep.rdd.getTap().get)
+              deps += shufDep.tapDependency(shufDep.rdd.getTap.get)
 
             case narDep: OneToOneDependency[_] =>
               // Intercept the end of the stage to add a post-shuffle tap
@@ -226,7 +240,7 @@ class LineageContext(@transient val sparkContext: SparkContext)
     lastLineageSeen = currentLineagePosition
   }
 
-  // TODO This method will exaustively look for all the path. We actually need one
+  // TODO This method will exhaustively look for all the path. We actually need one
   def search(path: List[Lineage[_]], initialRDD: Lineage[_]): List[Lineage[_]] = {
     if(path.head.dependencies.isEmpty) {
       if(path.tail.head == initialRDD) {
@@ -234,7 +248,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
       }
       Nil
     } else {
-      val paths = path.head.dependencies.map(dep => search(dep.rdd.asInstanceOf[Lineage[_]] +: path, initialRDD)).filter(p => !p.isEmpty)
+      val paths = path.head.dependencies.map(dep =>
+        search(dep.rdd.asInstanceOf[Lineage[_]] +: path, initialRDD)).filter(p => !p.isEmpty)
       return if(paths.isEmpty) path else paths.head
     }
   }
@@ -276,8 +291,8 @@ class LineageContext(@transient val sparkContext: SparkContext)
       None
     } else {
       val result: Lineage[_] = getCurrentLineagePosition.get match {
-        case _: TapPostCoGroupLRDD[_] => currentLineagePosition.get.asInstanceOf[Lineage[(Int, Any)]].map(r => ((0, r._1), r._2))
-        case _: TapHadoopLRDD[_,_] => currentLineagePosition.get.map(r => r.asInstanceOf[(Long, Int)].swap).map(r => ((0, r._1), r._2))
+        case _: TapPostCoGroupLRDD[_] => currentLineagePosition.get.asInstanceOf[Lineage[(Int, Any)]].map(r => ((Dummy, r._1), r._2))
+        case _: TapHadoopLRDD[_,_] => currentLineagePosition.get.map(r => r.asInstanceOf[(Long, Int)].swap).map(r => ((Dummy, r._1), r._2))
         case _ => currentLineagePosition.get
       }
       Some(result.asInstanceOf[Lineage[(RecordId, Any)]])
@@ -295,14 +310,13 @@ class LineageContext(@transient val sparkContext: SparkContext)
     lastLineageSeen = currentLineagePosition
     currentLineagePosition = Some(prevLineagePosition.pop())
 
-    currentLineagePosition
-      .get match {
+    currentLineagePosition.get match {
       case pre: TapPreShuffleLRDD[_] =>
-        pre.asInstanceOf[Lineage[(Any, RoaringBitmap)]].flatMap(r => r._2.toArray.map(r2 => ((0L, r2), r._1)))
-      case pre: TapPostShuffleLRDD[_] =>
-        pre.asInstanceOf[Lineage[(Any, (Long, Int))]].map(r => (r._2, r._1))
+        pre.asInstanceOf[Lineage[(Any, RoaringBitmap)]].flatMap(r => r._2.toArray.map(b => ((Dummy, b), r._1)))
+      case post: TapPostShuffleLRDD[_] =>
+        post.asInstanceOf[Lineage[(Any, (Long, Int))]].map(_.swap)
       case other: TapLRDD[_] =>
-        other.asInstanceOf[Lineage[(Any, Int)]].map(r => ((0L, r._2), r._1))
+        other.asInstanceOf[Lineage[(Any, Int)]].map(r => ((Dummy, r._2), r._1))
     }
   }
 }

@@ -61,9 +61,9 @@ class HadoopLRDD[K, V](
       minPartitions
     )
 
-  override def ttag = classTag[(K, V)]
-
   override def lineageContext: LineageContext = lc
+
+  override def ttag = classTag[(K, V)]
 
   private var filePath: String = null
 

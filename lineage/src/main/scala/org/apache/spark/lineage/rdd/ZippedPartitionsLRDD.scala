@@ -28,9 +28,9 @@ private[spark] abstract class ZippedPartitionsBaseLRDD[V: ClassTag](
     preservesPartitioning: Boolean = false
   ) extends ZippedPartitionsBaseRDD[V](lc.sparkContext, lrdds) with Lineage[V] {
 
-  override def ttag = classTag[V]
-
   override def lineageContext = lc
+
+  override def ttag = classTag[V]
 }
 
 private[spark] class ZippedPartitionsLRDD2[A: ClassTag, B: ClassTag, V: ClassTag](
@@ -42,9 +42,9 @@ private[spark] class ZippedPartitionsLRDD2[A: ClassTag, B: ClassTag, V: ClassTag
   ) extends ZippedPartitionsRDD2[A, B, V](lc.sparkContext, f, lrdd1, lrdd2, preservesPartitioning)
     with Lineage[V] {
 
-  override def ttag = classTag[V]
-
   override def lineageContext = lc
+
+  override def ttag = classTag[V]
 }
 
 private[spark] class ZippedPartitionsLRDD3[A: ClassTag, B: ClassTag, C: ClassTag, V: ClassTag](
@@ -63,7 +63,7 @@ private[spark] class ZippedPartitionsLRDD3[A: ClassTag, B: ClassTag, C: ClassTag
       preservesPartitioning
   ) with Lineage[V] {
 
-  override def ttag = classTag[V]
-
   override def lineageContext = lc
+
+  override def ttag = classTag[V]
 }

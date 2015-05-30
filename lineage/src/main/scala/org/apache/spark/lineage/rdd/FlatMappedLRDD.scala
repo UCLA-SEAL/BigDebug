@@ -22,11 +22,9 @@ import org.apache.spark.rdd.FlatMappedRDD
 import scala.reflect._
 
 private[spark]
-class FlatMappedLRDD[U: ClassTag, T: ClassTag](
-    prev: Lineage[T],
-    f: T => TraversableOnce[U]
-  ) extends FlatMappedRDD[U, T](prev, f) with Lineage[U]
-{
+class FlatMappedLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T], f: T => TraversableOnce[U])
+  extends FlatMappedRDD[U, T](prev, f) with Lineage[U] {
+
   override def lineageContext = prev.lineageContext
 
   override def ttag = classTag[U]
