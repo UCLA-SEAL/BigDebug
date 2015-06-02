@@ -100,6 +100,18 @@ class ExternalAppendOnlyMap[K, V, C](
 
   /**
    * Insert the given key and value into the map.
+   * Matteo
+   */
+  def insert(key: K, update: (Boolean, C) => C): Unit = {
+    if (maybeSpill(currentMap, currentMap.estimateSize())) {
+      currentMap = new SizeTrackingAppendOnlyMap[K, C]
+    }
+    currentMap.changeValue(key, update)
+    addElementsRead()
+  }
+
+  /**
+   * Insert the given key and value into the map.
    */
   def insert(key: K, value: V): Unit = {
     insertAll(Iterator((key, value)))

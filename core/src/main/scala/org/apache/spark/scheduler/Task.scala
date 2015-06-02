@@ -19,7 +19,8 @@ package org.apache.spark.scheduler
 
 import java.io.{ByteArrayOutputStream, DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
-import java.util.concurrent.{ConcurrentLinkedQueue, ThreadPoolExecutor}
+import java.util
+import java.util.concurrent.ThreadPoolExecutor
 
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.serializer.SerializerInstance
@@ -86,15 +87,15 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int, va
 
   var threadPool: ThreadPoolExecutor = null
 
-  var bufferPool: ConcurrentLinkedQueue[Array[Byte]] = null
+  var bufferPool: util.Queue[Array[Byte]] = null
 
-  var bufferPoolLarge: ConcurrentLinkedQueue[Array[Byte]] = null
+  var bufferPoolLarge: util.Queue[Array[Byte]] = null
 
   def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
 
-  def setBufferPool(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPool = pool
+  def setBufferPool(pool: util.Queue[Array[Byte]]) = this.bufferPool = pool
 
-  def setBufferPoolLarge(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPoolLarge = pool
+  def setBufferPoolLarge(pool: util.Queue[Array[Byte]]) = this.bufferPoolLarge = pool
 
   /** Matteo *************************************************************************************/
 

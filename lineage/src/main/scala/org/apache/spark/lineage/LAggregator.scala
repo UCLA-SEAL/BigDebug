@@ -60,9 +60,13 @@ class LAggregator[K, V, C] (
         var pair: Product2[K, Product2[V, Long]] = null
         val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
+        val update: (Boolean, C) => C = (hadVal, oldVal) => {
+          if (hadVal) mergeValue(oldVal, pair._2._1) else createCombiner(pair._2._1)
+        }
+
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
-          combiners.insert(pair._1, pair._2._1)
+          combiners.insert(pair._1, update)
           buffer.put(pair._2._2, pair._1.hashCode())
         }
         context.asInstanceOf[TaskContextImpl].currentBuffer = buffer

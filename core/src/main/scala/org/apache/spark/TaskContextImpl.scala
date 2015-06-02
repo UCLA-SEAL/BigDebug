@@ -17,7 +17,8 @@
 
 package org.apache.spark
 
-import java.util.concurrent.{ConcurrentLinkedQueue, ThreadPoolExecutor}
+import java.util.Queue
+import java.util.concurrent.ThreadPoolExecutor
 
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.lineage.util.ByteBuffer
@@ -51,15 +52,15 @@ private[spark] class TaskContextImpl(val stageId: Int,
 
   @transient var threadPool: ThreadPoolExecutor = null
 
-  @transient private var bufferPool: ConcurrentLinkedQueue[Array[Byte]] = null
+  @transient private var bufferPool: Queue[Array[Byte]] = null
 
-  @transient private var bufferPoolLarge: ConcurrentLinkedQueue[Array[Byte]] = null
+  @transient private var bufferPoolLarge: Queue[Array[Byte]] = null
 
   def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
 
-  def setBufferPool(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPool = pool
+  def setBufferPool(pool: Queue[Array[Byte]]) = this.bufferPool = pool
 
-  def setBufferPoolLarge(pool: ConcurrentLinkedQueue[Array[Byte]]) = this.bufferPoolLarge = pool
+  def setBufferPoolLarge(pool: Queue[Array[Byte]]) = this.bufferPoolLarge = pool
 
   def getFromBufferPool(): Array[Byte] = {
     val buffer = bufferPool.poll()

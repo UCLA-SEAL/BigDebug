@@ -35,13 +35,13 @@ object LineageContext {
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
-  implicit def fromLineageToLineageRDD(lineage: Lineage[(RecordId, Any)]) = new LineageRDD(lineage)
+  implicit def fromTapRDDtoLineageRDD(tap: TapLRDD[_]) = new LineageRDD(tap)
 
-  implicit def fromLineageToLineageRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
+  implicit def fromLToLRDD(lineage: Lineage[_]) = new LineageRDD(lineage)
 
-  implicit def fromLineageToLineageRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
+  implicit def fromLToLRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
 
-  implicit def fromLineageToLineageRDD4(lineage: Lineage[((Long, Any), Int)]) = new LineageRDD(lineage)
+  implicit def fromLToLRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
 
   implicit def fromLineageToShowRDD(lineage: Lineage[(RecordId, String)]) = new ShowRDD(lineage)
 
@@ -283,10 +283,18 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   def getBackward(path: Int = 0) = {
     // CurrentLineagePosition should be always set at this point
-    if(currentLineagePosition.get.dependencies.size == 0 ||
-      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[HadoopRDD[_, _]] ||
-      currentLineagePosition.get.dependencies(path).rdd.isInstanceOf[ParallelCollectionRDD[_]]) {
+    assert(currentLineagePosition.isDefined)
+
+    // Notify if we are at the end of the workflow
+    if(currentLineagePosition.get.dependencies.size == 0)
       throw new UnsupportedOperationException("unsopported operation")
+
+    currentLineagePosition.get.dependencies(path).rdd match {
+      case _: HadoopRDD[_, _] =>
+        throw new UnsupportedOperationException("unsopported operation")
+      case _: ParallelCollectionRDD[_] =>
+        throw new UnsupportedOperationException("unsopported operation")
+      case _ =>
     }
 
     prevLineagePosition.push(currentLineagePosition.get)
@@ -298,12 +306,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {
-      val result: Lineage[_] = getCurrentLineagePosition.get match {
-        case _: TapPostCoGroupLRDD[_] => currentLineagePosition.get.asInstanceOf[Lineage[(Int, Any)]].map(r => ((Dummy, r._1), r._2))
-        case _: TapHadoopLRDD[_,_] => currentLineagePosition.get.map(r => r.asInstanceOf[(Long, Int)].swap).map(r => ((Dummy, r._1), r._2))
-        case _ => currentLineagePosition.get
+      val result: Lineage[(RecordId, Any)] = getCurrentLineagePosition.get match {
+        case postCG: TapPostCoGroupLRDD[(Int, Any) @unchecked] =>
+          postCG.map(r => ((Dummy, r._1), r._2))
+        case hadoop: TapHadoopLRDD[Long @unchecked, Int @unchecked] =>
+          hadoop.map(_.swap).map(r => ((Dummy, r._1), r._2))
+        case tap: TapLRDD[_] => tap
       }
-      Some(result.asInstanceOf[Lineage[(RecordId, Any)]])
+      Some(result)
     }
   }
 
@@ -311,6 +321,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
+
     if(prevLineagePosition.isEmpty) {
       throw new UnsupportedOperationException("unsopported operation")
     }
@@ -319,12 +330,12 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     currentLineagePosition = Some(prevLineagePosition.pop())
 
     currentLineagePosition.get match {
-      case pre: TapPreShuffleLRDD[_] =>
-        pre.asInstanceOf[Lineage[(Any, RoaringBitmap)]].flatMap(r => r._2.toArray.map(b => ((Dummy, b), r._1)))
-      case post: TapPostShuffleLRDD[_] =>
-        post.asInstanceOf[Lineage[(Any, (Long, Int))]].map(_.swap)
-      case other: TapLRDD[_] =>
-        other.asInstanceOf[Lineage[(Any, Int)]].map(r => ((Dummy, r._2), r._1))
+      case pre: TapPreShuffleLRDD[(Any, RoaringBitmap) @unchecked] =>
+        pre.flatMap(r => r._2.toArray.map(b => ((Dummy, b), r._1)))
+      case post: TapPostShuffleLRDD[(Any, (Long, Int)) @unchecked] =>
+        post.map(_.swap)
+      case other: TapLRDD[(Any, Int) @unchecked] =>
+        other.map(r => ((Dummy, r._2), r._1))
     }
   }
 }
