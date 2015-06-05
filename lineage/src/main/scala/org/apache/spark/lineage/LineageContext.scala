@@ -23,7 +23,6 @@ import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
-import org.roaringbitmap.RoaringBitmap
 
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
@@ -196,8 +195,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
               // Intercept the end of the stage to add a post-shuffle tap
               if(narDep.rdd.dependencies.nonEmpty) {
                 if(narDep.rdd.dependencies
-                  .filter(d => d.isInstanceOf[ShuffleDependency[_, _, _]])
-                  .size > 0) {
+                  .count(d => d.isInstanceOf[ShuffleDependency[_, _, _]]) > 0) {
                   val tap = narDep.rdd.tapRight()
                   deps += narDep.tapDependency(tap)
                 }
@@ -317,7 +315,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     }
   }
 
-  def getForward = {
+  def getForward :Lineage[((Long, _), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -330,8 +328,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     currentLineagePosition = Some(prevLineagePosition.pop())
 
     currentLineagePosition.get match {
-      case pre: TapPreShuffleLRDD[(Any, RoaringBitmap) @unchecked] =>
-        pre.flatMap(r => r._2.toArray.map(b => ((Dummy, b), r._1)))
+      case pre: TapPreShuffleLRDD[(Any, Array[Int]) @unchecked] =>
+        pre.flatMap(r => r._2.map(b => ((Dummy, b), r._1)))
       case post: TapPostShuffleLRDD[(Any, (Long, Int)) @unchecked] =>
         post.map(_.swap)
       case other: TapLRDD[(Any, Int) @unchecked] =>

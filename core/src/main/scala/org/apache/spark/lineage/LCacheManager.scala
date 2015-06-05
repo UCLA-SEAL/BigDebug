@@ -29,12 +29,15 @@ import scala.collection.mutable.{ArrayBuffer, HashSet}
  */
 private[spark] class LCacheManager(blockManager: BlockManager) extends CacheManager(blockManager) {
 
-  private var underMaterialization = new HashSet[(RDD[_], Int, StorageLevel)]
+  private var underMaterialization = new HashSet[(RDD[_], Int, Int, StorageLevel)]
 
   def initMaterialization[T](
-      rdd: RDD[T], partition: Partition, level: StorageLevel = StorageLevel.DISK_ONLY
+      rdd: RDD[T],
+      partition: Partition,
+      context: TaskContext,
+      level: StorageLevel = StorageLevel.MEMORY_AND_DISK
     ) = underMaterialization.synchronized {
-      underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, level))
+      underMaterialization += ((rdd.asInstanceOf[RDD[T]], partition.index, context.stageId, level))
   }
 
   def materialize(
@@ -43,7 +46,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
       effectiveStorageLevel: Option[StorageLevel]) = {
     val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
     val toMaterialize = underMaterialization.synchronized {
-      val rdds = underMaterialization.filter(r => r._2 == split)
+      val rdds = underMaterialization.filter(r => (r._2 == split) && (r._3 == context.stageId))
       rdds.foreach(underMaterialization.remove(_))
       rdds
     }
@@ -55,7 +58,7 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
           val arr = tap._1.materializeBuffer
           try {
             updatedBlocks ++=
-              blockManager.putArray(key, arr, tap._3, true, effectiveStorageLevel)
+              blockManager.putArray(key, arr, tap._4, true, effectiveStorageLevel)
           } catch {
             case e: Exception => println(e)
           } finally {
@@ -75,6 +78,6 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
   override def finalizeTaskCache(
       rdd: RDD[_],
       split: Int, context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.DISK_ONLY)) =
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_AND_DISK)) =
     materialize(split, context, effectiveStorageLevel)
 }

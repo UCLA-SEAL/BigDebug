@@ -49,7 +49,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
       new Tuple2(
         new Tuple2(
           PackIntIntoLong(tContext.stageId, splitId), k)
-        , map.get(k))
+        , map.get(k).toArray)
     ).toArray
   }
 

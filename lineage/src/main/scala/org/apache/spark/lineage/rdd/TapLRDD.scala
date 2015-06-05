@@ -64,7 +64,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     initializeBuffer()
 
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split)
+    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
 
     firstParent[T].iterator(split, context).map(tap)
   }

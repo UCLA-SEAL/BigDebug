@@ -55,7 +55,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
       // We release the buffer here because not needed anymore
       releaseBuffer()
 
-      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
+      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2.toArray, r._1._1)))
     } else {
       Array()
     }
@@ -74,12 +74,12 @@ class TapPostCoGroupLRDD[T: ClassTag](
   override def tap(record: T) = {
     val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Long)]])]
     val hash = key.hashCode
-    val iters = for(iter <- values) yield ({
+    val iters = for(iter <- values) yield {
       iter.map(r => {
         buffer.put(r._2, hash)
         r._1
       })
-    })
+    }
     tContext.currentInputId = newRecordId()
 
     (key, iters.reverse).asInstanceOf[T]
