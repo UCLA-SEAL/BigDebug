@@ -95,7 +95,11 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
-        streamIter.filter(current => { hashSet.contains(current._1) })
+        if(hashSet.isEmpty) {
+          Iterator.empty
+        } else {
+          streamIter.filter(current => { hashSet.contains(current._1) })
+        }
     }
   }
 
@@ -253,8 +257,11 @@ trait Lineage[T] extends RDD[T] {
 
     if(lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(r.getTap)
+      setTap(r.getTap.get)
     }
   }
+
+  def saveAsDBTable(url: String, username: String, password: String, path: String): Unit = null
 
   /**
    * Return this RDD sorted by the given key function.
@@ -317,10 +324,6 @@ object Lineage {
 
   implicit def castLineage4(rdd: Lineage[(RecordId, Any)]): Lineage[(RecordId, String)] =
     rdd.asInstanceOf[Lineage[(RecordId, String)]]
-
-
-
-
 
   implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
     rdd.map(r => ((0L, r._1), r._2))

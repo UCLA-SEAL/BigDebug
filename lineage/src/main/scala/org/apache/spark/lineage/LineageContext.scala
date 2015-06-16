@@ -315,7 +315,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     }
   }
 
-  def getForward :Lineage[((Long, _), Any)] = {
+  def getForward(): Lineage[((Long, _), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -328,12 +328,12 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     currentLineagePosition = Some(prevLineagePosition.pop())
 
     currentLineagePosition.get match {
-      case pre: TapPreShuffleLRDD[(Any, Array[Int]) @unchecked] =>
+      case pre: TapPreShuffleLRDD[(Any, Array[Int])@unchecked] =>
         pre.flatMap(r => r._2.map(b => ((Dummy, b), r._1)))
-      case post: TapPostShuffleLRDD[(Any, (Long, Int)) @unchecked] =>
+      case post: TapPostShuffleLRDD[(Any, (Long, Int))@unchecked] =>
         post.map(_.swap)
-      case other: TapLRDD[(Any, Int) @unchecked] =>
-        other.map(r => ((Dummy, r._2), r._1))
+      case other: TapLRDD[(Any, Int)@unchecked] =>
+       other.map(r => ((Dummy, r._2), r._1))
     }
   }
 }

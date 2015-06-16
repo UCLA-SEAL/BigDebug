@@ -89,30 +89,6 @@ class AppendOnlyMap[K, V](initialCapacity: Int = 64)
     nextRecord
   }
 
-  // Matteo
-  /** Set an incremental value for a key */
-  def update(k: Int): Int = {
-    var pos = rehash(k) & mask
-    var i = 1
-    while (true) {
-      val curKey = data(2 * pos)
-      if (curKey.eq(null)) {
-        val result = newRecordId
-        data(2 * pos) = k.asInstanceOf[AnyRef]
-        data(2 * pos + 1) = result.asInstanceOf[AnyRef]
-        incrementSize()  // Since we added a new key
-        return result
-      } else if (k.equals(curKey.asInstanceOf[Int])) {
-        return data(2 * pos + 1).asInstanceOf[Int]
-      } else {
-        val delta = i
-        pos = (pos + delta) & mask
-        i += 1
-      }
-    }
-    0
-  }
-
   /** Set the value for a key */
   def update(key: K, value: V): Unit = {
     assert(!destroyed, destructionMessage)

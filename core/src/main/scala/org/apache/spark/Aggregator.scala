@@ -23,7 +23,6 @@ import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
 /**
  * :: DeveloperApi ::
  * A set of functions used to aggregate data.
- * Modified by Matteo
  *
  * @param createCombiner function to create the initial value of the aggregation.
  * @param mergeValue function to merge a new value into the aggregation result.
@@ -33,7 +32,7 @@ import org.apache.spark.util.collection.{AppendOnlyMap, ExternalAppendOnlyMap}
 class Aggregator[K, V, C] (
     val createCombiner: V => C,
     val mergeValue: (C, V) => C,
-    val mergeCombiners: (C, C) => C) extends Serializable {
+    val mergeCombiners: (C, C) => C) extends Serializable { // Added by Matteo
 
   // When spilling is enabled sorting will happen externally, but not necessarily with an
   // ExternalSorter.

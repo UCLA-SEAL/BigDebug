@@ -97,7 +97,7 @@ private[spark] abstract class Task[T](val stageId: Int, var partitionId: Int, va
 
   def setBufferPoolLarge(pool: util.Queue[Array[Byte]]) = this.bufferPoolLarge = pool
 
-  /** Matteo *************************************************************************************/
+  /***********************************************************************************************/
 
   /**
    * Whether the task has been killed.

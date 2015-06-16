@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.sql.DriverManager
+
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.rdd.Lineage._
@@ -59,6 +61,61 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   def filter(f: Int): LineageRDD = {
     val values = prevResult.filter(r => r._1 == f).map(_._2)
     firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
+  }
+
+  override def saveAsDBTable(url: String, username: String, password: String, path: String): Unit = {
+    var f: Iterator[(Any, Any)] => Unit = null
+    lineageContext.getCurrentLineagePosition.get match {
+      case post: TapPostShuffleLRDD[_] =>
+        f = (it: Iterator[(Any, Any)]) => {
+          val conn= DriverManager.getConnection(url,username,password)
+          val del = conn.prepareStatement ("INSERT INTO " + path + " (input,output) VALUES (?,?) ")
+          for (output <-it)
+          {
+            output._2.asInstanceOf[(CompactBuffer[Long], Int)]._1.foreach( id => {
+              del.setString(2,output._1.toString)
+              del.setString(1, (id, output._2.asInstanceOf[(CompactBuffer[Long], Int)]._2).toString())
+              del.executeUpdate})
+          }
+        }
+      case pre: TapPreShuffleLRDD[_] =>
+        f = (it: Iterator[(Any, Any)]) => {
+          val conn= DriverManager.getConnection(url,username,password)
+          val del = conn.prepareStatement ("INSERT INTO " + path + " (input,output) VALUES (?,?) ")
+          for (output <-it)
+          {
+            output._2.asInstanceOf[Array[Int]].foreach( id => {
+              del.setString(1, id.toString())
+              del.setString(2,output._1.toString)
+              del.executeUpdate})
+          }
+        }
+      case hadoop: TapHadoopLRDD[_, _] =>
+        f = (it: Iterator[(Any, Any)]) => {
+          val conn= DriverManager.getConnection(url,username,password)
+          val del = conn.prepareStatement ("INSERT INTO " + path + " (input,output) VALUES (?,?) ")
+          for (output <-it)
+          {
+              del.setString(1, output._1.toString)
+              del.setString(2, output._2.toString)
+              del.executeUpdate
+          }
+        }
+      case tap =>
+        f = (it: Iterator[(Any, Any)]) => {
+          val conn= DriverManager.getConnection(url,username,password)
+          val del = conn.prepareStatement ("INSERT INTO " + path + " (input,output) VALUES (?,?) ")
+          for (output <-it)
+          {
+            del.setString(1, output._2.asInstanceOf[(Int, Int)]._2.toString)
+            del.setString(2, output._1.asInstanceOf[(Int, Int)]._2.toString)
+            del.executeUpdate
+          }
+        }
+    }
+
+    val cleanF = prev.context.clean(f)
+    prev.context.runJob(prev, (iter: Iterator[(Any, Any)]) => cleanF(iter))
   }
 
   def goNext(): LineageRDD = {
