@@ -61,9 +61,9 @@ trait Lineage[T] extends RDD[T] {
       return getTap.get match {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
           getTap.get
-        case tap: TapHadoopLRDD[Any @unchecked, Int @unchecked] =>
-          tap.map(_.swap)
-        case tap: TapLRDD[(Int, Int) @unchecked] =>
+        case tap: TapHadoopLRDD[Any @unchecked, Long @unchecked] =>
+          tap//.map(_.swap)
+        case tap: TapLRDD[(Long, Long) @unchecked] =>
           tap.map(r => ((0L, r._1), (0L, r._2)))
       }
     }
@@ -80,7 +80,7 @@ trait Lineage[T] extends RDD[T] {
     this
   }
 
-  private[spark] def rightJoin[T](prev: Lineage[(T, Any)], next: Lineage[(T, Any)]) = {
+  private[spark] def rightJoin[T](prev: Lineage[(T, Any)], next: RDD[(T, Any)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[T]()
@@ -261,7 +261,7 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  def saveAsDBTable(url: String, username: String, password: String, path: String): Unit = null
+  def saveAsDBTable(url: String, username: String, password: String, path: String, driver: String): Unit = {}
 
   /**
    * Return this RDD sorted by the given key function.

@@ -28,13 +28,29 @@ object SparkWordCount {
     var lineage = true
     var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/data/"
     if(args.size < 2) {
-      logFile = "README.md"
+      logFile = "biomed"
       conf.setMaster("local[2]")
       lineage = true
     } else {
       lineage = args(0).toBoolean
       logFile += args(1)
       conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+//      conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+//      conf.set("spark.kryo.referenceTracking", "false")
+//      conf.set("spark.kryo.registrationRequired", "true")
+//      conf.registerKryoClasses(Array(
+//        classOf[RoaringBitmap],
+//        classOf[BitmapContainer],
+//        classOf[RoaringArray],
+//        classOf[RoaringArray.Element],
+//        classOf[ArrayContainer],
+//        classOf[Array[RoaringArray.Element]],
+//        classOf[Array[Tuple2[_, _]]],
+//        classOf[Array[Short]],
+//        classOf[Array[Int]],
+//        classOf[Array[Long]],
+//        classOf[Array[Object]]
+//      ))
     }
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
 
@@ -51,8 +67,8 @@ object SparkWordCount {
 //    println(counts.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
-
-    Thread.sleep(5000)
+//
+    Thread.sleep(1000)
     // Step by step full trace backward
 //    var linRdd = counts.getLineage()
 //    linRdd.collect.foreach(println)
@@ -64,14 +80,16 @@ object SparkWordCount {
 //    linRdd.collect.foreach(println)
 //    linRdd.show
 //
-//    // Full trace backward
-//    linRdd = counts.getLineage()
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-//   // linRdd = linRdd.filter(0)//4508
-//    linRdd = linRdd.goBackAll()
-//    linRdd.collect.foreach(println)
-////    println("Done")
+    // Full trace backward
+//    for(i <- 1 to 10) {
+//      var linRdd = counts.getLineage()
+//      linRdd.collect //.foreach(println)
+//      //    linRdd.show
+// //     linRdd = linRdd.filter(4508) //4508
+//      linRdd = linRdd.goBackAll()
+//      linRdd.collect //.foreach(println)
+//      println("Done")
+//    }
 //    linRdd.show
 //
 //    // Step by step trace backward one record
@@ -132,17 +150,28 @@ object SparkWordCount {
 //    linRdd.collect.foreach(println)
 //    linRdd.show
 
-    // Full trace forward one record
-    var linRdd = file.getLineage().filter(r => (r.asInstanceOf[(Any, Int)]._2 == 0))
-    linRdd.collect()//.foreach(println)
-//    linRdd.show
-    linRdd = linRdd.filter(0)
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-    linRdd = linRdd.goNextAll()
-    linRdd.collect()//.foreach(println)
-    println("Done")
-//    linRdd.show
+//    // Full trace forward one record
+//var linRdd = counts.getLineage()
+//    linRdd.collect
+//    linRdd = linRdd.filter(0)
+//    linRdd = linRdd.goBackAll()
+//    linRdd.collect
+//    val value = linRdd.take(1)(0)
+//    println(value)
+////    sc.unpersistAll(false)
+//    for(i <- 1 to 10) {
+//          var linRdd = file.getLineage().filter(r => (r.asInstanceOf[(Any, Int)] == value))
+//          linRdd.collect()//.foreach(println)
+//      //    linRdd.show
+//          linRdd = linRdd.filter(0)
+//
+//      //    linRdd.collect.foreach(println)
+//      //    linRdd.show
+//          linRdd = linRdd.goNextAll()
+//          linRdd.collect()//.foreach(println)
+//          println("Done")
+//    }
+////    linRdd.show
     sc.stop()
   }
 }

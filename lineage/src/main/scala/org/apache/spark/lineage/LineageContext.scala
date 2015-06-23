@@ -144,6 +144,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   def getLineage(rdd: Lineage[_]) = {
     val initialTap: Lineage[_] = rdd.materialize
+    //initialTap.collect().foreach(println)
     val visited = new HashSet[RDD[_]]
 
     def visit(rdd: RDD[_], parent: RDD[_]) {
@@ -154,7 +155,12 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         for (dep <- rdd.dependencies) {
           val newParent: RDD[_] = dep.rdd match {
             case tap: TapLRDD[_] =>
-              dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
+              val tmp = tap.materialize
+              dependencies = new OneToOneDependency(tmp) :: dependencies
+            tmp match {
+              //case _: TapPostShuffleLRDD[_] => tmp.count
+              case _ =>
+            }
               tap
             case _ => parent
           }
@@ -326,6 +332,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
     lastLineageSeen = currentLineagePosition
     currentLineagePosition = Some(prevLineagePosition.pop())
+
+    println(currentLineagePosition.get.partitions.size)
 
     currentLineagePosition.get match {
       case pre: TapPreShuffleLRDD[(Any, Array[Int])@unchecked] =>

@@ -54,15 +54,16 @@ object SparkWordCountDBDump {
     val url="jdbc:mysql://localhost:3306"
     val username = "root"
     val password = "root"
-    Class.forName("com.mysql.jdbc.Driver").newInstance
+    val driver = "com.mysql.jdbc.Driver"
+    //Class.forName("com.mysql.jdbc.Driver").newInstance
     var linRdd = counts.getLineage()
-    linRdd.saveAsDBTable(url, username, password, "Trace.post")
-    linRdd.lineageContext.getBackward()
-    linRdd = linRdd.lineageContext.getCurrentLineagePosition.get
-    linRdd.saveAsDBTable(url, username, password, "Trace.pre")
-    linRdd.lineageContext.getBackward()
-    linRdd = linRdd.lineageContext.getCurrentLineagePosition.get
-    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop")
+    linRdd.saveAsDBTable(url, username, password, "Trace.post", driver)
+   // linRdd.lineageContext.getBackward()
+    linRdd = pairs.getLineage()
+    linRdd.saveAsDBTable(url, username, password, "Trace.pre", driver)
+    //linRdd.lineageContext.getBackward()
+    linRdd = counts.getLineage()
+    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop", driver)
     sc.stop()
   }
 }

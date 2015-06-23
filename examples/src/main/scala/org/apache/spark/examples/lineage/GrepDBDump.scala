@@ -4,7 +4,6 @@
 package org.apache.spark.examples.lineage
 
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.{SparkConf, SparkContext}
 
 object GrepDBDump {
@@ -26,11 +25,11 @@ object GrepDBDump {
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
 
-    lc.setCaptureLineage(lineage)
+    lc.setCaptureLineage(true)
 
     // Job
-    val lines = lc.textFile(logFile, 2)
-    val result = lines.filter(line => line.contains("spark"))
+    val lines = lc.textFile("hdfs://scai01.cs.ucla.edu:9000/clash/data/size-500", 2)
+    val result = lines.filter(line => line.contains("congress"))
     println(result.count)
 
     lc.setCaptureLineage(false)
@@ -39,12 +38,13 @@ object GrepDBDump {
     val url="jdbc:mysql://localhost:3306"
     val username = "root"
     val password = "root"
-    Class.forName("com.mysql.jdbc.Driver").newInstance
+    val driver = "com.mysql.jdbc.Driver"
+   // Class.forName(driver)//.newInstance
     var linRdd = result.getLineage()
-    linRdd.saveAsDBTable(url, username, password, "Trace.tap")
-    linRdd.lineageContext.getBackward()
-    linRdd = linRdd.lineageContext.getCurrentLineagePosition.get
-    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop")
+    linRdd.saveAsDBTable(url, username, password, "Trace.tap", driver)
+  //  linRdd.lineageContext.getBackward()
+    linRdd = lines.getLineage()
+    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop", driver)
 
     sc.stop()
 	}

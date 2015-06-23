@@ -74,6 +74,33 @@ object L1 {
     if(saveToHdfs) {
       E.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/lineage/output-L1-"
         + args(1) + "G")
+
+      lc.setCaptureLineage(false)
+
+      Thread.sleep(1000)
+
+        var linRdd = E.getLineage()
+        linRdd.collect //.foreach(println)
+        //    linRdd.show
+        linRdd = linRdd.filter(0)
+        linRdd = linRdd.goBackAll()
+        linRdd.collect //.foreach(println)
+        val value = linRdd.take(1)(0)
+        println(value)
+        //    sc.unpersistAll(false)
+        for(i <- 1 to 10) {
+          var linRdd = pageViews.getLineage().filter(r => (r.asInstanceOf[(Any, Int)] == value))
+          linRdd.collect()//.foreach(println)
+          //    linRdd.show
+          linRdd = linRdd.filter(0)
+
+          //    linRdd.collect.foreach(println)
+          //    linRdd.show
+          linRdd = linRdd.goNextAll()
+          linRdd.collect()//.foreach(println)
+          println("Done")
+        }
+
     } else {
       E.collect.foreach(println)
 

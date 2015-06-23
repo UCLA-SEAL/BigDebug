@@ -46,8 +46,8 @@ object L2 {
 
     lc.setCaptureLineage(lineage)
 
-    val pageViews = lc.textFile(pageViewsPath)
-    val powerUsers = lc.textFile(powerUsersPath)
+    val pageViews = lc.textFile(pageViewsPath, 120)
+    val powerUsers = lc.textFile(powerUsersPath, 120)
 
     val A = pageViews.map(x => (SparkMixUtils.safeSplit(x, "\u0001", 0), 
       SparkMixUtils.safeSplit(x, "\u0001", 1), SparkMixUtils.safeSplit(x, "\u0001", 2), 
@@ -70,13 +70,86 @@ object L2 {
     if(saveToHdfs) {
       C.saveAsTextFile("hdfs://scai01.cs.ucla.edu:9000/clash/lineage/output-L2-" +
         args(1) + "G")
+
+      lc.setCaptureLineage(false)
+
+      Thread.sleep(10000)
+
+        var linRdd = C.getLineage()
+      var value: Any = null
+        linRdd.collect //.foreach(println)
+        //    linRdd.show
+        linRdd = linRdd.filter(0)
+        linRdd = linRdd.goBackAll()
+     //   linRdd.collect //.foreach(println)
+     val tmp = linRdd.collect//.foreach(println)
+      //        linRdd = linRdd.goBackAll()
+      //        linRdd.collect //.foreach(println)
+
+      if(tmp.size > 1) {
+        value = tmp.take(1)(0)
+      } else {
+        linRdd = C.getLineage()
+        linRdd = linRdd.goBack()
+        linRdd = linRdd.goBack(1)
+        linRdd = linRdd.goBack()
+        val tmp = linRdd.collect//.foreach(println)
+        //        linRdd = linRdd.goBackAll()
+        //        linRdd.collect //.foreach(println)
+        value = tmp.take(1)(0)
+      }
+        println(value)
+        //    sc.unpersistAll(false)
+        for(i <- 1 to 10) {
+          var linRdd = pageViews.getLineage().filter(r => (r.asInstanceOf[(Any, Int)] == value))
+          linRdd.collect()//.foreach(println)
+          //    linRdd.show
+          linRdd = linRdd.filter(0)
+
+          //    linRdd.collect.foreach(println)
+          //    linRdd.show
+          linRdd = linRdd.goNextAll()
+          linRdd.collect()//.foreach(println)
+          println("Done")
+        }
     } else {
       C.collect.foreach(println)
 
       lc.setCaptureLineage(false)
 
-      // Step by step full trace backward
       var linRdd = C.getLineage()
+      linRdd.collect //.foreach(println)
+      //    linRdd.show
+      linRdd = linRdd.filter(0)
+      linRdd = linRdd.goBackAll()
+      linRdd.collect //.foreach(println)
+      val tmp =  linRdd.take(1)
+      var value: Any = null
+      if (tmp.isEmpty) {
+        linRdd = C.getLineage()
+        linRdd = linRdd.goBack()
+        linRdd = linRdd.goBack(1)
+        linRdd = linRdd.goBack()
+        value = linRdd.take(1)(0)
+      } else {
+        value = linRdd.take(1)
+      }
+      //    sc.unpersistAll(false)
+      for(i <- 1 to 10) {
+        var linRdd = pageViews.getLineage().filter(r => (r.asInstanceOf[(Any, Int)] == value))
+        linRdd.collect()//.foreach(println)
+        //    linRdd.show
+        linRdd = linRdd.filter(0)
+
+        //    linRdd.collect.foreach(println)
+        //    linRdd.show
+        linRdd = linRdd.goNextAll()
+        linRdd.collect()//.foreach(println)
+        println("Done")
+      }
+
+      // Step by step full trace backward
+      linRdd = C.getLineage()
       linRdd.collect.foreach(println)
       linRdd = linRdd.goBack()
       linRdd.collect.foreach(println)
