@@ -55,7 +55,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
       // We release the buffer here because not needed anymore
       releaseBuffer()
 
-      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
+      map.toArray.zipWithIndex.map(r => ((r._2, splitId), (r._1._2, r._1._1)))
     } else {
       Array()
     }

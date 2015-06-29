@@ -19,7 +19,6 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 
 import scala.language.implicitConversions
@@ -71,7 +70,7 @@ class TapPostShuffleLRDD[T: ClassTag](
   }
 
   override def tap(record: T) = {
-    tContext.currentInputId = PackIntIntoLong(newRecordId(), splitId)
+    tContext.currentInputId = newRecordId()
     record
   }
 }

@@ -42,8 +42,8 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   }
 
   override def tap(record: (K, V)) = {
-    tContext.currentInputId = PackIntIntoLong(newRecordId, splitId)
-    buffer.put(record._1.asInstanceOf[LongWritable].get, tContext.currentInputId)
+    tContext.currentInputId = newRecordId
+    buffer.put(record._1.asInstanceOf[LongWritable].get, PackIntIntoLong(tContext.currentInputId, splitId))
     record
   }
 }

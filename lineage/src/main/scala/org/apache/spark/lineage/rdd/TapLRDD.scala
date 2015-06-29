@@ -90,7 +90,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   def initializeBuffer() = buffer = new LongLongByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
-    buffer.put(PackIntIntoLong(newRecordId(),splitId),  tContext.currentInputId)
+    buffer.put(PackIntIntoLong(newRecordId(),splitId),  PackIntIntoLong(tContext.currentInputId, splitId))
     record
   }
 }

@@ -27,6 +27,7 @@ object SparkWordCountDBDump {
     val conf = new SparkConf()
     var lineage = true
     var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/data/"
+    var size = ""
     if(args.size < 2) {
       logFile = "README.md"
       conf.setMaster("local[2]")
@@ -34,6 +35,7 @@ object SparkWordCountDBDump {
     } else {
       lineage = args(0).toBoolean
       logFile += args(1)
+      size = args(1).substring(5)
     }
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
 
@@ -47,23 +49,31 @@ object SparkWordCountDBDump {
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
     val counts = pairs.reduceByKey(_ + _)
     println(counts.count)
+ //   println(counts.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
 
+    Thread.sleep(10000)
+
     // Dumping to DB
-    val url="jdbc:mysql://localhost:3306"
-    val username = "root"
-    val password = "root"
-    val driver = "com.mysql.jdbc.Driver"
+//    val url="jdbc:mysql://localhost:3306"
+//    val username = "root"
+//    val password = "root"
+//    val driver = "com.mysql.jdbc.Driver"
     //Class.forName("com.mysql.jdbc.Driver").newInstance
     var linRdd = counts.getLineage()
-    linRdd.saveAsDBTable(url, username, password, "Trace.post", driver)
-   // linRdd.lineageContext.getBackward()
+//    linRdd.saveAsDBTable(url, username, password, "Trace.post", driver)
+//   // linRdd.lineageContext.getBackward()
+//    linRdd = pairs.getLineage()
+//    linRdd.saveAsDBTable(url, username, password, "Trace.pre", driver)
+//    //linRdd.lineageContext.getBackward()
+//    linRdd = counts.getLineage()
+//    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop", driver)
+    linRdd.saveAsCSVFile("post-" + size)
     linRdd = pairs.getLineage()
-    linRdd.saveAsDBTable(url, username, password, "Trace.pre", driver)
-    //linRdd.lineageContext.getBackward()
-    linRdd = counts.getLineage()
-    linRdd.saveAsDBTable(url, username, password, "Trace.hadoop", driver)
+    linRdd.saveAsCSVFile("pre-" + size)
+    linRdd = file.getLineage()
+    linRdd.saveAsCSVFile("hadoop-" + size)
     sc.stop()
   }
 }

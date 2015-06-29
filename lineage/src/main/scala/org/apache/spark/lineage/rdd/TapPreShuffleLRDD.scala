@@ -64,7 +64,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   }
 
   override def tap(record: T) = {
-    buffer.put(record._1.hashCode(), tContext.currentInputId.toInt)
+    buffer.put(record._1.hashCode(), tContext.currentInputId)
     record
   }
 }
