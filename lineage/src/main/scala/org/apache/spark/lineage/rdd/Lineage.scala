@@ -263,6 +263,8 @@ trait Lineage[T] extends RDD[T] {
 
   def saveAsDBTable(url: String, username: String, password: String, path: String, driver: String): Unit = {}
 
+  def saveAsCSVFile(path: String): Unit = {}
+
   /**
    * Return this RDD sorted by the given key function.
    */

@@ -17,8 +17,11 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.io.File
 import java.sql.DriverManager
 
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{Path, FileUtil, FileSystem}
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.rdd.Lineage._
@@ -73,10 +76,10 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           val conn = DriverManager.getConnection(url,username,password)
           var statement = "INSERT INTO " + path + " (input,output) VALUES "
           var count = 0
-          for (output <-it)
+          for (output <-it.asInstanceOf[Iterator[((Int, Int), (CompactBuffer[Long], Int))]])
           {
-            output._2.asInstanceOf[(CompactBuffer[Long], Int)]._1.foreach( id => {
-              statement += ("(" + id + output._2.asInstanceOf[(CompactBuffer[Long], Int)]._2.toString + "," + output._1.asInstanceOf[(_, _)]._1 + output._1.asInstanceOf[(_, _)]._2 + "), ")
+            output._2._1.foreach( id => {
+              statement += ("(" + id + output._2._2.toString + "," + output._1._1 + output._1._2 + "), ")
               count += 1
               if(count == 1000) {
                 val del = conn.prepareStatement(statement.dropRight(2))
@@ -96,10 +99,10 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           val conn = DriverManager.getConnection(url,username,password)
           var statement = "INSERT INTO " + path + " (input,output) VALUES "
           var count = 0
-          for (output <-it)
+          for (output <-it.asInstanceOf[Iterator[((Long, Int), Array[Int])]])
           {
-            output._2.asInstanceOf[Array[Int]].foreach( id => {
-              statement += ("(" + id + PackIntIntoLong(id, PackIntIntoLong.getRight(output._1.asInstanceOf[(Long, Int)]._1)).toString + "," + output._1.asInstanceOf[(Long, Int)]._1 + output._1.asInstanceOf[(Long, Int)]._2 + "), ")
+            output._2.foreach( id => {
+              statement += ("(" + id + PackIntIntoLong(id, PackIntIntoLong.getRight(output._1._1)).toString + "," + output._1._1 + output._1._2 + "), ")
               count += 1
               if(count == 1000) {
                 val del = conn.prepareStatement(statement.dropRight(2))
@@ -119,7 +122,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           val conn = DriverManager.getConnection(url,username,password)
           var statement = "INSERT INTO " + path + " (input,output) VALUES "
           var count = 0
-          for (output <-it)
+          for (output <-it.asInstanceOf[Iterator[(Long, Long)]])
           {
             statement += ("(" + output._1.toString + "," + output._2.toString + "), ")
             count += 1
@@ -140,9 +143,9 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           val conn= DriverManager.getConnection(url,username,password)
           var statement = "INSERT INTO " + path + " (input,output) VALUES "
           var count = 0
-          for (output <-it)
+          for (output <-it.asInstanceOf[Iterator[((Long, Long),(Long, Long))]])
           {
-            statement += ("(" +output._2.asInstanceOf[(Long, Long)]._2.toString + "," + output._1.asInstanceOf[(Long, Long)]._2.toString + "), ")
+            statement += ("(" + output._2._2.toString + "," + output._1._2.toString + "), ")
             count += 1
             if(count == 1000) {
               val del = conn.prepareStatement(statement.dropRight(2))
@@ -159,6 +162,53 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
     val cleanF = prev.context.clean(f)
     prev.context.runJob(prev, (iter: Iterator[(Any, Any)]) => cleanF(iter))
+  }
+
+  override def saveAsCSVFile(path: String): Unit = {
+    def merge(srcPath: String, dstPath: String): Unit =  {
+      val hadoopConfig = new Configuration()
+      val hdfs = FileSystem.get(hadoopConfig)
+      FileUtil.copyMerge(hdfs, new Path(srcPath), hdfs, new Path(dstPath), false, hadoopConfig, null)
+    }
+
+    val file = path + "_part"
+    FileUtil.fullyDelete(new File(file))
+
+    FileUtil.fullyDelete(new File(path))
+
+    val result = lineageContext.getCurrentLineagePosition.get match {
+      case post: TapPostShuffleLRDD[_] =>
+        post.mapPartitions((it: Iterator[_]) => {
+          it.asInstanceOf[Iterator[((Int, Short), (CompactBuffer[Long], Int))]].flatMap(output =>
+            output._2._1.map(id => {
+              "" + id + output._2._2.toString + "," + PackIntIntoLong(output._1._1,output._1._2) + ""}
+              ))})
+      case pre: TapPreShuffleLRDD[_] =>
+        pre.mapPartitions((it: Iterator[_]) => {
+          it.asInstanceOf[Iterator[((Long, Int), Array[Int])]].flatMap(output =>
+            output._2.map(id => {
+              "" + PackIntIntoLong(id, PackIntIntoLong.getRight(output._1._1)) + "," + output._1._1 + output._1._2 }
+            ))})
+      case hadoop: TapHadoopLRDD[_, _] =>
+        hadoop.mapPartitions((it: Iterator[_]) => {
+          it.asInstanceOf[Iterator[(Long, Long)]].map(output =>
+            "" + output._1.toString + "," + output._2.toString + ""
+          )})
+      case tap =>
+        tap.mapPartitions((it: Iterator[_]) => {
+          it.asInstanceOf[Iterator[(Long, Long)]].map(output =>
+            "" + output._2.toString + "," + output._1.toString + ""
+          )})
+    }
+
+    result.saveAsTextFile(file)
+
+    merge(file, path)
+  }
+
+  def getBack(): LineageRDD = {
+    prev.lineageContext.getBackward()
+    prev.lineageContext.getCurrentLineagePosition.get
   }
 
   def goNext(): LineageRDD = {
