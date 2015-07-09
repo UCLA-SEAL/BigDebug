@@ -21,7 +21,7 @@ import java.util.Queue
 import java.util.concurrent.ThreadPoolExecutor
 
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.lineage.util.ByteBuffer
+import org.apache.spark.util.collection.PrimitiveKeyOpenHashMap
 import org.apache.spark.util.{TaskCompletionListener, TaskCompletionListenerException}
 
 import scala.collection.mutable.ArrayBuffer
@@ -45,10 +45,10 @@ private[spark] class TaskContextImpl(val stageId: Int,
 
   /** Matteo *************************************************************************************/
   // Used to pipeline records through taps inside the same stage
-  @transient var currentInputId: Long = -1
+  @transient var currentInputId: List[_] = Nil
 
   // Used to pipeline records through taps inside the same stage
-  @transient var currentBuffer: ByteBuffer[Long, Int] = null
+  @transient var currentBuffer: PrimitiveKeyOpenHashMap[Int, _] = null
 
   @transient var threadPool: ThreadPoolExecutor = null
 

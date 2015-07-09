@@ -48,11 +48,21 @@ object SparkWordCount {
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
     val counts = pairs.reduceByKey(_ + _)
     println(counts.count)
-//    println(counts.collect().mkString("\n"))
+    println("Done")
+    //println(counts.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
 
-    Thread.sleep(5000)
+    var linRdd = counts.getLineage()
+    //linRdd.collect()//.foreach(println)
+    val value = linRdd.take(1)(0).asInstanceOf[List[_]].head
+    println(value)
+    linRdd = linRdd.filter(r => r.asInstanceOf[List[_]].head == value).cache()
+    linRdd.collect//.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    println("Done1")
+//    Thread.sleep(5000)
     // Step by step full trace backward
 //    var linRdd = counts.getLineage()
 //    linRdd.collect.foreach(println)
@@ -133,15 +143,15 @@ object SparkWordCount {
 //    linRdd.show
 
     // Full trace forward one record
-    var linRdd = file.getLineage().filter(r => (r.asInstanceOf[(Any, Int)]._2 == 0))
-    linRdd.collect()//.foreach(println)
-//    linRdd.show
-    linRdd = linRdd.filter(0)
-//    linRdd.collect.foreach(println)
-//    linRdd.show
-    linRdd = linRdd.goNextAll()
-    linRdd.collect()//.foreach(println)
-    println("Done")
+//    var linRdd = file.getLineage().filter(r => (r.asInstanceOf[(Any, Int)]._2 == 0))
+//    linRdd.collect()//.foreach(println)
+////    linRdd.show
+//    linRdd = linRdd.filter(0)
+////    linRdd.collect.foreach(println)
+////    linRdd.show
+//    linRdd = linRdd.goNextAll()
+//    linRdd.collect()//.foreach(println)
+//    println("Done")
 //    linRdd.show
     sc.stop()
   }

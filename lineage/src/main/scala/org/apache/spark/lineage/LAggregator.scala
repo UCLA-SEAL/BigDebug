@@ -18,7 +18,6 @@
 package org.apache.spark.lineage
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
@@ -57,17 +56,17 @@ class LAggregator[K, V, C] (
       if(!isLineage) {
         combiners.insertAll(iter)
       } else {
-        var pair: Product2[K, Product2[V, Long]] = null
-        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[V, OpenHashMap[Int, List[_]]]] = null
+        val buffer = new PrimitiveKeyOpenHashMap[Int, CompactBuffer[OpenHashMap[Int, List[_]]]]
 
         val update: (Boolean, C) => C = (hadVal, oldVal) => {
           if (hadVal) mergeValue(oldVal, pair._2._1) else createCombiner(pair._2._1)
         }
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[V, OpenHashMap[Int, List[_]]]]]
           combiners.insert(pair._1, update)
-          buffer.put(pair._2._2, pair._1.hashCode())
+          buffer.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[OpenHashMap[Int, List[_]]]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }
@@ -104,13 +103,13 @@ class LAggregator[K, V, C] (
           combiners.insert(pair._1, pair._2)
         }
       } else {
-        var pair: Product2[K, Product2[C, Long]] = null
-        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[C, OpenHashMap[Int, List[_]]]] = null
+        val buffer = new PrimitiveKeyOpenHashMap[Int, CompactBuffer[OpenHashMap[Int, List[_]]]]
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[C, Long]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[C, OpenHashMap[Int, List[_]]]]]
           combiners.insert(pair._1, pair._2._1)
-          buffer.put(pair._2._2, pair._1.hashCode())
+          buffer.changeValue(pair._1.hashCode(), CompactBuffer(pair._2._2), (old: CompactBuffer[OpenHashMap[Int, List[_]]]) => old += pair._2._2)
         }
         context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }

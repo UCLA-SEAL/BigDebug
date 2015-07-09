@@ -17,10 +17,9 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.Dependency
-import org.apache.spark.lineage.util.IntIntByteBuffer
-import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
-import org.apache.spark.util.PackIntIntoLong
+import org.apache.spark._
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.util.collection.{OpenHashMap, PrimitiveKeyOpenHashMap}
 
 import scala.reflect.ClassTag
 
@@ -29,42 +28,66 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
-  @transient private var buffer: IntIntByteBuffer = _
+  @transient private var buffer: PrimitiveKeyOpenHashMap[Int, OpenHashMap[Int, List[_]]] = _
 
   override def getCachedData = shuffledData.setIsPreShuffleCache()
 
-  override def materializeBuffer: Array[Any] = {
-    val map = new Int2RoaringBitMapOpenHashMap(16384)
-    val iterator = buffer.iterator
+//  override def materializeBuffer: Array[Any] = {
+//    val map = new Int2RoaringBitMapOpenHashMap(16384)
+//    val iterator = buffer.iterator
+//
+//    while(iterator.hasNext) {
+//      val next = iterator.next()
+//      map.put(next._1, next._2)
+//    }
+//
+//    // We release the buffer here because not needed anymore
+//    releaseBuffer()
+//
+//    map.keySet().toIntArray.map(k =>
+//      new Tuple2(
+//        new Tuple2(
+//          PackIntIntoLong(tContext.stageId, splitId), k)
+//        , map.get(k).toArray)
+//    ).toArray
+//  }
 
-    while(iterator.hasNext) {
-      val next = iterator.next()
-      map.put(next._1, next._2)
+  override def compute(split: Partition, context: TaskContext) = {
+    if(tContext == null) {
+      tContext = context.asInstanceOf[TaskContextImpl]
     }
+    splitId = split.index.toShort
+    nextRecord = -1
 
-    // We release the buffer here because not needed anymore
-    releaseBuffer()
+    initializeBuffer()
 
-    map.keySet().toIntArray.map(k =>
-      new Tuple2(
-        new Tuple2(
-          PackIntIntoLong(tContext.stageId, splitId), k)
-        , map.get(k).toArray)
-    ).toArray
+    //SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
+
+    firstParent.iterator(split, context).map(tap)
   }
 
-  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPoolLarge())
-
-  override def releaseBuffer() = {
-    if(buffer != null) {
-      buffer.clear()
-      tContext.addToBufferPoolLarge(buffer.getData)
-      buffer = null
-    }
+  override def initializeBuffer() = {
+    buffer = new PrimitiveKeyOpenHashMap[Int, OpenHashMap[Int, List[_]]]
+    tContext.currentBuffer = buffer
   }
+
+//  override def releaseBuffer() = {
+//    if(buffer != null) {
+//      buffer.clear()
+//      tContext.addToBufferPoolLarge(buffer.getData)
+//      buffer = null
+//    }
+//  }
 
   override def tap(record: T) = {
-    buffer.put(record._1.hashCode(), tContext.currentInputId)
+    buffer.changeValue(
+      record._1.hashCode(),
+    {val map = new OpenHashMap[Int, List[_]];
+        map.update(tContext.currentInputId.head.asInstanceOf[Int], tContext.currentInputId);
+        map},
+      (old: OpenHashMap[Int, List[_]]) =>
+        old)
+
     record
   }
 }

@@ -17,60 +17,84 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 private[spark]
-class TapPostShuffleLRDD[T: ClassTag](
+class TapPostShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
+  @transient private var buffer: util.ArrayDeque[Any] = null
+
   override def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  override def materializeBuffer: Array[Any] = {
-    tContext synchronized {
-      if (tContext.currentBuffer != null) {
-        val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
-        val iterator = tContext.currentBuffer.iterator
+//  override def materializeBuffer: Array[Any] = {
+//    tContext synchronized {
+//      if (tContext.currentBuffer != null) {
+////        val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
+////        val iterator = tContext.currentBuffer.iterator
+////
+////        while (iterator.hasNext) {
+////          val next = iterator.next()
+////          map.changeValue(
+////          next._2, {
+////            val tmp = new CompactBuffer[Long]()
+////            tmp += (next._1)
+////            tmp
+////          },
+////          (old: CompactBuffer[Long]) => {
+////            old += (next._1)
+////            old
+////          })
+////        }
+////
+////        // We release the buffer here because not needed anymore
+////        releaseBuffer()
+//
+//        tContext.currentBuffer.toArray.map(r => (r._2))
+//      } else {
+//        Array()
+//      }
+//    }
+//  }
 
-        while (iterator.hasNext) {
-          val next = iterator.next()
-          map.changeValue(
-          next._2, {
-            val tmp = new CompactBuffer[Long]()
-            tmp += (next._1)
-            tmp
-          },
-          (old: CompactBuffer[Long]) => {
-            old += (next._1)
-            old
-          })
-        }
+  override def materializeBuffer: Array[Any] = buffer.toArray.asInstanceOf[Array[Any]]
 
-        // We release the buffer here because not needed anymore
-        releaseBuffer()
-
-        map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
-      } else {
-        Array()
-      }
+  override def compute(split: Partition, context: TaskContext) = {
+    if(tContext == null) {
+      tContext = context.asInstanceOf[TaskContextImpl]
     }
+    splitId = split.index.toShort
+    nextRecord = -1
+
+    initializeBuffer()
+
+//    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
+
+    firstParent[T].iterator(split, context).map(tap)
   }
 
   override def releaseBuffer = {
     if(tContext.currentBuffer != null) {
-      tContext.currentBuffer.clear()
-      tContext.addToBufferPool(tContext.currentBuffer.getData)
+//      tContext.currentBuffer.clear()
+//      tContext.addToBufferPool(tContext.currentBuffer.getData)
       tContext.currentBuffer = null
     }
   }
 
+  override def initializeBuffer() = buffer = new util.ArrayDeque[Any]()
+
   override def tap(record: T) = {
-    tContext.currentInputId = newRecordId
+    val provenace = tContext.currentBuffer.apply(record._1.hashCode())
+    tContext.currentInputId = PackIntIntoLong(newRecordId(), splitId) :: List(provenace)
+    buffer.add(tContext.currentInputId)
     record
   }
 }

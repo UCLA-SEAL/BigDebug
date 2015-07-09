@@ -35,14 +35,28 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   override def initializeBuffer = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
 
+  override def compute(split: Partition, context: TaskContext) = {
+    if(tContext == null) {
+      tContext = context.asInstanceOf[TaskContextImpl]
+    }
+    splitId = split.index.toShort
+    nextRecord = -1
+
+    //initializeBuffer()
+
+    //SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
+
+    firstParent.iterator(split, context).map(tap)
+  }
+
   override def releaseBuffer() = {
     buffer.clear()
     tContext.addToBufferPool(buffer.getData)
   }
 
   override def tap(record: (K, V)) = {
-    tContext.currentInputId = newRecordId
-    buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord)
+    tContext.currentInputId = newRecordId() :: record._1.asInstanceOf[LongWritable].get :: Nil
+      //  buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord)
     record
   }
 }

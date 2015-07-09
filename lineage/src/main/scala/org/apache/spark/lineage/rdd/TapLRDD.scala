@@ -17,10 +17,12 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.util
+
 import org.apache.spark._
-import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.reflect._
 
@@ -34,7 +36,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var nextRecord: Int = _
 
-  @transient private var buffer: IntIntByteBuffer = _
+  @transient private var buffer: util.ArrayDeque[Any] = null
 
   private[spark] var shuffledData: Lineage[_] = _
 
@@ -72,11 +74,11 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   override def filter(f: T => Boolean): Lineage[T] =
     new FilteredLRDD[T](this, sparkContext.clean(f))
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
+  override def materializeBuffer: Array[Any] = buffer.toArray.asInstanceOf[Array[Any]]
 
   override def releaseBuffer(): Unit = {
-    buffer.clear()
-    tContext.addToBufferPool(buffer.getData)
+    buffer = null
+    //tContext.addToBufferPool(buffer.getData)
   }
 
   def setCached(cache: Lineage[_]): TapLRDD[T] = {
@@ -86,10 +88,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
+  def initializeBuffer() = buffer = new util.ArrayDeque[Any]()
 
   def tap(record: T) = {
-    buffer.put(newRecordId(), tContext.currentInputId)
+    buffer.add(PackIntIntoLong(newRecordId(), splitId) :: tContext.currentInputId)
     record
   }
 }

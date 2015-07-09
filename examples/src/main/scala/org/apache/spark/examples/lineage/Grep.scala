@@ -32,15 +32,21 @@ object Grep {
     val lines = lc.textFile(logFile, 2)
     val result = lines.filter(line => line.contains("congress"))
     println(result.count)
+    println("Done")
     //println(result.collect().mkString("\n"))
 
     lc.setCaptureLineage(false)
 
 //    // Full Trace backward
-//    var linRdd = result.getLineage()
-//    linRdd.collect().foreach(println)
-//    linRdd = linRdd.goBack()
-//    linRdd.collect.foreach(println)
+    var linRdd = result.getLineage()
+    linRdd.collect()//.foreach(println)
+    val value = linRdd.take(1)(0)
+    println(value)
+    linRdd = linRdd.filter(r => r == value).cache()
+    linRdd.collect()//.foreach(println)
+    linRdd = linRdd.goBack()
+    linRdd.collect.foreach(println)
+    println("Done1")
 //    linRdd.show
 //
 //    // Trace backward one record
@@ -60,16 +66,16 @@ object Grep {
 //    linRdd.collect.foreach(println)
 
     // Trace forward one record
-    Thread.sleep(5000)
-    var linRdd = lines.getLineage().filter(r => (r.asInstanceOf[(Any, Int)]._2 == 0))
-    linRdd.collect().foreach(println)
-    //linRdd.show()
-    linRdd = linRdd.filter(0)
-//    linRdd.collect.foreach(println)
-    //linRdd.show()
-    linRdd = linRdd.goNext()
-    linRdd.collect().foreach(println)
-    println("Done")
+//    Thread.sleep(5000)
+//    var linRdd = lines.getLineage().filter(r => (r.asInstanceOf[(Any, Int)]._2 == 0))
+//    linRdd.collect().foreach(println)
+//    //linRdd.show()
+//    linRdd = linRdd.filter(0)
+////    linRdd.collect.foreach(println)
+//    //linRdd.show()
+//    linRdd = linRdd.goNext()
+//    linRdd.collect().foreach(println)
+//    println("Done")
     sc.stop()
 	}
 }

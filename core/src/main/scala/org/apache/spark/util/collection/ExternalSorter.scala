@@ -26,7 +26,6 @@ import org.apache.spark.executor.ShuffleWriteMetrics
 import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
-import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -270,7 +269,7 @@ private[spark] class ExternalSorter[K, V, C](
           lineageBuffer.put(pair._2._2, pair._1.hashCode())
           maybeSpillCollection(usingMap = false)
         }
-        context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer
+        //context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer
       }
     }
   }
@@ -806,10 +805,11 @@ private[spark] class ExternalSorter[K, V, C](
               writer.write(elem)
             }
           } else {
+            val tContext = context.asInstanceOf[TaskContextImpl]
             for (elem <- elements) {
               writer.write(
                 new Tuple2(elem._1,
-                  new Tuple2(elem._2, PackIntIntoLong(context.stageId, context.partitionId))))
+                  new Tuple2(elem._2, tContext.currentBuffer.apply(elem._1.hashCode())))) // PackIntIntoLong(context.stageId, context.partitionId))))
             }
           }
           writer.commitAndClose()

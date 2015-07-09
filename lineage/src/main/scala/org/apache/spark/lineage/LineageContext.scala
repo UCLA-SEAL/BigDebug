@@ -33,16 +33,16 @@ object LineageContext {
   val Dummy = 0L
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
-
-  implicit def fromTapRDDtoLineageRDD(tap: TapLRDD[_]) = new LineageRDD(tap)
-
-  implicit def fromLToLRDD(lineage: Lineage[_]) = new LineageRDD(lineage)
-
-  implicit def fromLToLRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
-
-  implicit def fromLToLRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
-
-  implicit def fromLineageToShowRDD(lineage: Lineage[(RecordId, String)]) = new ShowRDD(lineage)
+//
+//  implicit def fromTapRDDtoLineageRDD(tap: TapLRDD[_]) = new LineageRDD(tap)
+//
+//  implicit def fromLToLRDD(lineage: Lineage[_]) = new LineageRDD(lineage)
+//
+//  implicit def fromLToLRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
+//
+//  implicit def fromLToLRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
+//
+//  implicit def fromLineageToShowRDD(lineage: Lineage[(RecordId, String)]) = new ShowRDD(lineage)
 
   implicit def lrddToPairLRDDFunctions[K, V](lrdd: Lineage[(K, V)])
       (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null) =

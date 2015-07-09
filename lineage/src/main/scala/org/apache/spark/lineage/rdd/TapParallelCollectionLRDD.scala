@@ -47,8 +47,8 @@ class TapParallelCollectionLRDD[T: ClassTag](
   override def releaseBuffer = buffer = null
 
   override def tap(record: T) = {
-    tContext.currentInputId = newRecordId
-    buffer.add(record, nextRecord)
+//    tContext.currentInputId = newRecordId
+//    buffer.add(record, nextRecord)
     record
   }
 }
