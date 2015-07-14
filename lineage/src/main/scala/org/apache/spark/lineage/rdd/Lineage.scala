@@ -62,8 +62,8 @@ trait Lineage[T] extends RDD[T] {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
           getTap.get
         case tap: TapHadoopLRDD[Any @unchecked, Long @unchecked] =>
-          tap//.map(_.swap)
-        case tap: TapLRDD[(Long, Long) @unchecked] =>
+          tap.map(_.swap)
+        case tap: TapLRDD[(Int, Int) @unchecked] =>
           tap.map(r => ((0L, r._1), (0L, r._2)))
       }
     }
@@ -309,9 +309,6 @@ trait Lineage[T] extends RDD[T] {
 }
 
 object Lineage {
-  implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any)] =
-    rdd.asInstanceOf[Lineage[(RecordId, Any)]]
-
   implicit def castLineage5(rdd: (Any, (Long, Int))): (Int, Any) =
     (rdd._1.asInstanceOf[RecordId]._2, rdd._2)
 
@@ -329,6 +326,9 @@ object Lineage {
 
   implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
     rdd.map(r => ((0L, r._1), r._2))
+
+  implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any)] =
+    rdd.asInstanceOf[Lineage[(RecordId, Any)]]
 
   implicit def castShowToLineage[T](show: ShowRDD): Lineage[T] =
     show.asInstanceOf[Lineage[T]]

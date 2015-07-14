@@ -144,7 +144,6 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   def getLineage(rdd: Lineage[_]) = {
     val initialTap: Lineage[_] = rdd.materialize
-    //initialTap.collect().foreach(println)
     val visited = new HashSet[RDD[_]]
 
     def visit(rdd: RDD[_], parent: RDD[_]) {
