@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="981f0f90-65c7-4dcb-9318-895154b09311" name="Default" comment="" />
+    <list default="true" id="981f0f90-65c7-4dcb-9318-895154b09311" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+    </list>
     <ignored path="$PROJECT_DIR$/target/" />
     <ignored path="$PROJECT_DIR$/assembly/target/" />
     <ignored path="$PROJECT_DIR$/bagel/target/" />
@@ -982,7 +984,7 @@
       <workItem from="1446652781163" duration="1482000" />
       <workItem from="1446654307578" duration="37000" />
       <workItem from="1446655020163" duration="608000" />
-      <workItem from="1446659572182" duration="2749000" />
+      <workItem from="1446659572182" duration="2812000" />
     </task>
     <task id="LOCAL-00001" summary="Just an IntelliJ git-plugin try">
       <created>1446653967438</created>
@@ -1002,11 +1004,17 @@
       <option name="project" value="LOCAL" />
       <updated>1446663507351</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Automatic commit">
+      <created>1446663594904</created>
+      <option name="number" value="00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1446663594904</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="5348000" />
+    <option name="totallyTimeSpent" value="5411000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="71" y="-4" width="1849" height="1084" extended-state="6" />
