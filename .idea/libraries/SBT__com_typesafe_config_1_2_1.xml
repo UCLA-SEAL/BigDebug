@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="SBT: com.typesafe:config:1.2.1">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib_managed/bundles/config-1.2.1.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

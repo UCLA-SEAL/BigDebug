@@ -1,29 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <option name="deprecationWarnings" value="true" />
-    <option name="uncheckedWarnings" value="true" />
-    <parameters>
-      <parameter value="-feature" />
-      <parameter value="-language:postfixOps" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../assembly/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../bagel/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../sql/catalyst/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../core/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../examples/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../graphx/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../sql/hive/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../mllib/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../repl/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../sql/core/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../streaming/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/flume/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/flume-sink/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/kafka/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/mqtt/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/twitter/target/java" />
-      <parameter value="-P:genjavadoc:out=$MODULE_DIR$/../external/zeromq/target/java" />
-    </parameters>
+    <profile name="SBT 1" modules="spark,assembly,bagel,core,oldDeps,examples,streaming-flume,streaming-flume-sink,streaming-kafka,streaming-mqtt,streaming-twitter,streaming-zeromq,graphx,lineage,mllib,network-common,network-shuffle,repl,catalyst,sql,hive,streaming,tools" />
   </component>
 </project>
-

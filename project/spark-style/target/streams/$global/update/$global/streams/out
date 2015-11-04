@@ -1,5 +1,5 @@
-[0m[[0minfo[0m] [0mUpdating {file:/Users/inter/Develop/spark-lineage/project/}spark-style...[0m
-[0m[[0mdebug[0m] [0mno default cache defined: set to /Users/inter/.ivy2/cache[0m
+[0m[[0minfo[0m] [0mUpdating {file:/home/filippo/spark-lineage-rome/project/}spark-style...[0m
+[0m[[0mdebug[0m] [0mno default cache defined: set to /home/filippo/.ivy2/cache[0m
 [0m[[0mdebug[0m] [0m:: resolving dependencies :: org.apache.spark#spark-style_2.10;0.1-SNAPSHOT[0m
 [0m[[0mdebug[0m] [0m	confs: [compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, sources, docs, pom, scala-tool][0m
 [0m[[0mdebug[0m] [0m	validate = true[0m
@@ -8,7 +8,7 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT [compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies org.apache.spark#spark-style_2.10;0.1-SNAPSHOT->org.scala-lang#scala-library;2.10.4 [compile->default(compile)][0m
 [0m[[0minfo[0m] [0mResolving org.scala-lang#scala-library;2.10.4 ...[0m
-[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: sbt.ivyint.MergedDescriptors@7b65586a[0m
+[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: sbt.ivyint.MergedDescriptors@6bd120e8[0m
 [0m[[0mdebug[0m] [0msbt-chain: module revision found in cache: org.scala-lang#scala-library;2.10.4[0m
 [0m[[0mdebug[0m] [0m	found org.scala-lang#scala-library;2.10.4 in sbt-chain[0m
 [0m[[0mdebug[0m] [0m	[2.10.4] org.scala-lang#scala-library;2.10.4[0m
@@ -305,19 +305,19 @@
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.scala-lang#scala-reflect;2.10.4!scala-reflect.jar[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.scala-lang#jline;2.10.4!jline.jar[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.fusesource.jansi#jansi;1.4!jansi.jar[0m
-[0m[[0mdebug[0m] [0m:: resolution report :: resolve 203ms :: artifacts dl 11ms[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT compile produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-compile.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT runtime produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-runtime.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT test produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-test.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT provided produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-provided.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT optional produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-optional.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT compile-internal produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-compile-internal.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT runtime-internal produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-runtime-internal.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT test-internal produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-test-internal.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT plugin produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-plugin.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT sources produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-sources.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT docs produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-docs.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT pom produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-pom.xml[0m
-[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT scala-tool produced in /Users/inter/Develop/spark-lineage/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-scala-tool.xml[0m
-[0m[[0mdebug[0m] [0m	resolve done (203ms resolve - 11ms download)[0m
+[0m[[0mdebug[0m] [0m:: resolution report :: resolve 177ms :: artifacts dl 3ms[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT compile produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-compile.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT runtime produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-runtime.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT test produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-test.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT provided produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-provided.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT optional produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-optional.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT compile-internal produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-compile-internal.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT runtime-internal produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-runtime-internal.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT test-internal produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-test-internal.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT plugin produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-plugin.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT sources produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-sources.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT docs produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-docs.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT pom produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-pom.xml[0m
+[0m[[0mdebug[0m] [0m	report for org.apache.spark#spark-style_2.10;0.1-SNAPSHOT scala-tool produced in /home/filippo/spark-lineage-rome/project/spark-style/target/resolution-cache/reports/org.apache.spark-spark-style_2.10-scala-tool.xml[0m
+[0m[[0mdebug[0m] [0m	resolve done (177ms resolve - 3ms download)[0m
 [0m[[0minfo[0m] [0mDone updating.[0m
