@@ -9,31 +9,45 @@
     </parent>
 
 
-    <artifactId>spark-examples_2.10</artifactId>
+    <artifactId>spark-lineage-rome-1.2.1</artifactId>
     <packaging>jar</packaging>
-    <name>Spark Project Examples</name>
-    <url>http://spark.apache.org/</url>
+    <name>Spark Lineage Project Rome</name>
+
 
 
     <dependencies>
-
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-compiler</artifactId>
-            <version>${scala.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
             <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.10</artifactId>
-            <version>1.2.1</version>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalacheck</groupId>
+            <artifactId>scalacheck_${scala.binary.version}</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
 
     <properties>
-        <scala.version>2.7.7</scala.version>
+        <scala.version>2.10.4</scala.version>
+        <scala.binary.version>2.10</scala.binary.version>
     </properties>
 
 

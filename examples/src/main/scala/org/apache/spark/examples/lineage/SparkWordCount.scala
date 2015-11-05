@@ -26,9 +26,8 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
-    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/data/"
+    var logFile = "../lineage-rome/inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv"
     if(args.size < 2) {
-      logFile = "biomed"
       conf.setMaster("local[2]")
       lineage = true
     } else {
@@ -151,14 +150,14 @@ object SparkWordCount {
 //    linRdd.show
 
 //    // Full trace forward one record
-//var linRdd = counts.getLineage()
+//    var linRdd = counts.getLineage()
 //    linRdd.collect
 //    linRdd = linRdd.filter(0)
 //    linRdd = linRdd.goBackAll()
 //    linRdd.collect
 //    val value = linRdd.take(1)(0)
 //    println(value)
-////    sc.unpersistAll(false)
+//    sc.unpersistAll(false)
 //    for(i <- 1 to 10) {
 //          var linRdd = file.getLineage().filter(r => (r.asInstanceOf[(Any, Int)] == value))
 //          linRdd.collect()//.foreach(println)
@@ -171,7 +170,7 @@ object SparkWordCount {
 //          linRdd.collect()//.foreach(println)
 //          println("Done")
 //    }
-////    linRdd.show
+//    linRdd.show
     sc.stop()
   }
 }

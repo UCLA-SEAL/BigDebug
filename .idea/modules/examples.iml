@@ -20,18 +20,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="bagel" exported="" />
-    <orderEntry type="module" module-name="core" exported="" />
-    <orderEntry type="module" module-name="graphx" exported="" />
-    <orderEntry type="module" module-name="hive" exported="" />
-    <orderEntry type="module" module-name="lineage" exported="" />
-    <orderEntry type="module" module-name="mllib" exported="" />
-    <orderEntry type="module" module-name="streaming" exported="" />
-    <orderEntry type="module" module-name="streaming-flume" exported="" />
-    <orderEntry type="module" module-name="streaming-kafka" exported="" />
-    <orderEntry type="module" module-name="streaming-mqtt" exported="" />
-    <orderEntry type="module" module-name="streaming-twitter" exported="" />
-    <orderEntry type="module" module-name="streaming-zeromq" exported="" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="module" module-name="core" scope="PROVIDED" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.twitter:chill_2.10:0.5.0" level="project" />
