@@ -1,18 +1,18 @@
-import org.apache.spark.{SparkContext, SparkConf}
+
 
 
 /**
   * Created by filippo on 05/11/15.
   */
 
-object TotalValue {
+object TopTenTotalValue {
 
   def main (args: Array[String]) {
 
     val conf = new SparkConf()
     conf.setMaster("local[2]")
     var logFile = ""
-    conf.setAppName("TopTen Total Value" + " - " + logFile)
+    conf.setAppName("TopTenTotalValue" + " - " + logFile)
 
     val sc = new SparkContext(conf)
 
