@@ -17,11 +17,10 @@ object TopTenTotalValue {
     val sc = new SparkContext(conf)
 
     // Job
-
     val lines = sc.textFile(logFile)
-    val result = lines.flatMap(line => line.split(",")).map(word => (word.trim(), 1))
-    println(result.count)
-    // println(result.collect().mkString("\n"))
+    val result = lines.map(word => (word.split(",\\$")(1).toDouble + word.split(",\\$")(2).toDouble))
+   result.foreach(res => println(res))
+
 
 
   }
