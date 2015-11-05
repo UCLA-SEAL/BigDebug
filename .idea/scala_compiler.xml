@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
-    <profile name="SBT 1" modules="spark,assembly,bagel,core,oldDeps,examples,streaming-flume,streaming-flume-sink,streaming-kafka,streaming-mqtt,streaming-twitter,streaming-zeromq,graphx,lineage,mllib,network-common,network-shuffle,repl,catalyst,sql,hive,streaming,tools" />
+    <profile name="SBT 1" modules="oldDeps" />
+    <profile name="Maven 2" modules="catalyst,streaming-flume,streaming-flume-sink,streaming,streaming-kafka,network-common,assembly,streaming-mqtt,tools,examples,streaming-zeromq,network-shuffle,bagel,lineage,streaming-twitter,repl,spark,core,mllib,sql,hive,graphx,lineage-rome">
+      <option name="deprecationWarnings" value="true" />
+      <option name="uncheckedWarnings" value="true" />
+      <option name="featureWarnings" value="true" />
+      <plugins>
+        <plugin path="$MAVEN_REPOSITORY$/org/scalamacros/paradise_2.10.4/2.0.1/paradise_2.10.4-2.0.1.jar" />
+      </plugins>
+    </profile>
   </component>
 </project>

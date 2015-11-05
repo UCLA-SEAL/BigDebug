@@ -17,6 +17,178 @@
       <profile default="true" name="Default" enabled="false">
         <processorPath useClasspath="true" />
       </profile>
+      <profile default="false" name="Annotation profile for lineage" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="lineage" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-flume-sink" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-flume-sink" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-zeromq" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-zeromq" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-twitter" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-twitter" />
+      </profile>
+      <profile default="false" name="Annotation profile for network-common" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="network-common" />
+      </profile>
+      <profile default="false" name="Annotation profile for network-shuffle" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="network-shuffle" />
+      </profile>
+      <profile default="false" name="Annotation profile for sql" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="sql" />
+      </profile>
+      <profile default="false" name="Annotation profile for bagel" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="bagel" />
+      </profile>
+      <profile default="false" name="Annotation profile for repl" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="repl" />
+      </profile>
+      <profile default="false" name="Annotation profile for catalyst" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="catalyst" />
+      </profile>
+      <profile default="false" name="Annotation profile for graphx" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="graphx" />
+      </profile>
+      <profile default="false" name="Annotation profile for hive" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="hive" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-flume" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-flume" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-kafka" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-kafka" />
+      </profile>
+      <profile default="false" name="Annotation profile for core" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="core" />
+      </profile>
+      <profile default="false" name="Annotation profile for tools" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="tools" />
+      </profile>
+      <profile default="false" name="Annotation profile for streaming-mqtt" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="streaming-mqtt" />
+      </profile>
+      <profile default="false" name="Annotation profile for mllib" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="mllib" />
+      </profile>
+      <profile default="false" name="Annotation profile for examples" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="examples" />
+      </profile>
+      <profile default="false" name="Annotation profile for lineage-rome" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="lineage-rome" />
+      </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="assembly" target="1.5" />
+      <module name="bagel" target="1.6" />
+      <module name="catalyst" target="1.6" />
+      <module name="core" target="1.6" />
+      <module name="examples" target="1.6" />
+      <module name="graphx" target="1.6" />
+      <module name="hive" target="1.6" />
+      <module name="lineage" target="1.6" />
+      <module name="lineage-rome" target="1.6" />
+      <module name="mllib" target="1.6" />
+      <module name="network-common" target="1.6" />
+      <module name="network-shuffle" target="1.6" />
+      <module name="repl" target="1.6" />
+      <module name="spark" target="1.5" />
+      <module name="sql" target="1.6" />
+      <module name="streaming" target="1.6" />
+      <module name="streaming-flume" target="1.6" />
+      <module name="streaming-flume-sink" target="1.6" />
+      <module name="streaming-kafka" target="1.6" />
+      <module name="streaming-mqtt" target="1.6" />
+      <module name="streaming-twitter" target="1.6" />
+      <module name="streaming-zeromq" target="1.6" />
+      <module name="tools" target="1.6" />
+    </bytecodeTargetLevel>
   </component>
 </project>
