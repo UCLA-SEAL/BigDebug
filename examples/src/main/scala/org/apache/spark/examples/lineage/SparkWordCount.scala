@@ -26,14 +26,14 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
-    var logFile = "../lineage-rome/inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv"
-    if(args.size < 2) {
+    var logFile = "./inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv"
+//    if(args.size < 2) {
       conf.setMaster("local[2]")
       lineage = true
-    } else {
-      lineage = args(0).toBoolean
-      logFile += args(1)
-      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+//    } else {
+//      lineage = args(0).toBoolean
+//      logFile += args(1)
+//      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
 //      conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 //      conf.set("spark.kryo.referenceTracking", "false")
 //      conf.set("spark.kryo.registrationRequired", "true")
@@ -50,7 +50,7 @@ object SparkWordCount {
 //        classOf[Array[Long]],
 //        classOf[Array[Object]]
 //      ))
-    }
+//    }
     conf.setAppName("WordCount-" + lineage + "-" + logFile)
 
     val sc = new SparkContext(conf)
