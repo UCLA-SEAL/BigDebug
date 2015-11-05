@@ -11,22 +11,20 @@ object TopTenTotalValue {
 
     val conf = new SparkConf()
     conf.setMaster("local[2]")
-    var logFile = ""
+    var logFile = "/home/filippo/spark-lineage-rome/inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv" //args[0]
     conf.setAppName("TopTenTotalValue" + " - " + logFile)
 
     val sc = new SparkContext(conf)
 
-
-
     // Job
 
-    val lines = sc.textFile(logFile, 2)
-    val result = lines.filter(line => line.contains("congress"))
+    val lines = sc.textFile(logFile)
+    val result = lines.flatMap(line => line.split(",")).map(word => (word.trim(), ))
     println(result.count)
     //println(result.collect().mkString("\n"))
 
-    lc.setCaptureLineage(false)
+
     Thread.sleep(10000)
 
-
+  }
 }
