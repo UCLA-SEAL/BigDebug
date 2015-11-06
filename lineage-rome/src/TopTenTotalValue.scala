@@ -21,28 +21,53 @@ object TopTenTotalValue {
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineage)
 
+    // Functions to use
+    def verify(x: Double,y: Double)  = if (x==y) println("Result Verified")
+
+    def splitID(s: String) = s.split(",")
+    def splitMon(s:String) = s.split(",\\$")
 
     // Job
     val lines = lc.textFile(logFile)
 
-    // non so come si parametrizza, cioè mettere "word.split" fuori per farglielo fare solo una volta
-    val result = lines.map(word =>(
-      ( word.split(",")(0).concat(" " + word.split(",")(1)) ,
-      (word.split(",\\$")(1).toDouble + word.split(",\\$")(2).toDouble)))
-    )
+    val result = lines.map(word => {
+      val id = splitID(word)
+      val tot = splitMon(word)
+      (id(0).concat(" " + id(1)), (tot(1).toDouble + tot(2).toDouble))
+      })
+
 
     result.collect.foreach(println)
 
 
     lc.setCaptureLineage(false)
-    Thread.sleep(10000)
+    Thread.sleep(1000)
+
+
+
 
     // Lineage
     var linRDD = result.getLineage()
-    linRDD.collect.foreach(println)
+    //linRDD.collect.foreach(println)
     linRDD = linRDD.goBack()
-    linRDD.collect.foreach(println)
-    linRDD.show()
+
+    //linRDD.collect.foreach(println)
+
+
+
+    //la line da dove proviene il risultato
+    // per ogni linea da dove viene il risultato prendo il totale (ultimo campo della riga)
+    // e lo verifico con il TOT della coppia (ID,TOT) da cui deriva
+    // come faccio a recuparare quella coppia (ID,TOT) da cui deriva?
+
+    linRDD.show().foreach(
+
+        linea => verify(linea.split(",").last.replace("$", " ").trim().toDouble, 0.0)
+
+
+    )
+
+
+
 
   }
-}
