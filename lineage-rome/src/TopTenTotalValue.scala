@@ -23,9 +23,9 @@ object TopTenTotalValue {
 
     // Functions to use
     def verify(x: Double,y: Double)  = if (x==y) println("Result Verified")
-
     def splitID(s: String) = s.split(",")
     def splitMon(s:String) = s.split(",\\$")
+    def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
 
     // Job
     val lines = lc.textFile(logFile)
@@ -62,7 +62,7 @@ object TopTenTotalValue {
 
     linRDD.show().foreach(
 
-        linea => verify(linea.split(",").last.replace("$", " ").trim().toDouble, 0.0)
+        linea => verify(getTot(linea), 0.00)
 
 
     )
