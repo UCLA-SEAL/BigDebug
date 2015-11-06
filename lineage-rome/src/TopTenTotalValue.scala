@@ -9,11 +9,11 @@ import org.apache.spark.lineage.LineageContext._
 
 object TopTenTotalValue {
 
-  def main (args: Array[String]) {
+  def main(args: Array[String]) {
 
     val conf = new SparkConf()
     conf.setMaster("local[2]")
-    var logFile = "./inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv" // args[0]
+    var logFile = "./inputs/City_Of_Trenton_-_2015_Certified_Tax_List.csv"
     conf.setAppName("TopTenTotalValue" + " - " + logFile)
 
     val sc = new SparkContext(conf)
@@ -22,9 +22,9 @@ object TopTenTotalValue {
     lc.setCaptureLineage(lineage)
 
     // Functions to use
-    def verify(x: Double,y: Double)  = if (x==y) println("Result Verified")
+    def verify(x: Double, y: Double) = if (x == y) println("Result Verified") else println("ERROR")
     def splitID(s: String) = s.split(",")
-    def splitMon(s:String) = s.split(",\\$")
+    def splitMon(s: String) = s.split(",\\$")
     def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
 
     // Job
@@ -34,10 +34,11 @@ object TopTenTotalValue {
       val id = splitID(word)
       val tot = splitMon(word)
       (id(0).concat(" " + id(1)), (tot(1).toDouble + tot(2).toDouble))
-      })
+    })
 
 
-    result.collect.foreach(println)
+   val r = result.collect()
+    r.foreach(println)
 
 
     lc.setCaptureLineage(false)
@@ -50,24 +51,24 @@ object TopTenTotalValue {
     var linRDD = result.getLineage()
     //linRDD.collect.foreach(println)
     linRDD = linRDD.goBack()
-
     //linRDD.collect.foreach(println)
 
 
 
-    //la line da dove proviene il risultato
-    // per ogni linea da dove viene il risultato prendo il totale (ultimo campo della riga)
-    // e lo verifico con il TOT della coppia (ID,TOT) da cui deriva
-    // come faccio a recuparare quella coppia (ID,TOT) da cui deriva?
-
     linRDD.show().foreach(
+        line => {
+            val linID = splitID(line)
+            val lineaID = linID(0).concat(" " + linID(1))
+            r.foreach(x => {
+              if (x._1.equals(lineaID)) verify(x._2, getTot(line))
+            })
+    })
 
-        linea => verify(getTot(linea), 0.00)
 
-
-    )
 
 
 
 
   }
+}
+
