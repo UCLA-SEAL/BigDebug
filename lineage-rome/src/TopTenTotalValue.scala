@@ -1,4 +1,6 @@
 import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.LineageContext._
 
 
 /**
@@ -15,13 +17,16 @@ object TopTenTotalValue {
     conf.setAppName("TopTenTotalValue" + " - " + logFile)
 
     val sc = new SparkContext(conf)
+    var lineage = true
+    val lc = new LineageContext(sc)
 
+    lc.setCaptureLineage(lineage)
     // Job
     val lines = sc.textFile(logFile)
     val result = lines.map(word => (word.split(",\\$")(1).toDouble + word.split(",\\$")(2).toDouble))
-   result.foreach(res => println(res))
+    result.collect.foreach(println)
 
-
+    //var linRDD = result..getLineage() GET LINEAGE NON PUò ESSERE INVOCATO SU MAPRDD
 
   }
 }

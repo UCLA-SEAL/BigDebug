@@ -101,12 +101,13 @@
     <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" name="Maven: org.spark-project:pyrolite:2.0.1" level="project" />
     <orderEntry type="library" name="Maven: net.sf.py4j:py4j:0.8.2.1" level="project" />
-    <orderEntry type="module" module-name="streaming" scope="PROVIDED" />
+    <orderEntry type="module" module-name="streaming" />
     <orderEntry type="library" scope="TEST" name="Maven: org.scalatest:scalatest_2.10:2.2.1" level="project" />
     <orderEntry type="library" name="Maven: org.scala-lang:scala-reflect:2.10.4" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.scalacheck:scalacheck_2.10:1.11.3" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.scala-sbt:test-interface:1.0" level="project" />
     <orderEntry type="library" name="Maven: org.spark-project.spark:unused:1.0.0" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.codehaus.groovy:groovy-all:2.3.7" level="project" />
+    <orderEntry type="library" name="Maven: org.codehaus.groovy:groovy-all:2.3.7" level="project" />
+    <orderEntry type="module" module-name="lineage" />
   </component>
 </module>
