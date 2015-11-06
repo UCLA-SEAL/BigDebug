@@ -22,11 +22,19 @@ object TopTenTotalValue {
 
     lc.setCaptureLineage(lineage)
     // Job
-    val lines = sc.textFile(logFile)
-    val result = lines.map(word => (word.split(",\\$")(1).toDouble + word.split(",\\$")(2).toDouble))
+    val lines = lc.textFile(logFile)
+
+    // non so come si parametrizza, cioè mettere "word.split" fuori per farglielo fare solo una volta
+    val result = lines.map(word =>(
+      ( word.split(",")(0).concat(" " + word.split(",")(1)) ,
+      (word.split(",\\$")(1).toDouble + word.split(",\\$")(2).toDouble)))
+    )
+
     result.collect.foreach(println)
 
-    //var linRDD = result..getLineage() GET LINEAGE NON PUò ESSERE INVOCATO SU MAPRDD
+    var linRDD = result.getLineage() // GET LINEAGE NON PUò ESSERE INVOCATO SU MAPRDD
+    linRDD.collect().foreach(println)
+    linRDD.show()
 
   }
 }
