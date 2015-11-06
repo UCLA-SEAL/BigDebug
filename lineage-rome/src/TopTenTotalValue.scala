@@ -19,8 +19,9 @@ object TopTenTotalValue {
     val sc = new SparkContext(conf)
     var lineage = true
     val lc = new LineageContext(sc)
-
     lc.setCaptureLineage(lineage)
+
+
     // Job
     val lines = lc.textFile(logFile)
 
@@ -32,8 +33,15 @@ object TopTenTotalValue {
 
     result.collect.foreach(println)
 
-    var linRDD = result.getLineage() // GET LINEAGE NON PUò ESSERE INVOCATO SU MAPRDD
-    linRDD.collect().foreach(println)
+
+    lc.setCaptureLineage(false)
+    Thread.sleep(10000)
+
+    // Lineage
+    var linRDD = result.getLineage()
+    linRDD.collect.foreach(println)
+    linRDD = linRDD.goBack()
+    linRDD.collect.foreach(println)
     linRDD.show()
 
   }
