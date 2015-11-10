@@ -22,9 +22,16 @@ object TopTenTotalValue {
     lc.setCaptureLineage(lineage)
 
     // Functions to use
-    def verify(id: String, x: Double, y: Double) =
-      if (x == y) println("Result Verified")
-      else println("ERROR on (" + id + "). value is: " + x + " expected: " + y)
+    def verify(id: String, x: Double, y: Double) : Boolean = {
+      if (x == y) {
+        println("Result Verified")
+        return true
+      }
+      else {
+        println("ERROR on (" + id + "). value is: " + x + " expected: " + y)
+        return false
+      }
+    }
     def splitID(s: String) = s.split(",")
     def splitMon(s: String) = s.split(",\\$")
     def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
@@ -55,18 +62,27 @@ object TopTenTotalValue {
     linRDD = linRDD.goBack()
     //linRDD.collect.foreach(println)
 
-
+    var errors : Int = 0
+    var c : Int = 0
+    var errorRate : Double= 0
 
     linRDD.show().foreach(
         line => {
             val linID = splitID(line)
             val lineaID = linID(0).concat(" " + linID(1))
             r.foreach(x => {
-              if (x._1.equals(lineaID)) verify(x._1, x._2, getTot(line))
+              if (x._1.equals(lineaID)) {
+                c = c + 1
+                if (!verify(x._1, x._2, getTot(line))) errors = errors + 1
+              }
             })
     })
 
+    if (c > 0) errorRate = (errors/c) * 100
 
+    println(errors)
+    println(c)
+    println("Error rate = " + errorRate + " %")
 
 
 
