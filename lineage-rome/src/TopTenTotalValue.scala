@@ -22,7 +22,9 @@ object TopTenTotalValue {
     lc.setCaptureLineage(lineage)
 
     // Functions to use
-    def verify(x: Double, y: Double) = if (x == y) println("Result Verified") else println("ERROR")
+    def verify(id: String, x: Double, y: Double) =
+      if (x == y) println("Result Verified")
+      else println("ERROR on (" + id + "). value is: " + x + " expected: " + y)
     def splitID(s: String) = s.split(",")
     def splitMon(s: String) = s.split(",\\$")
     def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
@@ -33,7 +35,7 @@ object TopTenTotalValue {
     val result = lines.map(word => {
       val id = splitID(word)
       val tot = splitMon(word)
-      (id(0).concat(" " + id(1)), (tot(1).toDouble + tot(2).toDouble))
+      (id(0).concat(" " + id(1)), tot(1).toDouble + tot(2).toDouble)
     })
 
 
@@ -60,7 +62,7 @@ object TopTenTotalValue {
             val linID = splitID(line)
             val lineaID = linID(0).concat(" " + linID(1))
             r.foreach(x => {
-              if (x._1.equals(lineaID)) verify(x._2, getTot(line))
+              if (x._1.equals(lineaID)) verify(x._1, x._2, getTot(line))
             })
     })
 
