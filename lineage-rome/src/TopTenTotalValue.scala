@@ -2,6 +2,8 @@ import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 
+import scala.collection.mutable.ArrayBuffer
+
 
 /**
   * Created by filippo on 05/11/15.
@@ -21,6 +23,8 @@ object TopTenTotalValue {
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineage)
 
+
+
     // Functions to use
     def verify(id: String, x: Double, y: Double) : Boolean = {
       if (x == y) {
@@ -32,6 +36,8 @@ object TopTenTotalValue {
         return false
       }
     }
+
+    
     def splitID(s: String) = s.split(",")
     def splitMon(s: String) = s.split(",\\$")
     def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
@@ -64,25 +70,30 @@ object TopTenTotalValue {
 
     var errors : Int = 0
     var c : Int = 0
-    var errorRate : Double= 0
+    var errorRate : Double = 0.0
 
-    linRDD.show().foreach(
+
+    linRDD.show().collect().foreach(
+
         line => {
+
             val linID = splitID(line)
             val lineaID = linID(0).concat(" " + linID(1))
             r.foreach(x => {
               if (x._1.equals(lineaID)) {
-                c = c + 1
-                if (!verify(x._1, x._2, getTot(line))) errors = errors + 1
-              }
+
+                c += 1
+                if (verify(x._1, x._2, getTot(line)) == false) errors = errors + 1
+                }
+              })
             })
-    })
 
-    if (c > 0) errorRate = (errors/c) * 100
 
-    println(errors)
-    println(c)
-    println("Error rate = " + errorRate + " %")
+    errorRate = errors.toDouble/c.toDouble * 100
+
+    println("The error rate is " + errorRate + "%")
+
+
 
 
 
