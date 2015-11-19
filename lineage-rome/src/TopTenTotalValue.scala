@@ -1,8 +1,6 @@
 import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.LineageContext._
 
-import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -37,7 +35,7 @@ object TopTenTotalValue {
       }
     }
 
-    
+
     def splitID(s: String) = s.split(",")
     def splitMon(s: String) = s.split(",\\$")
     def getTot(s: String) = s.split(",").last.replace("$", " ").trim().toDouble
