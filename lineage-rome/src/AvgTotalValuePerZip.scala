@@ -115,7 +115,7 @@ object AvgTotalValuePerZip {
     jobMap.keys.foreach( kJ => {
       linMap.keys.foreach(kL =>
         if(kJ.equals(kL)){
-          c = c+1
+          c = c + 1
           val totJ = jobMap(kJ)
           val totLin = linMap(kL)
           if (verify(kL,totJ, totLin) == false ) errors = errors + 1
