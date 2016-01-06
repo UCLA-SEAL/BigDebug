@@ -269,7 +269,7 @@ private[spark] class ExternalSorter[K, V, C](
           lineageBuffer.put(pair._2._2, pair._1.hashCode())
           maybeSpillCollection(usingMap = false)
         }
-        //context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer
+        //context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer.
       }
     }
   }
@@ -800,7 +800,7 @@ private[spark] class ExternalSorter[K, V, C](
             blockId, outputFile, ser, fileBufferSize, context.taskMetrics.shuffleWriteMetrics.get)
           // Modified by Matteo
           // currentInputId == 0 if the lineage is not active (or no record exist for partition)
-          if (context.asInstanceOf[TaskContextImpl].currentInputId == -1) {
+          if (context.asInstanceOf[TaskContextImpl].currentInputId == Nil) {
             for (elem <- elements) {
               writer.write(elem)
             }

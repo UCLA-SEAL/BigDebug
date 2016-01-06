@@ -85,8 +85,12 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     {val map = new OpenHashMap[Int, List[_]];
         map.update(tContext.currentInputId.head.asInstanceOf[Int], tContext.currentInputId);
         map},
-      (old: OpenHashMap[Int, List[_]]) =>
-        old)
+      (old: OpenHashMap[Int, List[_]]) => {
+        val tmp = old(tContext.currentInputId.head.asInstanceOf[Int])
+        val concat = if(tmp!=null) tmp else Nil
+        old.update(tContext.currentInputId.head.asInstanceOf[Int], tContext.currentInputId :: concat)
+        old
+      })
 
     record
   }

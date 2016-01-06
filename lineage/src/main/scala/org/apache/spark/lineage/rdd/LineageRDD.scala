@@ -56,7 +56,7 @@ class LineageRDD(val prev: Lineage[List[Any]]) extends RDD[Any](prev) with Linea
     new LineageRDD(firstParent[List[_]].filter(r => f(r)).cache())
 
   def filter(f: Int): LineageRDD = {
-    val values = prevResult.filter(r => r._1 == f).map(_._2.asInstanceOf[List[Int]].head)
+    val values = prevResult.filter(r => r._1 == f).map(_._2.asInstanceOf[List[Long]].head)
     new LineageRDD(firstParent[List[Any]].filter(r => values.contains(r.head))).cache()
   }
 
@@ -131,12 +131,16 @@ class LineageRDD(val prev: Lineage[List[Any]]) extends RDD[Any](prev) with Linea
     return value match {
       case c: CompactBuffer[OpenHashMap[Int, List[_]]] =>
         c.flatMap(o => o.iterator.map(kv => unroll(kv._2.reverse.head)))
-      case _ => value
+      case l: List[_] =>
+        if(l.tail.isEmpty) return unroll(l.head)
+        else unroll(l.tail)
+      case _ => return value;
     }
   }
 
   def goBack(path: Int = 0): LineageRDD = {
-    new LineageRDD(prev.map(l => unroll(l.reverse.head) match {
+    new LineageRDD(prev.map(
+      l => unroll(l.reverse) match {
       case l: List[_] => l
       case v: Any => List(v)
     }))
