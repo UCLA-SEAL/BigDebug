@@ -65,8 +65,12 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   }
 
   def filter(f: Int): LineageRDD = {
-    val values = prevResult.filter(r => r._1 == f).map(_._2)
-    firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
+    if(!prevResult.isEmpty) {
+      val values = prevResult.filter(r => r._1 == f).map(_._2)
+      firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
+    } else {
+      new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
+    }
   }
 
   override def saveAsDBTable(url: String, username: String, password: String, path: String, driver: String): Unit = {

@@ -57,10 +57,10 @@ private[spark] abstract class ZippedPartitionsBaseRDD[V: ClassTag](
       throw new IllegalArgumentException("Can't zip RDDs with unequal numbers of partitions")
     }
     Array.tabulate[Partition](numParts) { i =>
-      val prefs = rdds.map(rdd => rdd.preferredLocations(rdd.partitions(i)))
+      val locs = rdds.reverse.head.preferredLocations(rdds.reverse.head.partitions(i))
       // Check whether there are any hosts that match all RDDs; otherwise return the union
-      val exactMatchLocations = prefs.reduce((x, y) => x.intersect(y))
-      val locs = if (!exactMatchLocations.isEmpty) exactMatchLocations else prefs.flatten.distinct
+//      val exactMatchLocations = prefs.reduce((x, y) => x.intersect(y))
+//      val locs: Seq[String] = if (!exactMatchLocations.isEmpty) exactMatchLocations else prefs
       new ZippedPartitionsPartition(i, rdds, locs)
     }
   }
