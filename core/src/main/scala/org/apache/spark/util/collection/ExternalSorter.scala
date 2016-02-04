@@ -23,10 +23,9 @@ import java.util.Comparator
 import com.google.common.io.ByteStreams
 import org.apache.spark._
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
-import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -131,7 +130,7 @@ private[spark] class ExternalSorter[K, V, C](
   // at the end. This avoids doing serialization and deserialization twice to merge together the
   // spilled files, which would happen with the normal code path. The downside is having multiple
   // files open at a time and thus more memory allocated to buffers. Matteo
-  private val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 1)
+  private val bypassMergeThreshold = conf.getInt("spark.shuffle.sort.bypassMergeThreshold", 0)
   private val bypassMergeSort =
     (numPartitions <= bypassMergeThreshold && aggregator.isEmpty && ordering.isEmpty)
 
@@ -260,12 +259,12 @@ private[spark] class ExternalSorter[K, V, C](
           maybeSpillCollection(usingMap = false)
         }
       } else {
-        var pair: Product2[K, Product2[V, Long]] = null
-        val lineageBuffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[V, Int]] = null
+        val lineageBuffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         while (records.hasNext) {
           addElementsRead()
-          pair = records.next().asInstanceOf[Product2[K, Product2[V, Long]]]
+          pair = records.next().asInstanceOf[Product2[K, Product2[V, Int]]]
           buffer.insert((getPartition(pair._1), pair._1), pair._2._1.asInstanceOf[C])
           lineageBuffer.put(pair._2._2, pair._1.hashCode())
           maybeSpillCollection(usingMap = false)
@@ -809,7 +808,7 @@ private[spark] class ExternalSorter[K, V, C](
             for (elem <- elements) {
               writer.write(
                 new Tuple2(elem._1,
-                  new Tuple2(elem._2, PackIntIntoLong(context.stageId, context.partitionId))))
+                  new Tuple2(elem._2, context.partitionId)))
             }
           }
           writer.commitAndClose()

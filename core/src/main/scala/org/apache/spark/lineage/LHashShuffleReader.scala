@@ -31,7 +31,7 @@ private[spark] class LHashShuffleReader[K, C](
     var lineage: Boolean = false
   ) extends HashShuffleReader[K, C](handle, startPartition, endPartition, context) {
 
-  private val dep = handle.dependency
+  val dep = handle.dependency
 
   /** Read the combined key-values for this reduce task */
   override def read(isCache: Option[Boolean] = None, shuffId: Int = 0): Iterator[Product2[K, C]] = {
@@ -42,6 +42,9 @@ private[spark] class LHashShuffleReader[K, C](
       if(isCache.get) {
         return tappedIter
       } else {
+        if(tappedIter.isEmpty) {
+          return Iterator.empty
+        }
         lineage = true
       }
     }
@@ -50,7 +53,7 @@ private[spark] class LHashShuffleReader[K, C](
       if (dep.mapSideCombine) {
         new InterruptibleIterator(
           context,
-          dep.aggregator.get.combineCombinersByKey(tappedIter, context))
+          dep.aggregator.get.combineCombinersByKey(tappedIter, context, isCache.isDefined))
       } else {
         new InterruptibleIterator(context,
           dep.aggregator.get.combineValuesByKey(tappedIter, context))

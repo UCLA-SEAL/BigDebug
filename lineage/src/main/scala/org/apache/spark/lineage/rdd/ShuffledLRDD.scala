@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LAggregator, LineageContext}
 import org.apache.spark.rdd.ShuffledRDD
 
 import scala.reflect._
@@ -78,4 +78,31 @@ class ShuffledLRDD[K, V, C](
     }
     new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this)
   }
+
+  override def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = {
+    if (tappedIter.isEmpty) {
+      return tappedIter
+    } else {
+      val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
+      val result: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
+        if (dep.mapSideCombine) {
+            dep.aggregator.get.combineCombinersByKey(tappedIter, context, true)
+        } else {
+            dep.aggregator.get.combineValuesByKey(tappedIter, context)
+        }
+      } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
+        throw new IllegalStateException("Aggregator is empty for map-side combine")
+      } else {
+        // Convert the Product2s to pairs since this is what downstream RDDs currently expect
+        tappedIter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
+      }
+      result
+    }
+  }
+
+  override def replay(rdd: Lineage[_]) = new ShuffledLRDD[K, V, C](rdd.asInstanceOf[Lineage[(K, V)]], part)
+    .setSerializer(serializer.getOrElse(null))
+    .setAggregator(aggregator.get.asInstanceOf[LAggregator[K, V, C]].setLineage(false))
+    .asInstanceOf[ShuffledLRDD[K, V, C]]
+    .setMapSideCombine(mapSideCombine)
 }

@@ -24,13 +24,15 @@ import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 
+import scala.collection.mutable
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 object LineageContext {
-  type RecordId = (Long, Int)
-  val Dummy = 0L
+  type RecordId = (Int, Int)
+  type PartialRecordId = (Int, Any)
+  val Dummy = 0
 
   implicit def fromRDDtoLineage(rdd: RDD[_]) = rdd.asInstanceOf[Lineage[_]]
 
@@ -142,9 +144,41 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     sparkContext.runJob(tappedRdd, func, 0 until rdd.partitions.size, false)
   }
 
+  val replayVisited = new mutable.Stack[Lineage[_]]()
+
+  // Program must not be recursive
+  def setUpReplay(last: Lineage[_]) = {
+    val initial = last
+
+    def visit(rdd: Lineage[_]) {
+      replayVisited.push(rdd)
+      rdd.setCaptureLineage(false)
+      for (dep <- rdd.dependencies) {
+          visit(dep.rdd)
+      }
+      if (rdd.dependencies.isEmpty) {
+        replayVisited.pop()
+        replayVisited.pop()
+        replayVisited.pop()
+      }
+    }
+
+    visit(initial)
+  }
+
+  def replay(rdd: Lineage[_]) = {
+    var current: Lineage[_] = rdd
+    while(!replayVisited.isEmpty) {
+      val prev = replayVisited.pop()
+      if(!prev.isInstanceOf[TapLRDD[_]]) {
+        current = prev.replay(current)
+      }
+    }
+    current
+  }
+
   def getLineage(rdd: Lineage[_]) = {
     val initialTap: Lineage[_] = rdd.materialize
-    //initialTap.collect().foreach(println)
     val visited = new HashSet[RDD[_]]
 
     def visit(rdd: RDD[_], parent: RDD[_]) {
@@ -155,12 +189,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         for (dep <- rdd.dependencies) {
           val newParent: RDD[_] = dep.rdd match {
             case tap: TapLRDD[_] =>
-              val tmp = tap.materialize
-              dependencies = new OneToOneDependency(tmp) :: dependencies
-            tmp match {
-              //case _: TapPostShuffleLRDD[_] => tmp.count
-              case _ =>
-            }
+              dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
               tap
             case _ => parent
           }
@@ -321,7 +350,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     }
   }
 
-  def getForward(): Lineage[((Long, _), Any)] = {
+  def getForward(): Lineage[((Int, _), Any)] = {
     if(!lastOperation.isDefined || lastOperation.get == Direction.BACKWARD) {
       lastOperation = Some(Direction.FORWARD)
     }
@@ -333,12 +362,10 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     lastLineageSeen = currentLineagePosition
     currentLineagePosition = Some(prevLineagePosition.pop())
 
-    println(currentLineagePosition.get.partitions.size)
-
     currentLineagePosition.get match {
       case pre: TapPreShuffleLRDD[(Any, Array[Int])@unchecked] =>
         pre.flatMap(r => r._2.map(b => ((Dummy, b), r._1)))
-      case post: TapPostShuffleLRDD[(Any, (Long, Int))@unchecked] =>
+      case post: TapPostShuffleLRDD[(Any, RecordId)@unchecked] =>
         post.map(_.swap)
       case other: TapLRDD[(Any, Int)@unchecked] =>
        other.map(r => ((Dummy, r._2), r._1))

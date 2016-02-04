@@ -18,7 +18,7 @@
 package org.apache.spark.lineage
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
@@ -35,7 +35,7 @@ class LAggregator[K, V, C] (
     createCombiner: V => C,
     mergeValue: (C, V) => C,
     mergeCombiners: (C, C) => C,
-    isLineage: Boolean = false)
+    var isLineage: Boolean = false)
   extends Aggregator[K, V, C](createCombiner, mergeValue, mergeCombiners) {
 
   override def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]], context: TaskContext)
@@ -57,15 +57,15 @@ class LAggregator[K, V, C] (
       if(!isLineage) {
         combiners.insertAll(iter)
       } else {
-        var pair: Product2[K, Product2[V, Long]] = null
-        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[V, Int]] = null
+        val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         val update: (Boolean, C) => C = (hadVal, oldVal) => {
           if (hadVal) mergeValue(oldVal, pair._2._1) else createCombiner(pair._2._1)
         }
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Int]]]
           combiners.insert(pair._1, update)
           buffer.put(pair._2._2, pair._1.hashCode())
         }
@@ -83,7 +83,7 @@ class LAggregator[K, V, C] (
     }
   }
 
-  override def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext)
+  override def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext, isCache: Boolean = false)
     : Iterator[(K, C)] = {
     if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K,C]
@@ -104,15 +104,24 @@ class LAggregator[K, V, C] (
           combiners.insert(pair._1, pair._2)
         }
       } else {
-        var pair: Product2[K, Product2[C, Long]] = null
-        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[C, Int]] = null
+        val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Int]]]]
+        if(isCache) {
+          while (iter.hasNext) {
+            pair = tappedIter.next()
+            combiners.insert(pair._1, pair._2._1)
+            combiners.foreach(println)
+          }
+        } else {
+          val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
-        while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[C, Long]]]
-          combiners.insert(pair._1, pair._2._1)
-          buffer.put(pair._2._2, pair._1.hashCode())
+          while (iter.hasNext) {
+            pair = tappedIter.next()
+            combiners.insert(pair._1, pair._2._1)
+            buffer.put(pair._2._2, pair._1.hashCode())
+          }
+          context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
         }
-        context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }
 
       // Update task metrics if context is not null
@@ -123,5 +132,10 @@ class LAggregator[K, V, C] (
       }
       combiners.iterator
     }
+  }
+
+  def setLineage(lineage: Boolean) = {
+    isLineage = lineage
+    this.asInstanceOf[Aggregator[K, V, C]]
   }
 }

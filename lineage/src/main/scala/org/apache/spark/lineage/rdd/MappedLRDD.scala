@@ -22,10 +22,12 @@ import org.apache.spark.rdd.MappedRDD
 import scala.reflect._
 
 private[spark]
-class MappedLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T], f: T => U)
+class MappedLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T], val f: T => U)
   extends MappedRDD[U, T](prev, f) with Lineage[U] {
 
   override def lineageContext = prev.lineageContext
 
   override def ttag = classTag[U]
+
+  override def replay(rdd: Lineage[_]) = rdd.asInstanceOf[Lineage[T]].map(f)
 }

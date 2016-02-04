@@ -17,16 +17,17 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.rdd.FilteredRDD
+import org.apache.spark.TaskContext
+import org.apache.spark.rdd.MapPartitionsRDD
 
 import scala.reflect._
 
-private[spark] class FilteredLRDD[T: ClassTag](prev: Lineage[T], val f: T => Boolean)
-extends FilteredRDD[T](prev, f) with Lineage[T] {
+class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
+    f: (TaskContext, Int, Iterator[T]) => Iterator[U],  // (TaskContext, partition index, iterator)
+    preservesPartitioning: Boolean = false)
+  extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning) with Lineage[U] {
 
   override def lineageContext = prev.lineageContext
 
-  override def ttag: ClassTag[T] = classTag[T]
-
-  override def replay(rdd: Lineage[_]) = rdd.asInstanceOf[Lineage[T]].filter(f)
+  override def ttag = classTag[U]
 }

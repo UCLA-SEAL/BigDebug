@@ -73,7 +73,7 @@ class Aggregator[K, V, C] (
   def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]]) : Iterator[(K, C)] =
     combineCombinersByKey(iter, null)
 
-  def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext)
+  def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext, isCache: Boolean = false) // Matteo
     : Iterator[(K, C)] =
   {
     if (!isSpillEnabled) {

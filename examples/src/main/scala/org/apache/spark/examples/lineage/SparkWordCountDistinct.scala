@@ -22,7 +22,7 @@ import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.{SparkConf, SparkContext}
 
 
-object SparkWordCount {
+object SparkWordCountDistinct {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
@@ -34,7 +34,7 @@ object SparkWordCount {
     } else {
       lineage = args(0).toBoolean
       logFile += args(1)
-      conf.setMaster("spark://SCAI01.CS.UCLA.EDU:7077")
+      conf.setMaster("local[2]")
 //      conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 //      conf.set("spark.kryo.referenceTracking", "false")
 //      conf.set("spark.kryo.registrationRequired", "true")
@@ -56,16 +56,20 @@ object SparkWordCount {
 
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
-    val file2 = lc.textFile(logFile, 1)
 
-    lc.setCaptureLineage(lineage)
-
+    lc.setCaptureLineage(true)
+    //Seq("the", "quick")
     // Job
-    val file = lc.textFile(logFile, 1)
-    val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
-    val counts = pairs.reduceByKey(_ + _)
-    println(counts.count)
+    val doc1 = lc.textFile("doc1", 1)
+    val doc2 = lc.textFile("doc2", 1)
+    val pairs1 = doc1.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), "doc1"))
+    val pairs2 = doc2.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), "doc2"))
+    val union = pairs1.union(pairs2)
+    val group = union.groupByKey().filter(_._2.size <2).map(r => (r._2.head, 1))
+    val counts = group.reduceByKey(_ + _)
+    counts.collect().foreach(println)
   //println(counts.collect().mkString("\n"))
+
     lc.setCaptureLineage(false)
 //
     Thread.sleep(1000)
@@ -149,23 +153,20 @@ object SparkWordCount {
 //    linRdd = linRdd.goNext()
 //    linRdd.collect.foreach(println)
 //    linRdd.show
-      var linRdd = counts.getLineage()
-      linRdd.collect
-      linRdd = linRdd.filter(0)
-      linRdd = linRdd.goBackAll()
-      val show = linRdd.show().cache
-      val tmp = lc.replay(show)
-      println(tmp.count())
+
 //    // Full trace forward one record
 //    for(i <- 1 to 10) {
-//      var linRdd = counts.getLineage()
-//      linRdd.collect
-//      linRdd = linRdd.filter(0).cache()
-////    linRdd = linRdd.goBackAll()
-//      linRdd.collect
-//      println("beforeshow")
-//      linRdd.show()
-//      println("Done1")
+      var linRdd = counts.getLineage()
+     // lc.replay(file)
+      linRdd.collect
+      linRdd = linRdd.filter(0).cache()
+    linRdd.collect.foreach(println)
+    linRdd.show()
+    linRdd = linRdd.goBackAll()
+      linRdd.collect.foreach(println)
+      println("beforeshow")
+      linRdd.show()
+      println("Done1")
 //     linRdd = linRdd.goBackAll()
 //      linRdd.collect
 //      var value = linRdd.take(1)(0)

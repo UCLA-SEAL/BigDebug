@@ -19,7 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 
 import scala.reflect.ClassTag
@@ -29,24 +29,25 @@ class TapPostCoGroupLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapPostShuffleLRDD[T](lc, deps)
 {
-  @transient private var buffer: LongIntByteBuffer = null
+  @transient private var buffer: IntIntByteBuffer = null
 
-  override def getCachedData = shuffledData.setIsPostShuffleCache()
+  override def getCachedData: Lineage[T] =
+    shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
     if(buffer != null) {
-      val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
+      val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap()
       val iterator = buffer.iterator
 
       while (iterator.hasNext) {
         val next = iterator.next()
         map.changeValue(
         next._2, {
-          val tmp = new CompactBuffer[Long]()
+          val tmp = new CompactBuffer[Int]()
           tmp += next._1
           tmp
         },
-        (old: CompactBuffer[Long]) => {
+        (old: CompactBuffer[Int]) => {
           old += next._1
           old
         })
@@ -55,13 +56,13 @@ class TapPostCoGroupLRDD[T: ClassTag](
       // We release the buffer here because not needed anymore
       releaseBuffer()
 
-      map.toArray.zipWithIndex.map(r => ((r._2, splitId), (r._1._2, r._1._1)))
+      map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
     } else {
       Array()
     }
   }
 
-  override def initializeBuffer() = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer() = {
     if(buffer != null) {
@@ -72,7 +73,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
   }
 
   override def tap(record: T) = {
-    val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Long)]])]
+    val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Int)]])]
     val hash = key.hashCode
     val iters = for(iter <- values) yield {
       iter.map(r => {

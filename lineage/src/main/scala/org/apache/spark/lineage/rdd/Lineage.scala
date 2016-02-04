@@ -9,7 +9,7 @@ import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.CompactBuffer
-import org.apache.spark.{OneToOneDependency, Partitioner}
+import org.apache.spark.{TaskContext, OneToOneDependency, Partitioner}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -63,8 +63,8 @@ trait Lineage[T] extends RDD[T] {
           getTap.get
         case tap: TapHadoopLRDD[Any @unchecked, Long @unchecked] =>
           tap//.map(_.swap)
-        case tap: TapLRDD[(Long, Long) @unchecked] =>
-          tap.map(r => ((0L, r._1), (0L, r._2)))
+        case tap: TapLRDD[(Int, Int) @unchecked] =>
+          tap.map(r => ((Dummy, r._1), (Dummy, r._2)))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -80,7 +80,9 @@ trait Lineage[T] extends RDD[T] {
     this
   }
 
-  private[spark] def rightJoin[T](prev: Lineage[(T, Any)], next: RDD[(T, Any)]) = {
+  def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]]  = Iterator.empty
+
+  private[spark] def rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[T]()
@@ -103,7 +105,7 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[(Long, Int)],
+  private[spark] def join3Way(prev: Lineage[(Int, Int)],
       next1: Lineage[(Long, Int)],
       next2: Lineage[(Long, String)]) = {
     prev.zipPartitions(next1,next2) {
@@ -120,6 +122,10 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
+        if(hashSet.isEmpty) {
+          Iterator.empty
+        }
+
         while(streamIter1.hasNext) {
           val current = streamIter1.next()
           if(hashSet.contains(current._2)) {
@@ -130,6 +136,10 @@ trait Lineage[T] extends RDD[T] {
             values += current._2
             hashMap.put(current._1, values)
           }
+        }
+
+        if(hashMap.isEmpty) {
+          Iterator.empty
         }
         streamIter2.flatMap(current => {
           val values = if(hashMap.get(current._1) != null) {
@@ -152,6 +162,18 @@ trait Lineage[T] extends RDD[T] {
   override def collect(): Array[T] = {
     val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
 
+    lineageContext.setUpReplay(this)
+
+    if(lineageContext.isLineageActive) {
+      lineageContext.setLastLineagePosition(this.getTap)
+    }
+
+    Array.concat(results: _*)
+  }
+
+  def replayCollect(): Array[T] = {
+    val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
+
     if(lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap)
     }
@@ -168,6 +190,8 @@ trait Lineage[T] extends RDD[T] {
     if(lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap)
     }
+
+    lineageContext.setUpReplay(this)
 
     result
   }
@@ -234,6 +258,20 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = new MappedLRDD(this, sparkContext.clean(f))
+
+  /**
+   * Return a new RDD by applying a function to each partition of this RDD.
+   *
+   * `preservesPartitioning` indicates whether the input function preserves the partitioner, which
+   * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
+   */
+  override def mapPartitions[U: ClassTag](
+                                  f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = {
+    val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(iter)
+    new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
+  }
+
+  def replay(rdd: Lineage[_]) = this
 
   /**
    * Save this RDD as a text file, using string representations of elements.
@@ -312,7 +350,7 @@ object Lineage {
   implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any)] =
     rdd.asInstanceOf[Lineage[(RecordId, Any)]]
 
-  implicit def castLineage5(rdd: (Any, (Long, Int))): (Int, Any) =
+  implicit def castLineage5(rdd: (Any, RecordId)): (Int, Any) =
     (rdd._1.asInstanceOf[RecordId]._2, rdd._2)
 
   implicit def castLineage10(rdd: Lineage[_]): Lineage[(Int, Any)] =
@@ -328,8 +366,19 @@ object Lineage {
     rdd.asInstanceOf[Lineage[(RecordId, String)]]
 
   implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
-    rdd.map(r => ((0L, r._1), r._2))
+    rdd.map(r => ((Dummy, r._1), r._2))
 
-  implicit def castShowToLineage[T](show: ShowRDD): Lineage[T] =
-    show.asInstanceOf[Lineage[T]]
+  implicit def castLineage16(rdd: Lineage[(Long, Any)]): Lineage[(PartialRecordId, Any)] =
+    rdd.map(r => ((Dummy, r._1), (Dummy, r._2)))
+
+  implicit def castLineage13(rdd: Lineage[(Any, RecordId)]): Lineage[(Long, Any)] =
+    rdd.asInstanceOf[Lineage[(Long, Any)]]
+
+  implicit def castLineage14(rdd: Lineage[_]): Lineage[(Int, (CompactBuffer[Int], Int))] =
+    rdd.asInstanceOf[Lineage[(Int, (CompactBuffer[Int], Int))]]
+
+  implicit def castLineage15(rdd: Lineage[_]): Lineage[(RecordId, Array[Int])] =
+    rdd.asInstanceOf[Lineage[(RecordId, Array[Int])]]
+//  implicit def castShowToLineage[T](show: ShowRDD): Lineage[T] =
+//    show.asInstanceOf[Lineage[T]]
 }

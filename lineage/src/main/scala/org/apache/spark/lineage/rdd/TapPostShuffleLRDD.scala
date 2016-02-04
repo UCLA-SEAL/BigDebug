@@ -29,23 +29,24 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
-  override def getCachedData = shuffledData.setIsPostShuffleCache()
+  override def getCachedData: Lineage[T] =
+    shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
       if (tContext.currentBuffer != null) {
-        val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
+        val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap()
         val iterator = tContext.currentBuffer.iterator
 
         while (iterator.hasNext) {
           val next = iterator.next()
           map.changeValue(
           next._2, {
-            val tmp = new CompactBuffer[Long]()
+            val tmp = new CompactBuffer[Int]()
             tmp += (next._1)
             tmp
           },
-          (old: CompactBuffer[Long]) => {
+          (old: CompactBuffer[Int]) => {
             old += (next._1)
             old
           })
@@ -54,7 +55,7 @@ class TapPostShuffleLRDD[T: ClassTag](
         // We release the buffer here because not needed anymore
         releaseBuffer()
 
-        map.toArray.zipWithIndex.map(r => ((r._2, splitId), (r._1._2, r._1._1)))
+        map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
       } else {
         Array()
       }
