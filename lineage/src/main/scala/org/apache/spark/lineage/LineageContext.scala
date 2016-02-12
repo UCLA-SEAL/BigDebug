@@ -131,6 +131,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
   /**
    * Run a job on all partitions in an RDD and return the results in an array.
    */
+  def runJobWithId[T, U: ClassTag](rdd: Lineage[T], func: Iterator[(T, Int)] => U): Array[U] = {
+    val tappedRdd = tapJobWithId(rdd)
+    sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
+  }
+
+  /**
+   * Run a job on all partitions in an RDD and return the results in an array.
+   */
   def runJob[T: ClassTag, U: ClassTag](rdd: Lineage[T], func: Iterator[T] => U): Array[U] = {
     val tappedRdd = tapJob(rdd)
     sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
@@ -250,6 +258,15 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     }
 
     rdd.tapRight()
+  }
+
+  private def tapJobWithId[T](rdd: Lineage[T]): RDD[(T, Int)] = {
+    val result = tapJob(rdd)
+    if(result.isInstanceOf[TapPostShuffleLRDD[T]]) {
+      result.tapRight().asInstanceOf[RDD[(T, Int)]]
+    } else {
+      result.asInstanceOf[RDD[(T, Int)]]
+    }
   }
 
   private var captureLineage: Boolean = false

@@ -89,7 +89,8 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
-    buffer.put(newRecordId(),  tContext.currentInputId)
-    record
+    val id = newRecordId()
+    buffer.put(id,  tContext.currentInputId)
+    (record, id).asInstanceOf[T]
   }
 }

@@ -56,8 +56,9 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       prev, (iter: Iterator[(Any, Any)]) => iter.toArray.distinct
     ).filter(_ != null) // Needed for removing results from empty partitions
 
-    prevResult = Array.concat(result: _*).zipWithIndex.map(_.swap)
-    prevResult.map(r => (r._1, r._2._1))
+    Array.concat(result: _*).asInstanceOf[Array[Any]]
+//    prevResult = Array.concat(result: _*).zipWithIndex.map(_.swap)
+//    prevResult.map(r => (r._1, r._2._1))
   }
 
   override def filter(f: (Any) => Boolean): LineageRDD = {
@@ -69,7 +70,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       val values = prevResult.filter(r => r._1 == f).map(_._2)
       firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
     } else {
-      new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
+      new LineageRDD(firstParent[(Int, Any)].filter(r => r._1 == f).cache())
+      //new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
     }
   }
 

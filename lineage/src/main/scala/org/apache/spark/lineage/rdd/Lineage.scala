@@ -20,13 +20,13 @@ trait Lineage[T] extends RDD[T] {
 
   @transient def lineageContext: LineageContext
 
-  protected var tapRDD : Option[TapLRDD[_]] = None
+  protected var tapRDD: Option[TapLRDD[_]] = None
 
   // None = no cache, true = pre, false = post
   private[spark] var isPreShuffleCache: Option[Boolean] = None
 
   def tapRight(): TapLRDD[T] = {
-    val tap = new TapLRDD[T](lineageContext,  Seq(new OneToOneDependency(this)))
+    val tap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
     setTap(tap)
     setCaptureLineage(true)
     tap
@@ -40,7 +40,7 @@ trait Lineage[T] extends RDD[T] {
   }
 
   def setTap(tap: TapLRDD[_] = null) = {
-    if(tap == null) {
+    if (tap == null) {
       tapRDD = None
     } else {
       tapRDD = Some(tap)
@@ -50,20 +50,20 @@ trait Lineage[T] extends RDD[T] {
 
   def getTap = tapRDD
 
-  def setCaptureLineage(newLineage :Boolean) = {
+  def setCaptureLineage(newLineage: Boolean) = {
     captureLineage = newLineage
     this
   }
 
   def getLineage(): LineageRDD = {
-    if(getTap.isDefined) {
+    if (getTap.isDefined) {
       lineageContext.setCurrentLineagePosition(getTap)
       return getTap.get match {
         case _: TapPostShuffleLRDD[_] | _: TapPreShuffleLRDD[_] =>
           getTap.get
-        case tap: TapHadoopLRDD[Any @unchecked, Long @unchecked] =>
-          tap//.map(_.swap)
-        case tap: TapLRDD[(Int, Int) @unchecked] =>
+        case tap: TapHadoopLRDD[Any@unchecked, Long@unchecked] =>
+          tap //.map(_.swap)
+        case tap: TapLRDD[(Int, Int)@unchecked] =>
           tap.map(r => ((Dummy, r._1), (Dummy, r._2)))
       }
     }
@@ -80,7 +80,7 @@ trait Lineage[T] extends RDD[T] {
     this
   }
 
-  def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]]  = Iterator.empty
+  def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = Iterator.empty
 
   private[spark] def rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
     prev.zipPartitions(next) {
@@ -97,18 +97,20 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
-        if(hashSet.isEmpty) {
+        if (hashSet.isEmpty) {
           Iterator.empty
         } else {
-          streamIter.filter(current => { hashSet.contains(current._1) })
+          streamIter.filter(current => {
+            hashSet.contains(current._1)
+          })
         }
     }
   }
 
   private[spark] def join3Way(prev: Lineage[(Int, Int)],
-      next1: Lineage[(Long, Int)],
-      next2: Lineage[(Long, String)]) = {
-    prev.zipPartitions(next1,next2) {
+                              next1: Lineage[(Long, Int)],
+                              next2: Lineage[(Long, String)]) = {
+    prev.zipPartitions(next1, next2) {
       (buildIter, streamIter1, streamIter2) =>
         val hashSet = new java.util.HashSet[Int]()
         val hashMap = new java.util.HashMap[Long, CompactBuffer[Int]]()
@@ -122,15 +124,15 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
-        if(hashSet.isEmpty) {
+        if (hashSet.isEmpty) {
           Iterator.empty
         }
 
-        while(streamIter1.hasNext) {
+        while (streamIter1.hasNext) {
           val current = streamIter1.next()
-          if(hashSet.contains(current._2)) {
+          if (hashSet.contains(current._2)) {
             var values = hashMap.get(current._1)
-            if(values == null) {
+            if (values == null) {
               values = new CompactBuffer[Int]()
             }
             values += current._2
@@ -138,11 +140,11 @@ trait Lineage[T] extends RDD[T] {
           }
         }
 
-        if(hashMap.isEmpty) {
+        if (hashMap.isEmpty) {
           Iterator.empty
         }
         streamIter2.flatMap(current => {
-          val values = if(hashMap.get(current._1) != null) {
+          val values = if (hashMap.get(current._1) != null) {
             hashMap.get(current._1)
           } else {
             new CompactBuffer[Int]()
@@ -164,7 +166,22 @@ trait Lineage[T] extends RDD[T] {
 
     lineageContext.setUpReplay(this)
 
-    if(lineageContext.isLineageActive) {
+    if (lineageContext.isLineageActive) {
+      lineageContext.setLastLineagePosition(this.getTap)
+    }
+
+    Array.concat(results: _*)
+  }
+
+  /**
+   * Return an array that contains all of the elements in this RDD.
+   */
+  def collectWithId(): Array[(T, Int)] = {
+    val results = lineageContext.runJobWithId(this, (iter: Iterator[(T, Int)]) => iter.toArray)
+
+    lineageContext.setUpReplay(this)
+
+    if (lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap)
     }
 
@@ -174,7 +191,7 @@ trait Lineage[T] extends RDD[T] {
   def replayCollect(): Array[T] = {
     val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
 
-    if(lineageContext.isLineageActive) {
+    if (lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap)
     }
 
@@ -187,7 +204,7 @@ trait Lineage[T] extends RDD[T] {
   override def count(): Long = {
     val result = lineageContext.runJob(this, Utils.getIteratorSize _).sum
 
-    if(lineageContext.isLineageActive) {
+    if (lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(this.getTap)
     }
 
@@ -213,8 +230,8 @@ trait Lineage[T] extends RDD[T] {
   override def filter(f: T => Boolean): Lineage[T] = new FilteredLRDD[T](this, context.clean(f))
 
   /**
-   *  Return a new Lineage by first applying a function to all elements of this
-   *  Lineage, and then flattening the results.
+   * Return a new Lineage by first applying a function to all elements of this
+   * Lineage, and then flattening the results.
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =
     new FlatMappedLRDD[U, T](this, lineageContext.sparkContext.clean(f))
@@ -241,7 +258,7 @@ trait Lineage[T] extends RDD[T] {
    * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
    */
   override def groupBy[K](f: T => K, p: Partitioner)
-      (implicit kt: ClassTag[K], ord: Ordering[K] = null)
+                         (implicit kt: ClassTag[K], ord: Ordering[K] = null)
   : Lineage[(K, Iterable[T])] = {
     val cleanF = lineageContext.sparkContext.clean(f)
     this.map(t => (cleanF(t), t)).groupByKey(p)
@@ -266,8 +283,21 @@ trait Lineage[T] extends RDD[T] {
    * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
    */
   override def mapPartitions[U: ClassTag](
-                                  f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = {
+                                           f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = {
     val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(iter)
+    new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
+  }
+
+  /**
+   * Return a new RDD by applying a function to each partition of this RDD, while tracking the index
+   * of the original partition.
+   *
+   * `preservesPartitioning` indicates whether the input function preserves the partitioner, which
+   * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
+   */
+  override def mapPartitionsWithIndex[U: ClassTag](
+                                                    f: (Int, Iterator[T]) => Iterator[U], preservesPartitioning: Boolean = false): Lineage[U] = {
+    val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(index, iter)
     new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
   }
 
@@ -293,7 +323,7 @@ trait Lineage[T] extends RDD[T] {
     lrddToPairLRDDFunctions(r)(nullWritableClassTag, textClassTag, null)
       .saveAsHadoopFile[TextOutputFormat[NullWritable, Text]](path)
 
-    if(lineageContext.isLineageActive) {
+    if (lineageContext.isLineageActive) {
       lineageContext.setLastLineagePosition(r.getTap)
       setTap(r.getTap.get)
     }
@@ -307,10 +337,10 @@ trait Lineage[T] extends RDD[T] {
    * Return this RDD sorted by the given key function.
    */
   override def sortBy[K](
-     f: (T) => K,
-     ascending: Boolean = true,
-     numPartitions: Int = this.partitions.size)
-   (implicit ord: Ordering[K], ctag: ClassTag[K]): Lineage[T] =
+                          f: (T) => K,
+                          ascending: Boolean = true,
+                          numPartitions: Int = this.partitions.size)
+                        (implicit ord: Ordering[K], ctag: ClassTag[K]): Lineage[T] =
     this.keyBy[K](f)
       .sortByKey(ascending, numPartitions)
       .values
@@ -323,8 +353,8 @@ trait Lineage[T] extends RDD[T] {
     new CoalescedLRDD(new UnionLRDD(lineageContext, Array(this, other)), this.partitions.size)
 
   override def zipPartitions[B: ClassTag, V: ClassTag]
-      (rdd2: RDD[B])
-      (f: (Iterator[T], Iterator[B]) => Iterator[V]): Lineage[V] =
+  (rdd2: RDD[B])
+  (f: (Iterator[T], Iterator[B]) => Iterator[V]): Lineage[V] =
     new ZippedPartitionsLRDD2[T, B, V](
       lineageContext,
       lineageContext.sparkContext.clean(f),
@@ -334,8 +364,8 @@ trait Lineage[T] extends RDD[T] {
     )
 
   override def zipPartitions[B: ClassTag, C: ClassTag, V: ClassTag]
-      (rdd2: RDD[B], rdd3: RDD[C])
-      (f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]): Lineage[V] =
+  (rdd2: RDD[B], rdd3: RDD[C])
+  (f: (Iterator[T], Iterator[B], Iterator[C]) => Iterator[V]): Lineage[V] =
     new ZippedPartitionsLRDD3[T, B, C, V](
       lineageContext,
       lineageContext.sparkContext.clean(f),
@@ -344,6 +374,25 @@ trait Lineage[T] extends RDD[T] {
       rdd3.asInstanceOf[Lineage[C]],
       false
     )
+
+  /**
+   * Zips this RDD with generated unique Long ids. Items in the kth partition will get ids k, n+k,
+   * 2*n+k, ..., where n is the number of partitions. So there may exist gaps, but this method
+   * won't trigger a spark job, which is different from [[org.apache.spark.rdd.RDD# z i p W i t h I n d e x]].
+   *
+   * Note that some RDDs, such as those returned by groupBy(), do not guarantee order of
+   * elements in a partition. The unique ID assigned to each element is therefore not guaranteed,
+   * and may even change if the RDD is reevaluated. If a fixed ordering is required to guarantee
+   * the same index assignments, you should sort the RDD with sortByKey() or save it to a file.
+   */
+  override def zipWithUniqueId(): Lineage[(T, Long)] = {
+    val n = this.partitions.size.toLong
+    this.mapPartitionsWithIndex { case (k, iter) =>
+      iter.zipWithIndex.map { case (item, i) =>
+        (item, i * n + k)
+      }
+    }
+  }
 }
 
 object Lineage {
