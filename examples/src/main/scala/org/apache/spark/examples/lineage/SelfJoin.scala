@@ -156,13 +156,14 @@ object SelfJoin {
 
 
       var linRdd = selfjoin_result.getLineage()
-      linRdd.collect
+      linRdd.collect.foreach(println)
 
       linRdd = linRdd.filter( l => {
         println("***" + l + "***") //debug
         list.contains(l)
       })
 
+      linRdd.collect().foreach(println)
       linRdd = linRdd.goBackAll()
 
       //At this stage, technically lineage has already find all the faulty data set, we record the time
