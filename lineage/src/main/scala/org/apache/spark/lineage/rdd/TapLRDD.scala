@@ -18,9 +18,10 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.util.IntIntByteBuffer
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.lineage.{LCacheManager, LineageContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.reflect._
 
@@ -34,7 +35,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var nextRecord: Int = _
 
-  @transient private var buffer: IntIntByteBuffer = _
+  @transient private var buffer: LongIntByteBuffer = _
 
   tapRDD = Some(this)
 
@@ -90,13 +91,13 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
+  def initializeBuffer() = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
     val id = newRecordId()
-    buffer.put(id,  tContext.currentInputId)
+    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId)
     if(isLast) {
-      (record, id).asInstanceOf[T]
+      (record, PackIntIntoLong(splitId, id)).asInstanceOf[T]
     } else {
       record
     }

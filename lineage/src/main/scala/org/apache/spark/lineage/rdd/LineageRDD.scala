@@ -63,12 +63,12 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
   override def filter(f: (Any) => Boolean): LineageRDD = {
     new LineageRDD(firstParent[(Any, Any)].filter(r => r._1 match {
-      case d: (_, _) => f(d._2)
+      //case d: (_, _) => f(d._2)
       case r: Any => f(r)
     }).cache())
   }
 
-  def filter(f: Int): LineageRDD = {
+  def filter(f: Long): LineageRDD = {
     if(!prevResult.isEmpty) {
       val values = prevResult.filter(r => r._1 == f).map(_._2)
       firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()

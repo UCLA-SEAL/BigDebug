@@ -138,7 +138,7 @@ object SelfJoin {
 
       //find the index of the data that cause exception
     //  var index = 0
-      var list = List[Int]()
+      var list = List[Long]()
       for (o <- out) {
         val checkPoint = o._1._1.substring(o._1._1.length - 1)
         if (checkPoint.equals("*")){

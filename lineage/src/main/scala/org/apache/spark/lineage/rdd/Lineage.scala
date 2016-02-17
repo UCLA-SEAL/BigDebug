@@ -63,8 +63,8 @@ trait Lineage[T] extends RDD[T] {
           getTap.get
         case tap: TapHadoopLRDD[Any@unchecked, Long@unchecked] =>
           tap //.map(_.swap)
-        case tap: TapLRDD[(Int, Int)@unchecked] =>
-          tap.map(r => ((Dummy, r._1), (Dummy, r._2)))
+        case tap: TapLRDD[(Long, Int)@unchecked] =>
+          tap.map(r => (r._1, (Dummy, r._2)))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -176,8 +176,8 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return an array that contains all of the elements in this RDD.
    */
-  def collectWithId(): Array[(T, Int)] = {
-    val results = lineageContext.runJobWithId(this, (iter: Iterator[(T, Int)]) => iter.toArray)
+  def collectWithId(): Array[(T, Long)] = {
+    val results = lineageContext.runJobWithId(this, (iter: Iterator[(T, Long)]) => iter.toArray)
 
     lineageContext.setUpReplay(this)
 
