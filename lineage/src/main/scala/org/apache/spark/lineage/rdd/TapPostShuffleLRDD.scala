@@ -72,6 +72,10 @@ class TapPostShuffleLRDD[T: ClassTag](
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId()
-    record
+    if(isLast) {
+      (record, tContext.currentInputId).asInstanceOf[T]
+    } else {
+      record
+    }
   }
 }

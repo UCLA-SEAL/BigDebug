@@ -262,11 +262,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   private def tapJobWithId[T](rdd: Lineage[T]): RDD[(T, Int)] = {
     val result = tapJob(rdd)
-    if(result.isInstanceOf[TapPostShuffleLRDD[T]]) {
-      result.tapRight().asInstanceOf[RDD[(T, Int)]]
-    } else {
-      result.asInstanceOf[RDD[(T, Int)]]
-    }
+    result.asInstanceOf[TapLRDD[T]].isLast = true
+    result.asInstanceOf[RDD[(T, Int)]]
   }
 
   private var captureLineage: Boolean = false

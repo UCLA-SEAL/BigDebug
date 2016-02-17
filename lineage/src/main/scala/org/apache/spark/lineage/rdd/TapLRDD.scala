@@ -36,6 +36,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private var buffer: IntIntByteBuffer = _
 
+  tapRDD = Some(this)
+
+  var isLast = false
+
   private[spark] var shuffledData: Lineage[_] = _
 
   setCaptureLineage(true)
@@ -91,6 +95,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   def tap(record: T) = {
     val id = newRecordId()
     buffer.put(id,  tContext.currentInputId)
-    (record, id).asInstanceOf[T]
+    if(isLast) {
+      (record, id).asInstanceOf[T]
+    } else {
+      record
+    }
   }
 }
