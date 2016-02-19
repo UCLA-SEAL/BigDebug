@@ -17,6 +17,7 @@
 
 package org.apache.spark.lineage.rdd
 
+import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
@@ -60,7 +61,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   }
 
   override def tap(record: T) = {
-    buffer.put(record._1.hashCode(), tContext.currentInputId)
+    buffer.put(Hashing.murmur3_32().hashString(record._1.toString).asInt(), tContext.currentInputId)
     record
   }
 }

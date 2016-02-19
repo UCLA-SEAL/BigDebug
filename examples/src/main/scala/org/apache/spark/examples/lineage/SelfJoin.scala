@@ -29,7 +29,7 @@ object SelfJoin {
       logger.addHandler(fh)
 
       //set up spark configuration
-      val sparkConf = new SparkConf().setMaster("local[8]")
+      val sparkConf = new SparkConf().setMaster("local[1]")
       sparkConf.setAppName("SelfJoin_LineageDD")
         .set("spark.executor.memory", "2g")
 
@@ -67,8 +67,8 @@ object SelfJoin {
       logger.log(Level.INFO, "Record Lineage time starts at " + LineageStartTimestamp)
 
       //spark program starts here
-      val lines = lc.textFile("/Users/inter/datasets/data", 1)
-      logger.log(Level.INFO, "Total data count is " + lines.count)
+      val lines = lc.textFile("/Users/inter/datasets/data", 20)
+      //logger.log(Level.INFO, "Total data count is " + lines.count)
       val selfjoin_result = lines.filter(s => {
         var index: Int = 0
         index = s.lastIndexOf(",")
@@ -155,24 +155,14 @@ object SelfJoin {
       //      println("*************************")
 
 
-      var linRdd = selfjoin_result.getLineage()
+      var linRdd = selfjoin_result.getLineage().cache
       linRdd.collect.foreach(println)
-
       linRdd = linRdd.filter( l => {
         println("***" + l + "***") //debug
         list.contains(l)
       })
-
-      linRdd.collect().foreach(println)
       linRdd = linRdd.goBackAll()
-
-      //At this stage, technically lineage has already find all the faulty data set, we record the time
-      val lineageEndTime = System.nanoTime()
-      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      logger.log(Level.INFO, "Lineage takes " + (lineageEndTime - LineageStartTime)/1000 + " microseconds")
-      logger.log(Level.INFO, "Lineage ends at " + lineageEndTimestamp)
-
-      linRdd.show.collect().foreach(println)
+      linRdd.show
 
       /*
             //val lineageResult = ctx.textFile("/Users/Michael/IdeaProjects/SelfJoin_LineageDD/lineageResult", 1)

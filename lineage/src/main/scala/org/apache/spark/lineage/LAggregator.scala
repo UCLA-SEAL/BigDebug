@@ -17,6 +17,7 @@
 
 package org.apache.spark.lineage
 
+import com.google.common.hash.Hashing
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.util.collection._
@@ -115,10 +116,11 @@ class LAggregator[K, V, C] (
         } else {
           val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
+         // val tmp = new OpenHashMap[Int, String]()
           while (iter.hasNext) {
             pair = tappedIter.next()
             combiners.insert(pair._1, pair._2._1)
-            buffer.put(pair._2._2, pair._1.hashCode())
+            buffer.put(pair._2._2, Hashing.murmur3_32().hashString(pair._1.toString).asInt())
           }
           context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
         }

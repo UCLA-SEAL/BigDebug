@@ -20,7 +20,6 @@ class IntIntByteBuffer (data: Array[Byte]) extends ByteBuffer[Int, Int](data) {
       }
       val next = buffer.getLong
       (PackIntIntoLong.getLeft(next), PackIntIntoLong.getRight(next))
-
     }
   }
 }

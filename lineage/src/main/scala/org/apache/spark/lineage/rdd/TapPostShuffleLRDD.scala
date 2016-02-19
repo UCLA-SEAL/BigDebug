@@ -17,8 +17,10 @@
 
 package org.apache.spark.lineage.rdd
 
+import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
 
@@ -30,12 +32,14 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
+  @transient private var buffer: IntIntByteBuffer = _
+
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
-      if (tContext.currentBuffer != null) {
+      val result: Array[Any] = if (tContext.currentBuffer != null) {
         val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap()
         val iterator = tContext.currentBuffer.iterator
 
@@ -53,19 +57,22 @@ class TapPostShuffleLRDD[T: ClassTag](
           })
         }
 
-        // We release the buffer here because not needed anymore
-        releaseBuffer()
-
         if(isLast) {
-          map.toArray.zipWithIndex.map(r => (PackIntIntoLong(splitId, r._2), (r._1._2, r._1._1)))
+          buffer.iterator.map(r => (PackIntIntoLong(splitId, r._1), (map(r._2), r._2))).toArray
         } else {
-          map.toArray.zipWithIndex.map(r => (r._2, (r._1._2, r._1._1)))
+          buffer.iterator.map(r => (r._1, (map(r._2), r._2))).toArray
         }
       } else {
         Array()
       }
+      // We release the buffer here because not needed anymore
+      releaseBuffer()
+
+      result
     }
   }
+
+  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer = {
     if(tContext.currentBuffer != null) {
@@ -73,10 +80,16 @@ class TapPostShuffleLRDD[T: ClassTag](
       tContext.addToBufferPool(tContext.currentBuffer.getData)
       tContext.currentBuffer = null
     }
+    if(buffer != null) {
+      buffer.clear()
+      tContext.addToBufferPool(buffer.getData)
+      buffer = null
+    }
   }
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId()
+    buffer.put(tContext.currentInputId, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
     if(isLast) {
       (record, PackIntIntoLong(splitId, tContext.currentInputId)).asInstanceOf[T]
     } else {

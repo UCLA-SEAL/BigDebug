@@ -20,6 +20,7 @@ package org.apache.spark.lineage.rdd
 import java.io.File
 import java.sql.DriverManager
 
+import com.google.common.hash.Hashing
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileUtil, FileSystem}
 import org.apache.hadoop.io.{LongWritable, Text}
@@ -326,7 +327,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
                   )
             }.flatMap(
                 r => for(v <- r.productIterator) yield v.asInstanceOf[(_, Iterable[(_, Int)])]
-              ).flatMap( r => for(v <- r._2) yield((v._2, r._1.hashCode()), ((r._1, v._1), v._2).toString()))
+              ).flatMap( r => for(v <- r._2) yield((v._2, Hashing.murmur3_32().hashString(r._1.toString).asInt()), ((r._1, v._1), v._2).toString()))
 
           result = new ShowRDD(rightJoin[RecordId, Any](
             left, right).cache()
@@ -340,7 +341,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
                   (v, w1s.asInstanceOf[Iterable[(_, Int)]]))
             }.flatMap(
               r => for(v <- r.productIterator) yield v.asInstanceOf[(_, Iterable[(_, Int)])]
-            ).flatMap( r => for(v <- r._2) yield((v._2, r._1.hashCode()), ((r._1, v._1), v._2).toString())), part).map(r => ((r._1._1, r._1._2), r._2))
+            ).flatMap( r => for(v <- r._2) yield((v._2, Hashing.murmur3_32().hashString(r._1.toString).asInt()), ((r._1, v._1), v._2).toString())), part).map(r => ((r._1._1, r._1._2), r._2))
 
           result = new ShowRDD(rightJoin(
               prev.asInstanceOf[Lineage[(RecordId, Any)]].map(r => ((r._1._1, r._1._2), r._2)), right
@@ -356,7 +357,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           }
 
           result = new ShowRDD(rightJoin[RecordId, String](current, pre.getCachedData.map { r =>
-              val hash = r._1.hashCode()
+              val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
               ((r._2._2, hash), ((r._1, r._2._1), hash).toString())
             })).cache()
         case post : TapPostShuffleLRDD[(Any, Int) @unchecked] =>
@@ -372,11 +373,10 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
               case _ => tmp.map(r => (r._2.asInstanceOf[(CompactBuffer[Int], Int)]._2, r._1))
             }
           }
-
-          result = new ShowRDD(rightJoin[Int, Any](current,post.getCachedData.map(r => (r._1.hashCode, r)))
+          result = new ShowRDD(rightJoin[Int, Any](current,post.getCachedData.map(r => (Hashing.murmur3_32().hashString(r._1.toString).asInt(), r)))
             .map(r => r._2).mapPartitions((iter: Iterator[Any]) =>
             post.getCachedData.getAggregate(iter.asInstanceOf[Iterator[Nothing]], null)).asInstanceOf[Lineage[(Any, Any)]]
-            .map(r => ((Dummy, r._1.hashCode()), r.toString))
+            .map(r => ((Dummy, Hashing.murmur3_32().hashString(r._1.toString).asInt()), r.toString))
           ).cache()
 
         case _ => throw new UnsupportedOperationException("what cache are you talking about?")
