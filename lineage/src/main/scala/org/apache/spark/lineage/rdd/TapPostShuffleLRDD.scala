@@ -20,9 +20,9 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.IntIntByteBuffer
+import org.apache.spark.lineage.util.{IntIntByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
+import org.apache.spark.util.collection.CompactBuffer
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -40,21 +40,29 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
       val result: Array[Any] = if (tContext.currentBuffer != null) {
-        val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Int]] = new PrimitiveKeyOpenHashMap()
+        val map: IntKeyAppendOnlyMap[CompactBuffer[Int]] = new IntKeyAppendOnlyMap()
         val iterator = tContext.currentBuffer.iterator
+
+        def mergeBuffer(old: CompactBuffer[Int], next: Int): CompactBuffer[Int] = {
+          old += next
+          old
+        }
+
+        def createBuffer(value: Int): CompactBuffer[Int] = {
+          val tmp = new CompactBuffer[Int]()
+          tmp += value
+          tmp
+        }
 
         while (iterator.hasNext) {
           val next = iterator.next()
+
+          def update: (Boolean, CompactBuffer[Int]) => CompactBuffer[Int] = (hadVal, oldVal) => {
+            if (hadVal) mergeBuffer(oldVal, next._1) else createBuffer(next._1)
+          }
+
           map.changeValue(
-          next._2, {
-            val tmp = new CompactBuffer[Int]()
-            tmp += (next._1)
-            tmp
-          },
-          (old: CompactBuffer[Int]) => {
-            old += (next._1)
-            old
-          })
+          next._2, update)
         }
 
         if(isLast) {
