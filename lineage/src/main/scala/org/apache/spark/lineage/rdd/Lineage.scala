@@ -417,9 +417,6 @@ object Lineage {
   implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
     rdd.map(r => ((Dummy, r._1), r._2))
 
-  implicit def castLineage16(rdd: Lineage[(Long, Any)]): Lineage[(PartialRecordId, Any)] =
-    rdd.map(r => ((Dummy, r._1), (Dummy, r._2)))
-
   implicit def castLineage13(rdd: Lineage[(Any, RecordId)]): Lineage[(Long, Any)] =
     rdd.asInstanceOf[Lineage[(Long, Any)]]
 

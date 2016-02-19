@@ -97,9 +97,9 @@ class TapPostShuffleLRDD[T: ClassTag](
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId()
-    buffer.put(tContext.currentInputId, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
+    buffer.put(nextRecord, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
     if(isLast) {
-      (record, PackIntIntoLong(splitId, tContext.currentInputId)).asInstanceOf[T]
+      (record, PackIntIntoLong(splitId, nextRecord)).asInstanceOf[T]
     } else {
       record
     }

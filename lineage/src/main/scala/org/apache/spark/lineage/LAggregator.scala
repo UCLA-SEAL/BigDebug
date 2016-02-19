@@ -111,7 +111,6 @@ class LAggregator[K, V, C] (
           while (iter.hasNext) {
             pair = tappedIter.next()
             combiners.insert(pair._1, pair._2._1)
-            combiners.foreach(println)
           }
         } else {
           val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
