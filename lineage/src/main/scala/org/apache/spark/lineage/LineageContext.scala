@@ -310,8 +310,6 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
 
-  def getLastLineagePosition = lastLineagePosition
-
   def getlastOperation = lastOperation
 
   private[spark] var prevLineagePosition = new Stack[Lineage[_]]()
