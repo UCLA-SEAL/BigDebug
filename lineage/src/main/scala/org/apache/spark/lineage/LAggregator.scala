@@ -68,7 +68,7 @@ class LAggregator[K, V, C] (
         while (iter.hasNext) {
           pair = iter.next().asInstanceOf[Product2[K, Product2[V, Int]]]
           combiners.insert(pair._1, update)
-          buffer.put(pair._2._2, pair._1.hashCode())
+          buffer.put(pair._2._2, Hashing.murmur3_32().hashString(pair._1.toString).asInt())
         }
         context.asInstanceOf[TaskContextImpl].currentBuffer = buffer
       }
