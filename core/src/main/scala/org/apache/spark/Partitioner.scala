@@ -19,15 +19,16 @@ package org.apache.spark
 
 import java.io.{IOException, ObjectInputStream, ObjectOutputStream}
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.reflect.{ClassTag, classTag}
-import scala.util.hashing.byteswap32
-
+import com.google.common.hash.Hashing
 import org.apache.spark.rdd.{PartitionPruningRDD, RDD}
 import org.apache.spark.serializer.JavaSerializer
+import org.apache.spark.util.random.SamplingUtils
 import org.apache.spark.util.{CollectionsUtils, Utils}
-import org.apache.spark.util.random.{XORShiftRandom, SamplingUtils}
+
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+import scala.reflect.ClassTag
+import scala.util.hashing.byteswap32
 
 /**
  * An object that defines how the elements in a key-value pair RDD are partitioned by key.
@@ -80,7 +81,7 @@ class HashPartitioner(partitions: Int) extends Partitioner {
 
   def getPartition(key: Any): Int = key match {
     case null => 0
-    case _ => Utils.nonNegativeMod(key.hashCode, numPartitions)
+    case _ => Utils.nonNegativeMod(Hashing.murmur3_32().hashString(key.toString).asInt(), numPartitions) // Matteo
   }
 
   override def equals(other: Any): Boolean = other match {

@@ -230,8 +230,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     lineageContext.getCurrentLineagePosition.get match {
       case post: TapPostShuffleLRDD[_] =>
         val part = new HashAwarePartitioner(next.partitions.size)
-        val shuffled = new ShuffledLRDD[Int, Any, Any](prev.asInstanceOf[Lineage[(Int, Any)]], part)
-        rightJoin[Int, Any](shuffled, next).map(r => ((Dummy, r._2), r._1)).cache()
+        val shuffled = new ShuffledLRDD[Int, Any, Any](prev.asInstanceOf[Lineage[((Int, Int), Any)]].map(r => (r._1._2, r._1.swap)), part)
+        rightJoin[Int, Any](shuffled.map(r => r._2.asInstanceOf[(Int, Int)]), next).map(r => ((Dummy, r._2), r._1)).cache()
       case _ => rightJoin[Int, Any](prev, next).map(_.swap).cache()
     }
   }

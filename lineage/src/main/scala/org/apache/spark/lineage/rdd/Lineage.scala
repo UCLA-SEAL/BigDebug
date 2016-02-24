@@ -162,7 +162,7 @@ trait Lineage[T] extends RDD[T] {
    * Return an array that contains all of the elements in this RDD.
    */
   override def collect(): Array[T] = {
-    val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray)
+    val results = lineageContext.runJob(this, (iter: Iterator[T]) => iter.toArray).filter(_ != null)
 
     lineageContext.setUpReplay(this)
 
