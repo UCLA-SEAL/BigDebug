@@ -64,8 +64,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
   override def filter(f: (Any) => Boolean): LineageRDD = {
     new LineageRDD(firstParent[(Any, Any)].filter(r => r._1 match {
-      //case d: (_, _) => f(d._2)
-      case r: Any => f(r)
+      case l: Long => f(l.asInstanceOf[Any])
+      case p: (Any, Any) => f(r)
     }).cache())
   }
 
