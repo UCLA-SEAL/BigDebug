@@ -362,8 +362,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
             val current = if(!lineageContext.getlastOperation.isDefined) {
               prev
             } else {
-              val part = new HashPartitioner(prev.partitions.size)
-              new ShuffledLRDD[Int, Any, Any](prev.map(r => (r._1._2, r)), part)
+              val part = new LocalityAwarePartitioner(prev.partitions.size)
+              new ShuffledLRDD[RecordId, Any, Any](prev.map(r => (r._1, r)), part)
                 .map(r => r._2)
             }
 
