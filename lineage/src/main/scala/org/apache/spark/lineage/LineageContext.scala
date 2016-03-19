@@ -379,7 +379,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         pre.flatMap(r => r._2.map(b => ((Dummy, b), r._1)))
       case post: TapPostShuffleLRDD[(Any, RecordId)@unchecked] =>
         post.map(_.swap)
-      case other: TapLRDD[(Any, Int)@unchecked] =>
+      case other: TapLRDD[(Any, Long)@unchecked] =>
        other.map(r => ((Dummy, r._2), r._1))
     }
   }

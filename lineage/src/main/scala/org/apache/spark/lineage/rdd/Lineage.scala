@@ -107,20 +107,23 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[(Int, Int)],
+  private[spark] def join3Way(prev: Lineage[(Int, _)],
                               next1: Lineage[(Long, Int)],
                               next2: Lineage[(Long, String)]) = {
     prev.zipPartitions(next1, next2) {
       (buildIter, streamIter1, streamIter2) =>
         val hashSet = new java.util.HashSet[Int]()
         val hashMap = new java.util.HashMap[Long, CompactBuffer[Int]]()
-        var rowKey: Int = 0
+        var rowKey: Any = null
 
         while (buildIter.hasNext) {
           rowKey = buildIter.next()._2
           val keyExists = hashSet.contains(rowKey)
           if (!keyExists) {
-            hashSet.add(rowKey)
+            hashSet.add(rowKey match {
+              case i: Int => i
+              case l: Long => l.toInt
+            })
           }
         }
 
@@ -413,6 +416,13 @@ object Lineage {
     rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
       case r1: (_, Long)@unchecked => (r1._2, r._2)
       case r2: Long => (r2, r._2)
+    })
+
+  implicit def castLineage17(rdd: Lineage[_]): Lineage[(Any, Any)] =
+    rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
+      case r2: (_, _) => (r2._2, r._2)
+      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2)
+      case  _ => (r._1, r._2)
     })
 
   implicit def castLineage3(rdd: Lineage[_]): TapLRDD[_] =

@@ -232,7 +232,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
         val part = new HashAwarePartitioner(next.partitions.size)
         val shuffled = new ShuffledLRDD[Int, Any, Any](prev.asInstanceOf[Lineage[((Int, Int), Any)]].map(r => (r._1._2, r._1.swap)), part)
         rightJoin[Int, Any](shuffled, next.asInstanceOf[Lineage[((Any, Int), Any)]].map(r => (r._1._2, r._2))).map(r => ((Dummy, r._2), r._1)).cache()
-      case _ => rightJoin[Int, Any](prev, next).map(_.swap).cache()
+      case _ => rightJoin[Any, Any](prev, next).map(_.swap).cache()
     }
   }
 
@@ -301,7 +301,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
                 ).cache())
             case _: TapLRDD[_] =>
               result = new ShowRDD(join3Way(
-                prev.map(r => (r._1)),
+                prev.map(r => r._1),
                 position.get.asInstanceOf[Lineage[(Long, Int)]],
                 position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                   .map(r => (r._1.get(), r._2.toString))
