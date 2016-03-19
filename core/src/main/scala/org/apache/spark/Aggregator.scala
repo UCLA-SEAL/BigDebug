@@ -35,7 +35,7 @@ class Aggregator[K, V, C] (
     val mergeCombiners: (C, C) => C) extends Serializable { // Added by Matteo
 
   // When spilling is enabled sorting will happen externally, but not necessarily with an
-  // ExternalSorter.
+  // ExternalSorter. Matteo
   private[spark] val isSpillEnabled = SparkEnv.get.conf.getBoolean("spark.shuffle.spill", true)
 
   @deprecated("use combineValuesByKey with TaskContext argument", "0.9.0")
@@ -73,8 +73,10 @@ class Aggregator[K, V, C] (
   def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]]) : Iterator[(K, C)] =
     combineCombinersByKey(iter, null)
 
-  def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext, isCache: Boolean = false) // Matteo
-    : Iterator[(K, C)] =
+  def combineCombinersByKey(
+    iter: Iterator[_ <: Product2[K, C]],
+    context: TaskContext,
+    isCache: Boolean = false) : Iterator[(K, C)] = // Matteo
   {
     if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K,C]

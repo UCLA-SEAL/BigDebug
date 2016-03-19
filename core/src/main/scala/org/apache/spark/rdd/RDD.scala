@@ -1274,7 +1274,7 @@ abstract class RDD[T: ClassTag](
   // Other internal methods and fields
   // =======================================================================
 
-  protected var storageLevel: StorageLevel = StorageLevel.NONE
+  protected var storageLevel: StorageLevel = StorageLevel.NONE // Matteo
 
   /** User code that created this RDD (e.g. `textFile`, `parallelize`). */
   @transient private[spark] val creationSite = sc.getCallSite()

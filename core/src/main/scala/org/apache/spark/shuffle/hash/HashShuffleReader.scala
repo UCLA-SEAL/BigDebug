@@ -68,5 +68,6 @@ private[spark] class HashShuffleReader[K, C](
   }
 
   // Added by Matteo, required for compatibility
-  override def read(isShuffleCache: Option[Boolean] = None, shuffleId: Int): Iterator[Product2[K, C]] = read()
+  override def read(isShuffleCache: Option[Boolean] = None, shuffleId: Int)
+    : Iterator[Product2[K, C]] = read()
 }

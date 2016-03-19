@@ -24,7 +24,7 @@ import org.apache.spark.scheduler.MapStatus
  */
 private[spark] trait ShuffleWriter[K, V] {
   /** Write a bunch of records to this task's output */
-  def write(records: Iterator[_ <: Product2[K, V]]): Unit
+  def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false): Unit // Matteo
 
   /** Close this writer, passing along whether the map completed */
   def stop(success: Boolean): Option[MapStatus]

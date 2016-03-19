@@ -76,7 +76,7 @@ class ShuffledLRDD[K, V, C](
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)
     }
-    new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this)
+    new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this).combinerEnabled(mapSideCombine)
   }
 
   override def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = {

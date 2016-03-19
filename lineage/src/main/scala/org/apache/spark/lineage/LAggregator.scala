@@ -19,7 +19,7 @@ package org.apache.spark.lineage
 
 import com.google.common.hash.Hashing
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.lineage.util.IntIntByteBuffer
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
@@ -58,15 +58,15 @@ class LAggregator[K, V, C] (
       if(!isLineage) {
         combiners.insertAll(iter)
       } else {
-        var pair: Product2[K, Product2[V, Int]] = null
-        val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        var pair: Product2[K, Product2[V, Long]] = null
+        val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         val update: (Boolean, C) => C = (hadVal, oldVal) => {
           if (hadVal) mergeValue(oldVal, pair._2._1) else createCombiner(pair._2._1)
         }
 
         while (iter.hasNext) {
-          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Int]]]
+          pair = iter.next().asInstanceOf[Product2[K, Product2[V, Long]]]
           combiners.insert(pair._1, update)
           buffer.put(pair._2._2, Hashing.murmur3_32().hashString(pair._1.toString).asInt())
         }
@@ -105,15 +105,15 @@ class LAggregator[K, V, C] (
           combiners.insert(pair._1, pair._2)
         }
       } else {
-        var pair: Product2[K, Product2[C, Int]] = null
-        val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Int]]]]
+        var pair: Product2[K, Product2[C, Long]] = null
+        val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Long]]]]
         if(isCache) {
           while (iter.hasNext) {
             pair = tappedIter.next()
             combiners.insert(pair._1, pair._2._1)
           }
         } else {
-          val buffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+          val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
          // val tmp = new OpenHashMap[Int, String]()
           while (iter.hasNext) {

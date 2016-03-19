@@ -26,10 +26,10 @@ object SparkWordCount {
   def main(args: Array[String]) {
     val conf = new SparkConf()
     var lineage = true
-    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/data/"
+    var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/WB/"
     if(args.size < 2) {
       logFile = "README.md"
-      conf.setMaster("local[2]")
+      conf.setMaster("local[1]")
       lineage = true
     } else {
       lineage = args(0).toBoolean
@@ -56,7 +56,7 @@ object SparkWordCount {
 
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
-    val file2 = lc.textFile(logFile, 1)
+
 
     lc.setCaptureLineage(true)
 
@@ -153,15 +153,19 @@ object SparkWordCount {
       var linRdd = counts.getLineage()
     println(linRdd.collect().length)
     linRdd.collect().foreach(println)
-      linRdd = linRdd.filter(_ == 125L)
-   // linRdd.collect().foreach(println)
-      linRdd = linRdd.goBackAll()
+      linRdd = linRdd.filter(_ == 6232546377L)
     linRdd.collect().foreach(println)
     val show = linRdd.show()
-    linRdd = linRdd.filter(r => r == ((0,46),1477))
+   // linRdd.collect().foreach(println)
+      linRdd = linRdd.goBack()
     linRdd.collect().foreach(println)
+    linRdd.show()
+    linRdd = linRdd.goBack()
+    linRdd.collect().foreach(println)
+    linRdd.show()
     linRdd = linRdd.goNext()
-    linRdd.collect().foreach(println)
+    linRdd.collect.foreach(println)
+    linRdd.show()
     linRdd = linRdd.goNext()
     linRdd.collect().foreach(println)
   //  linRdd.goNext()

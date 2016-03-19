@@ -37,6 +37,8 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private var buffer: LongIntByteBuffer = _
 
+  private var combine: Boolean = true
+
   tapRDD = Some(this)
 
   var isLast = false
@@ -77,7 +79,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   override def filter(f: T => Boolean): Lineage[T] =
     new FilteredLRDD[T](this, sparkContext.clean(f))
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r._2.toLong))
 
   override def releaseBuffer(): Unit = {
     buffer.clear()
@@ -88,6 +90,13 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     shuffledData = cache
     this
   }
+
+  def combinerEnabled(enabled: Boolean) = {
+    combine = enabled
+    this
+  }
+
+  def isCombinerEnabled = combine
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 

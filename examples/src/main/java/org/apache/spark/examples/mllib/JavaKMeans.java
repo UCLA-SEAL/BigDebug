@@ -70,7 +70,7 @@ public final class JavaKMeans {
 
     KMeansModel model = KMeans.train(points.rdd(), k, iterations, runs, KMeans.K_MEANS_PARALLEL());
 
-    System.out.println("Cluster centers:");
+    System.out.println("org.apache.spark.examples.lineage.Cluster centers:");
     for (Vector center : model.clusterCenters()) {
       System.out.println(" " + center);
     }

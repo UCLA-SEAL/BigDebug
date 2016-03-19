@@ -139,7 +139,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
    * Run a job on all partitions in an RDD and return the results in an array.
    */
   def runJob[T: ClassTag, U: ClassTag](rdd: Lineage[T], func: Iterator[T] => U): Array[U] = {
-    val tappedRdd = tapJob(rdd)
+    val tappedRdd = if(isLineageActive) tapJob(rdd) else rdd
     sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
   }
 
@@ -214,10 +214,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
   }
 
-  private def tapJob[T](rdd: Lineage[T]): RDD[T] = {
-    if(!isLineageActive) {
-      return rdd
-    }
+  private def tapJob[T](rdd: Lineage[T]): TapLRDD[T] = {
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
     // caused by recursively visiting
@@ -260,9 +257,13 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
   }
 
   private def tapJobWithId[T](rdd: Lineage[T]): RDD[(T, Long)] = {
-    val result = tapJob(rdd)
-    result.asInstanceOf[TapLRDD[T]].isLast = true
-    result.asInstanceOf[RDD[(T, Long)]]
+    if(!isLineageActive) {
+      rdd.zipWithUniqueId()
+    } else {
+      val result = tapJob(rdd)
+      result.isLast = true
+      result.asInstanceOf[RDD[(T, Long)]]
+    }
   }
 
   private var captureLineage: Boolean = false

@@ -42,11 +42,11 @@ class ShuffledRDD[K, V, C](
     part: Partitioner)
   extends RDD[(K, C)](prev.context, Nil) {
 
-  protected var serializer: Option[Serializer] = None
+  protected var serializer: Option[Serializer] = None // Matteo
 
   protected var keyOrdering: Option[Ordering[K]] = None // Matteo
 
-  protected var aggregator: Option[Aggregator[K, V, C]] = None
+  protected var aggregator: Option[Aggregator[K, V, C]] = None // Matteo
 
   protected var mapSideCombine: Boolean = false // Matteo
 

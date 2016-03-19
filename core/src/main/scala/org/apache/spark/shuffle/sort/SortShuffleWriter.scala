@@ -47,7 +47,8 @@ private[spark] class SortShuffleWriter[K, V, C](
   context.taskMetrics.shuffleWriteMetrics = Some(writeMetrics)
 
   /** Write a bunch of records to this task's output */
-  override def write(records: Iterator[_ <: Product2[K, V]]): Unit = {
+  // Matteo
+  override def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false): Unit = {
     if (dep.mapSideCombine) {
       require(dep.aggregator.isDefined, "Map-side combine without Aggregator specified!")
       sorter = new ExternalSorter[K, V, C](
@@ -59,7 +60,7 @@ private[spark] class SortShuffleWriter[K, V, C](
       // if the operation being run is sortByKey.
       sorter = new ExternalSorter[K, V, V](
         None, Some(dep.partitioner), None, dep.serializer)
-      sorter.insertAll(records)
+      sorter.insertAll(records, Some(false), context)
     }
 
     val outputFile = shuffleBlockManager.getDataFile(dep.shuffleId, mapId)

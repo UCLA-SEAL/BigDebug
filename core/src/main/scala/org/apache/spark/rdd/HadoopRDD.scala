@@ -133,7 +133,7 @@ class HadoopRDD[K, V](
 
   private val shouldCloneJobConf = sc.conf.get("spark.hadoop.cloneConf", "false").toBoolean
 
-  private[spark] var reader: RecordReader[K, V] = null  // Added by Miao
+  private[spark] var reader: RecordReader[K, V] = null  // Matteo
 
   // Returns a JobConf that will be used on slaves to obtain input splits for Hadoop reads.
   protected def getJobConf(): JobConf = {
@@ -208,6 +208,7 @@ class HadoopRDD[K, V](
     array
   }
 
+  // Matteo
   override def compute(theSplit: Partition, context: TaskContext): InterruptibleIterator[(K, V)] = {
     val iter = new NextIterator[(K, V)] {
 

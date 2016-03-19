@@ -20,12 +20,14 @@ package org.apache.spark.util.collection
 import java.io._
 import java.util.Comparator
 
+import com.google.common.hash.Hashing
 import com.google.common.io.ByteStreams
 import org.apache.spark._
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.lineage.util.IntIntByteBuffer
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -177,6 +179,12 @@ private[spark] class ExternalSorter[K, V, C](
     }
   }
 
+  /** External sorter can be used both in aggregation (grouping) or for sorting.
+    * This variable is true if we are doing aggregation
+    */
+  // Matteo
+  private var isGroupBy = false
+
   // Information about a spilled file. Includes sizes in bytes of "batches" written by the
   // serializer as we periodically reset its stream, as well as number of elements in each
   // partition, used to efficiently keep track of partitions when merging.
@@ -224,7 +232,9 @@ private[spark] class ExternalSorter[K, V, C](
   }
 
   // Matteo
-  def insertAll(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false, context: TaskContext): Unit = {
+  // isLineage defined -> lineage is active
+  // isLineage is defined and true -> sorting
+  def insertAll(records: Iterator[_ <: Product2[K, V]], isLineage: Option[Boolean] = None, context: TaskContext): Unit = {
     // TODO: stop combining if we find that the reduction factor isn't high
     val shouldCombine = aggregator.isDefined
 
@@ -251,25 +261,42 @@ private[spark] class ExternalSorter[K, V, C](
       }
     } else {
       // Stick values into our buffer
-      if(!isLineage) {
+      if(!isLineage.isDefined) {
         while (records.hasNext) {
           addElementsRead()
           val kv = records.next()
           buffer.insert((getPartition(kv._1), kv._1), kv._2.asInstanceOf[C])
           maybeSpillCollection(usingMap = false)
         }
-      } else {
+      } else if(isLineage.get == true) {
+        // Sorting
         var pair: Product2[K, Product2[V, Int]] = null
-        val lineageBuffer = new IntIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
+        val lineageBuffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
         while (records.hasNext) {
           addElementsRead()
           pair = records.next().asInstanceOf[Product2[K, Product2[V, Int]]]
           buffer.insert((getPartition(pair._1), pair._1), pair._2._1.asInstanceOf[C])
-          lineageBuffer.put(pair._2._2, pair._1.hashCode())
+          lineageBuffer.put(pair._2._2, Hashing.murmur3_32().hashString(pair._1.toString).asInt())
           maybeSpillCollection(usingMap = false)
         }
         context.asInstanceOf[TaskContextImpl].currentBuffer = lineageBuffer
+      } else {
+        // Grouping, no combiner. In this case we add the id of the current input because no
+        // combiner is used therefore when traversing forward we need to identify records.
+        // When instead the combiner is active, the has of the key is enough
+        var pair: Product2[K, V] = null
+        isGroupBy = true
+
+        while (records.hasNext) {
+          addElementsRead()
+          pair = records.next()
+          buffer.insert(
+            (getPartition(pair._1), pair._1),
+            (pair._2,
+              PackIntIntoLong(context.partitionId, context.asInstanceOf[TaskContextImpl].currentInputId)).asInstanceOf[C])
+          maybeSpillCollection(usingMap = false)
+        }
       }
     }
   }
@@ -805,10 +832,12 @@ private[spark] class ExternalSorter[K, V, C](
               writer.write(elem)
             }
           } else {
+            // If combiner is not active we have already generated the proper ids.
+            // Add the partition otherwise (packed into a Long for consistency)
             for (elem <- elements) {
               writer.write(
-                new Tuple2(elem._1,
-                  new Tuple2(elem._2, context.partitionId)))
+                new Tuple2(elem._1, if(isGroupBy) elem._2 else
+                  new Tuple2(elem._2, PackIntIntoLong(context.partitionId, 0))))
             }
           }
           writer.commitAndClose()

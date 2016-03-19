@@ -181,7 +181,7 @@ private[spark] class CacheManager(blockManager: BlockManager) extends Logging {
     }
   }
 
-/** Added by Matteo as a hookup for the lineage ############################################### */
+  /** Added by Matteo as a hookup for the lineage ############################################### */
 
   def finalizeTaskCache(
        rdd: RDD[_], split: Int,

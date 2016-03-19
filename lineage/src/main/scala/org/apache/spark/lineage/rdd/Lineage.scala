@@ -7,7 +7,7 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.util.Utils
+import org.apache.spark.util.{PackIntIntoLong, Utils}
 import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.{TaskContext, OneToOneDependency, Partitioner}
 
@@ -63,7 +63,7 @@ trait Lineage[T] extends RDD[T] {
           getTap.get
         case tap: TapHadoopLRDD[Any@unchecked, Long@unchecked] =>
           tap //.map(_.swap)
-        case tap: TapLRDD[(Long, Int)@unchecked] =>
+        case tap: TapLRDD[(Long, Long)@unchecked] =>
           tap.map(r => (r._1, (Dummy, r._2)))
       }
     }
@@ -406,6 +406,13 @@ object Lineage {
     rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
       case r1: Int => (r1, r._2)
       case r2: RecordId => (r2._2, r._2)
+      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2)
+    })
+
+  implicit def castLineage16(rdd: Lineage[_]): Lineage[(Long, Any)] =
+    rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
+      case r1: (_, Long)@unchecked => (r1._2, r._2)
+      case r2: Long => (r2, r._2)
     })
 
   implicit def castLineage3(rdd: Lineage[_]): TapLRDD[_] =
@@ -425,6 +432,4 @@ object Lineage {
 
   implicit def castLineage15(rdd: Lineage[_]): Lineage[(RecordId, Array[Int])] =
     rdd.asInstanceOf[Lineage[(RecordId, Array[Int])]]
-//  implicit def castShowToLineage[T](show: ShowRDD): Lineage[T] =
-//    show.asInstanceOf[Lineage[T]]
 }

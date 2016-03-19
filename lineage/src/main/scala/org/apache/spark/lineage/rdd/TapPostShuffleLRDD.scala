@@ -35,21 +35,21 @@ class TapPostShuffleLRDD[T: ClassTag](
   @transient private var buffer: IntIntByteBuffer = _
 
   override def getCachedData: Lineage[T] =
-    shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
+    shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
       val result: Array[Any] = if (tContext.currentBuffer != null) {
-        val map: IntKeyAppendOnlyMap[CompactBuffer[Int]] = new IntKeyAppendOnlyMap()
+        val map: IntKeyAppendOnlyMap[CompactBuffer[Long]] = new IntKeyAppendOnlyMap()
         val iterator = tContext.currentBuffer.iterator
 
-        def mergeBuffer(old: CompactBuffer[Int], next: Int): CompactBuffer[Int] = {
+        def mergeBuffer(old: CompactBuffer[Long], next: Long): CompactBuffer[Long] = {
           old += next
           old
         }
 
-        def createBuffer(value: Int): CompactBuffer[Int] = {
-          val tmp = new CompactBuffer[Int]()
+        def createBuffer(value: Long): CompactBuffer[Long] = {
+          val tmp = new CompactBuffer[Long]()
           tmp += value
           tmp
         }
@@ -57,7 +57,7 @@ class TapPostShuffleLRDD[T: ClassTag](
         while (iterator.hasNext) {
           val next = iterator.next()
 
-          def update: (Boolean, CompactBuffer[Int]) => CompactBuffer[Int] = (hadVal, oldVal) => {
+          def update: (Boolean, CompactBuffer[Long]) => CompactBuffer[Long] = (hadVal, oldVal) => {
             if (hadVal) mergeBuffer(oldVal, next._1) else createBuffer(next._1)
           }
 
@@ -68,7 +68,7 @@ class TapPostShuffleLRDD[T: ClassTag](
         if(isLast) {
           buffer.iterator.map(r => (PackIntIntoLong(splitId, r._1), (map(r._2), r._2))).toArray
         } else {
-          buffer.iterator.map(r => (r._1, (map(r._2), r._2))).toArray
+          buffer.iterator.map(r => (r._1.toLong, (map(r._2), r._2))).toArray
         }
       } else {
         Array()
@@ -96,10 +96,10 @@ class TapPostShuffleLRDD[T: ClassTag](
   }
 
   override def tap(record: T) = {
-    tContext.currentInputId = newRecordId()
-    buffer.put(nextRecord, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
+    tContext.currentInputId = record.asInstanceOf[(_, _)]._1.hashCode()
+    buffer.put(tContext.currentInputId, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
     if(isLast) {
-      (record, PackIntIntoLong(splitId, nextRecord)).asInstanceOf[T]
+      (record, PackIntIntoLong(splitId, tContext.currentInputId)).asInstanceOf[T]
     } else {
       record
     }
