@@ -147,7 +147,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
    * Run a job on all partitions in an RDD and return the results in an array.
    */
   def runJob[T, U: ClassTag](rdd: Lineage[T], func: (TaskContext, Iterator[T]) => U): Array[U] = {
-    val tappedRdd = tapJob(rdd)
+    val tappedRdd = if(isLineageActive) tapJob(rdd) else rdd
     sparkContext.runJob(tappedRdd, func, 0 until rdd.partitions.size, false)
   }
 

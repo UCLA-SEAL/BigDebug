@@ -107,9 +107,10 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
-  private[spark] def join3Way(prev: Lineage[(Int, _)],
-                              next1: Lineage[(Long, Int)],
-                              next2: Lineage[(Long, String)]) = {
+  private[spark] def join3Way(
+      prev: Lineage[(Int, _)],
+      next1: Lineage[(Long, Int)],
+      next2: Lineage[(Long, String)]) = {
     prev.zipPartitions(next1, next2) {
       (buildIter, streamIter1, streamIter2) =>
         val hashSet = new java.util.HashSet[Int]()
@@ -177,7 +178,8 @@ trait Lineage[T] extends RDD[T] {
   }
 
   /**
-   * Return an array that contains all of the elements in this RDD.
+   * Return an array that contains all of the elements in this RDD with a unique identifier
+   * Note that call to collect (or count) and collectWithId return different ids
    */
   def collectWithId(): Array[(T, Long)] = {
     val results = lineageContext.runJobWithId(this, (iter: Iterator[(T, Long)]) => iter.toArray)
@@ -340,10 +342,10 @@ trait Lineage[T] extends RDD[T] {
    * Return this RDD sorted by the given key function.
    */
   override def sortBy[K](
-                          f: (T) => K,
-                          ascending: Boolean = true,
-                          numPartitions: Int = this.partitions.size)
-                        (implicit ord: Ordering[K], ctag: ClassTag[K]): Lineage[T] =
+      f: (T) => K,
+      ascending: Boolean = true,
+      numPartitions: Int = this.partitions.size)
+    (implicit ord: Ordering[K], ctag: ClassTag[K]): Lineage[T] =
     this.keyBy[K](f)
       .sortByKey(ascending, numPartitions)
       .values

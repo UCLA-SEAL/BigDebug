@@ -28,8 +28,8 @@ object SparkWordCount {
     var lineage = true
     var logFile = "hdfs://scai01.cs.ucla.edu:9000/clash/datasets/WB/"
     if(args.size < 2) {
-      logFile = "README.md"
-      conf.setMaster("local[1]")
+      logFile = "lineage/src/test/resources/README.md"
+      conf.setMaster("local[2]")
       lineage = true
     } else {
       lineage = args(0).toBoolean
