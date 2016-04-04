@@ -358,10 +358,10 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
                 .map(r => r._2)
             }
 
-            result = new ShowRDD(rightJoin[(Long, Int), String](current.asInstanceOf[Lineage[((RecordId, _), Any)]].map(r => ((PackIntIntoLong(r._1._1._1, if(pre.isCombinerEnabled) 0 else r._1._2 match {
+            result = new ShowRDD(rightJoin[(Long, Int), String](current.asInstanceOf[Lineage[(RecordId, _)]].map { r => ((PackIntIntoLong(r._1._1, if(pre.isCombinerEnabled) 0 else r._2 match {
               case r1: Int => r1
               case r2: (Int, Int)@unchecked => r2._2
-            }), r._1._1._2), r._1._2)), pre.getCachedData.map { r =>
+            }), r._1._2), r._1._1) }, pre.getCachedData.map { r =>
               val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
               ((r._2._2, hash), ((r._1, r._2._1), hash).toString())
             })).cache()

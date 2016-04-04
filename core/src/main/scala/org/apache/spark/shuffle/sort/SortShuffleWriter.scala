@@ -60,7 +60,7 @@ private[spark] class SortShuffleWriter[K, V, C](
       // if the operation being run is sortByKey.
       sorter = new ExternalSorter[K, V, V](
         None, Some(dep.partitioner), None, dep.serializer)
-      sorter.insertAll(records, Some(false), context)
+      sorter.insertAll(records, if(isLineage) Some(false) else None, context)
     }
 
     val outputFile = shuffleBlockManager.getDataFile(dep.shuffleId, mapId)

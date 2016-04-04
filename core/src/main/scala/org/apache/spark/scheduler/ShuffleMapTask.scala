@@ -66,7 +66,7 @@ private[spark] class ShuffleMapTask(
     try {
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
-      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
+      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]], rdd.isLineageActive)
 
       // The reduce size requires a certain amount of free heap memory in order to work properly.
       // If freeMemory is not enough, we call the garbage collector
