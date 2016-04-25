@@ -47,7 +47,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   override def getPartitions: Array[Partition] = firstParent[(Any, Any)].partitions
 
   override def compute(split: Partition, context: TaskContext) = {
-    firstParent[(Any, Any)].iterator(split, context).map(r => r._1)
+    firstParent[(Any, Any)].iterator(split, context)//.map(r => r._1)
   }
 
   var prevResult = Array[(Int, (Any, Any))]()
@@ -415,5 +415,31 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     }
     // Never reach this but otherwise will not compile
     result
+  }
+
+  def intersection(other: LineageRDD): LineageRDD = {
+    this.zipPartitions(other) { (iter1, iter2) =>
+      new Iterator[Any] {
+        var current: Any = null
+        override def hasNext: Boolean = {
+          if(current == null) {
+            if (!iter1.hasNext) return false
+            current = iter1.next()
+            var tmp: Any = null
+            while (iter2.hasNext && !current.equals(tmp)) {
+              tmp = iter2.next()
+            }
+            if (tmp.equals(current)) true
+            else false
+          } else true
+        }
+
+        override def next(): ((Int, Int), Any) = {
+          val tmp = current.asInstanceOf[((Int, Int), Any)]
+          current = null
+          tmp
+        }
+      }
+    }
   }
 }
