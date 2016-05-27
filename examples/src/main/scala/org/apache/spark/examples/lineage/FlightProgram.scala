@@ -50,13 +50,13 @@ object FlightProgram {
       val LineageStartTime = System.nanoTime()
 
       //run spark with lineage
-      val lines = lc.textFile("/Users/inter/datasets/airlinedatawitherror", 1)
-      val single_hop = lines.map(s => {
-        val list = s.split(",")
-        ((list(2), list(3)), list(5))
-      })
-        .filter(pair => pair._1._1.substring(1, pair._1._1.length - 1).equals("JFK")
-        && pair._1._2.substring(1, pair._1._2.length - 1).equals("DEN"))
+      val lines = lc.textFile("/Users/inter/datasets/xaa", 10)
+//      val single_hop = lines.map(s => {
+//        val list = s.split(",")
+//        ((list(2), list(3)), list(5))
+//      })
+//        .filter(pair => pair._1._1.substring(1, pair._1._1.length - 1).equals("JFK")
+//        && pair._1._2.substring(1, pair._1._2.length - 1).equals("DEN"))
 
 
       val destination_key = lines.map(s => {
@@ -70,10 +70,10 @@ object FlightProgram {
       })
 
 
-      val double_hop = destination_key.filter(pair => pair._2._1.substring(1, pair._2._1.length - 1).equals("JFK"))
+      val double_hop = destination_key//.filter(pair => pair._2._1.substring(1, pair._2._1.length - 1).equals("JFK"))
         .join(departure_key)
-      //.filter(pair => pair._2._1.substring(1, pair._2._1.length - 1).equals("DEN")))
-      //      .map(pair => ((pair._2._1._1, pair._2._2._1), pair._2._1._2 * pair._2._2._2))
+      .filter(pair => pair._2._2._1.substring(1, pair._2._2._1.length - 1).equals("PHL"))
+            .map(pair => ((pair._2._1._1, pair._2._2._1), pair._2._1._2 * pair._2._2._2))
 
       //      val triple_hop = destination_key.filter(pair => pair._2._1.substring(1, pair._2._1.length - 1).equals("JFK"))
       //      .join[(String, Int)](departure_key)
@@ -90,9 +90,21 @@ object FlightProgram {
       Thread.sleep(1000)
 
       //print out the result for debugging purpose
+      var list = List[Long]()
       for (o <- out) {
-        println(o._1._1 + ": " + o._1._2 + " - " + o._2)
+        if (o._1._2 < 0) {
+          println(o._1._1 + ": " + o._1._2 + " - " + o._2)//print out the wrong output for debugging purposes
+          list = o._2 :: list
+        }
       }
+
+      var linRdd = double_hop.getLineage()
+      println(linRdd.count())
+      linRdd = linRdd.filter(s => list.contains(s))
+      println(linRdd.count())
+      linRdd = linRdd.goBackAll()
+      println(linRdd.count())
+      val showRdd = linRdd.show()
       /*
             //find the index of the data that cause exception
             var list = List[Long]()
@@ -117,16 +129,39 @@ object FlightProgram {
               val list = s.split(",")
               (list(0), list(5).toInt)
             })
+                  //find the index of the data that cause exception
+                  var list = List[Long]()
+                  for (o <- out) {
+                    if (o._1._2 > 100){
+                      list = o._2 :: list
+                    }
+                  }
 
-            val delta_debug = new DD_NonEx[(String, Int)]
-            val returnRDD = delta_debug.ddgen(mappedRDD, new Test, new Split, lm, fh)
+                  var linRdd = average_flight.getLineage()
+                  linRdd.collect
 
-            val ss = returnRDD.collect
-            ss.foreach(println)
+                  linRdd = linRdd.filter( l => {
+                    //println("***" + l + "***") //debug
+                    list.contains(l)
+                  })
 
-            val endTime = System.nanoTime()
-            logger.log(Level.INFO, "Record total time: Delta-Debugging + Linegae + goNext:" + (endTime - LineageStartTime)/1000 + " microseconds")
-      */
+                  linRdd = linRdd.goBackAll()
+
+                  val showMeRdd = linRdd.show()
+                  val mappedRDD = showMeRdd.map(s => {
+                    val list = s.split(",")
+                    (list(0), list(5).toInt)
+                  })
+
+                  val delta_debug = new DD_NonEx[(String, Int)]
+                  val returnRDD = delta_debug.ddgen(mappedRDD, new Test, new Split, lm, fh)
+
+                  val ss = returnRDD.collect
+                  ss.foreach(println)
+
+                  val endTime = System.nanoTime()
+                  logger.log(Level.INFO, "Record total time: Delta-Debugging + Linegae + goNext:" + (endTime - LineageStartTime)/1000 + " microseconds")
+            */
       println("Job's done!")
       ctx.stop()
     }

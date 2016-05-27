@@ -61,8 +61,7 @@ class TapPostShuffleLRDD[T: ClassTag](
             if (hadVal) mergeBuffer(oldVal, next._1) else createBuffer(next._1)
           }
 
-          map.changeValue(
-          next._2, update)
+          map.changeValue(next._2, update)
         }
 
         if(isLast) {

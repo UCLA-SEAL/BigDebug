@@ -284,7 +284,7 @@ private[spark] class ExternalSorter[K, V, C](
       } else {
         // Grouping, no combiner. In this case we add the id of the current input because no
         // combiner is used therefore when traversing forward we need to identify records.
-        // When instead the combiner is active, the has of the key is enough
+        // When instead the combiner is active, the hash of the key is enough
         var pair: Product2[K, V] = null
         isGroupBy = true
 

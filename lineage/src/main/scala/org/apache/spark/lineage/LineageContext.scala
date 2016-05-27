@@ -190,7 +190,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
     def visit(rdd: RDD[_], parent: RDD[_]) {
       if (!visited(rdd)) {
-        visited += rdd
+        //visited += rdd // This creates problems with self-joins
         rdd.setCaptureLineage(isLineageActive)
         var dependencies = List[OneToOneDependency[_]]()
         for (dep <- rdd.dependencies) {
