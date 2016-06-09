@@ -288,25 +288,24 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
       // We are starting from the middle, fill the stack with prev positions
       if(currentLineagePosition.get != initialRDD.get) {
-        prevLineagePosition.pushAll(search(List(currentLineagePosition.get), initialRDD.get).tail.reverse)
+        prevLineagePosition.pushAll(search(List(currentLineagePosition.get), initialRDD.get))
       }
     }
     currentLineagePosition = initialRDD
     lastLineageSeen = currentLineagePosition
   }
 
-  // TODO This method will exhaustively look for all the path. We actually need one
   def search(path: List[Lineage[_]], initialRDD: Lineage[_]): List[Lineage[_]] = {
-    if(path.head.dependencies.isEmpty) {
-      if(path.tail.head == initialRDD) {
-        return path.tail
-      }
-      Nil
-    } else {
-      val paths = path.head.dependencies.map(dep =>
-        search(dep.rdd.asInstanceOf[Lineage[_]] +: path, initialRDD)).filter(p => !p.isEmpty)
-      return if(paths.isEmpty) path else paths.head
-    }
+    path.map(rdd =>
+      if(rdd.id == initialRDD.id) return path
+    )
+    path.foreach(p => {
+      p.dependencies.map(dep => {
+        val tmp = search(List(dep.rdd.asInstanceOf[Lineage[_]]), initialRDD)
+        if (!tmp.isEmpty) return p :: tmp
+      })
+    })
+    return Nil
   }
 
   def setLastLineagePosition(finalRDD: Option[Lineage[_]]) = lastLineagePosition = finalRDD
