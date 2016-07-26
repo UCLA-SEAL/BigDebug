@@ -20,9 +20,9 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.lineage.util.LongLongByteBuffer
 import org.apache.spark.util.PackIntIntoLong
-import org.apache.spark.util.collection.{CompactBuffer, PrimitiveKeyOpenHashMap}
+import org.apache.spark.util.collection.{CompactBuffer, OpenHashSet, PrimitiveKeyOpenHashMap}
 
 import scala.reflect.ClassTag
 
@@ -31,7 +31,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapPostShuffleLRDD[T](lc, deps)
 {
-  @transient private var buffer: LongIntByteBuffer = null
+  @transient private var buffer: LongLongByteBuffer = null
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
@@ -40,17 +40,19 @@ class TapPostCoGroupLRDD[T: ClassTag](
     if(buffer != null) {
       val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
       val iterator = buffer.iterator
+      val set = new OpenHashSet[Long]()
 
       while (iterator.hasNext) {
         val next = iterator.next()
+        set.add(next._1)
         map.changeValue(
-        next._2, {
+        PackIntIntoLong.getLeft(next._1), {
           val tmp = new CompactBuffer[Long]()
-          tmp += next._1
+          tmp += next._2
           tmp
         },
         (old: CompactBuffer[Long]) => {
-          old += next._1
+          old += next._2
           old
         })
       }
@@ -59,16 +61,22 @@ class TapPostCoGroupLRDD[T: ClassTag](
       releaseBuffer()
 
       if(isLast) {
-        map.toArray.zipWithIndex.map(r => (PackIntIntoLong(splitId, r._2), (r._1._2, r._1._1)))
+        set.iterator
+          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r)))
+          .map(r => (PackIntIntoLong(splitId, r._2), (map.getOrElse(r._1, null), r._1))
+          ).toArray
       } else {
-        map.toArray.zipWithIndex.map(r => (r._2.toLong, (r._1._2, r._1._1)))
+        set.iterator
+          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r)))
+          .map(r => (r._2.toLong, (map.getOrElse(r._1, null), r._1))
+          ).toArray
       }
     } else {
       Array()
     }
   }
 
-  override def initializeBuffer() = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer() = buffer = new LongLongByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer() = {
     if(buffer != null) {
@@ -81,13 +89,13 @@ class TapPostCoGroupLRDD[T: ClassTag](
   override def tap(record: T) = {
     val (key, values) = record.asInstanceOf[(T, Array[Iterable[(_, Long)]])]
     val hash = Hashing.murmur3_32().hashString(key.toString).asInt()
+    tContext.currentInputId = newRecordId()
     val iters = for(iter <- values) yield {
       iter.map(r => {
-        buffer.put(r._2, hash)
+        buffer.put(PackIntIntoLong(hash, nextRecord), r._2)
         r._1
       })
     }
-    tContext.currentInputId = newRecordId()
 
     (key, iters.reverse).asInstanceOf[T]
   }

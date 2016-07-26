@@ -74,7 +74,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       val values = prevResult.filter(r => r._1 == f).map(_._2)
       firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
     } else {
-      new LineageRDD(firstParent[(Int, Any)].filter(r => r._1 == f).cache())
+      new LineageRDD(firstParent[(Long, Any)].filter(r => r._1 == f).cache())
       //new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
     }
   }
