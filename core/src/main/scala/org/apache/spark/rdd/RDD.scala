@@ -104,6 +104,24 @@ abstract class RDD[T: ClassTag](
     this(oneParent.context, List(new OneToOneDependency(oneParent)))
 
   private[spark] def conf = sc.conf
+
+  /** Added by Matteo ########################################################################## */
+
+  def updateDependencies(_deps: Seq[Dependency[_]]) = {
+    deps = _deps
+    dependencies_ = deps
+  }
+
+  private[spark] var captureLineage: Boolean = false
+
+  def isLineageActive: Boolean = captureLineage
+
+  def materializeBuffer: Array[Any] =  Array[Any]()
+
+  def releaseBuffer(): Unit = throw new UnsupportedOperationException("No buffer to release")
+
+  /** ########################################################################################## */
+
   // =======================================================================
   // Methods that should be implemented by subclasses of RDD
   // =======================================================================

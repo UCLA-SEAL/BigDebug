@@ -68,7 +68,7 @@ abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
  */
 @DeveloperApi
 class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
-    @transient private val _rdd: RDD[_ <: Product2[K, V]],
+    @transient private var _rdd: RDD[_ <: Product2[K, V]], // Matteo changed val to var
     val partitioner: Partitioner,
     val serializer: Serializer = SparkEnv.get.serializer,
     val keyOrdering: Option[Ordering[K]] = None,
@@ -91,6 +91,12 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
     shuffleId, _rdd.partitions.length, this)
 
   _rdd.sparkContext.cleaner.foreach(_.registerShuffleForCleanup(this))
+
+  /** Added by Matteo */
+  def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
+    _rdd = tap.asInstanceOf[RDD[Product2[K, V]]]
+    this
+  }
 }
 
 
@@ -101,6 +107,11 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
 @DeveloperApi
 class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
   override def getParents(partitionId: Int): List[Int] = List(partitionId)
+
+  /** Added by Matteo */
+  def tapDependency(tap: RDD[_] = null) = {
+    new OneToOneDependency[T](tap.asInstanceOf[RDD[T]])
+  }
 }
 
 
