@@ -17,7 +17,10 @@
 
 package org.apache.spark
 
-import java.util.Properties
+import java.util.{Queue, Properties}
+import java.util.concurrent.ThreadPoolExecutor
+
+import org.apache.spark.lineage.util.ByteBuffer
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -55,6 +58,48 @@ private[spark] class TaskContextImpl(
 
   // Whether the task has failed.
   @volatile private var failed: Boolean = false
+
+  /** Matteo *************************************************************************************/
+  // Used to pipeline records through taps inside the same stage
+  @transient var currentInputId: Int = -1
+
+  // Used to pipeline records through taps inside the same stage
+  @transient var currentBuffer: ByteBuffer[Long, Int] = null
+
+  @transient var threadPool: ThreadPoolExecutor = null
+
+  @transient private var bufferPool: Queue[Array[Byte]] = null
+
+  @transient private var bufferPoolLarge: Queue[Array[Byte]] = null
+
+  def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
+
+  def setBufferPool(pool: Queue[Array[Byte]]) = this.bufferPool = pool
+
+  def setBufferPoolLarge(pool: Queue[Array[Byte]]) = this.bufferPoolLarge = pool
+
+  def getFromBufferPool(): Array[Byte] = {
+    val buffer = bufferPool.poll()
+    if(buffer == null) {
+      return new Array[Byte](64 * 1024 * 128)
+    }
+    buffer
+  }
+
+  def getFromBufferPoolLarge(): Array[Byte] = {
+    val buffer = bufferPoolLarge.poll()
+    if(buffer == null) {
+      return new Array[Byte](64 * 1024 * 1024)
+    }
+    buffer
+  }
+
+  def addToBufferPool(data: Array[Byte]) = bufferPool.add(data)
+
+  def addToBufferPoolLarge(data: Array[Byte]) = bufferPoolLarge.add(data)
+
+  /***********************************************************************************************/
+
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {
     onCompleteCallbacks += listener

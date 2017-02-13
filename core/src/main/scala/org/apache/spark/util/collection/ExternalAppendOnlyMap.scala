@@ -20,21 +20,18 @@ package org.apache.spark.util.collection
 import java.io._
 import java.util.Comparator
 
-import scala.collection.BufferedIterator
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-
 import com.google.common.io.ByteStreams
-
-import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.executor.ShuffleWriteMetrics
 import org.apache.spark.internal.Logging
-import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.serializer.{DeserializationStream, Serializer, SerializerManager}
 import org.apache.spark.storage.{BlockId, BlockManager}
 import org.apache.spark.util.CompletionIterator
 import org.apache.spark.util.collection.ExternalAppendOnlyMap.HashComparator
+import org.apache.spark.{SparkEnv, TaskContext}
+
+import scala.collection.{BufferedIterator, mutable}
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * :: DeveloperApi ::
@@ -122,6 +119,18 @@ class ExternalAppendOnlyMap[K, V, C](
    * Exposed for testing.
    */
   private[collection] def numSpills: Int = spilledMaps.size
+
+  /**
+   * Insert the given key and value into the map.
+   * Matteo
+   */
+  def insert(key: K, update: (Boolean, C) => C): Unit = {
+    if (maybeSpill(currentMap, currentMap.estimateSize())) {
+      currentMap = new SizeTrackingAppendOnlyMap[K, C]
+    }
+    currentMap.changeValue(key, update)
+    addElementsRead()
+  }
 
   /**
    * Insert the given key and value into the map.

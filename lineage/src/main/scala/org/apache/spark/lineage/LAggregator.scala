@@ -19,6 +19,7 @@ package org.apache.spark.lineage
 
 import com.google.common.hash.Hashing
 import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
@@ -74,10 +75,7 @@ class LAggregator[K, V, C] (
 
       // Update task metrics if context is not null
       // TODO: Make context non optional in a future release
-      Option(context).foreach { c =>
-        c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
-        c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
-      }
+      updateMetrics(context, combiners)
       combiners.iterator
 
     }
@@ -126,10 +124,7 @@ class LAggregator[K, V, C] (
 
       // Update task metrics if context is not null
       // TODO: Make context non-optional in a future release
-      Option(context).foreach { c =>
-        c.taskMetrics.memoryBytesSpilled += combiners.memoryBytesSpilled
-        c.taskMetrics.diskBytesSpilled += combiners.diskBytesSpilled
-      }
+      updateMetrics(context, combiners)
       combiners.iterator
     }
   }
@@ -137,5 +132,12 @@ class LAggregator[K, V, C] (
   def setLineage(lineage: Boolean) = {
     isLineage = lineage
     this.asInstanceOf[Aggregator[K, V, C]]
+  }
+  private def updateMetrics(context: TaskContext, map: ExternalAppendOnlyMap[_, _, _]): Unit = {
+    Option(context).foreach { c =>
+      c.taskMetrics().incMemoryBytesSpilled(map.memoryBytesSpilled)
+      c.taskMetrics().incDiskBytesSpilled(map.diskBytesSpilled)
+      c.taskMetrics().incPeakExecutionMemory(map.peakMemoryUsedBytes)
+    }
   }
 }
