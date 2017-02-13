@@ -18,6 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark.lineage.LocalityAwarePartitioner
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{Partition, TaskContext}
 

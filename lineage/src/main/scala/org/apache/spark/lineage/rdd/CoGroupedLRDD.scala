@@ -18,6 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 
 import scala.collection.mutable.Stack

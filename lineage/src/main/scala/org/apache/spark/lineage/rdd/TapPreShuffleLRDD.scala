@@ -19,6 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
+import org.apache.spark.lineage.util.IntIntByteBuffer
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
 
 import scala.reflect.ClassTag

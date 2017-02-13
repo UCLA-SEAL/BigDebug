@@ -19,6 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.rdd.RDD
 
 import scala.reflect._

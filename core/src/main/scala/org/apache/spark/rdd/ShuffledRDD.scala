@@ -47,13 +47,13 @@ class ShuffledRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     part: Partitioner)
   extends RDD[(K, C)](prev.context, Nil) {
 
-  private var userSpecifiedSerializer: Option[Serializer] = None
+  protected var userSpecifiedSerializer: Option[Serializer] = None // Matteo
 
-  private var keyOrdering: Option[Ordering[K]] = None
+  protected var keyOrdering: Option[Ordering[K]] = None // Matteo
 
-  private var aggregator: Option[Aggregator[K, V, C]] = None
+  protected var aggregator: Option[Aggregator[K, V, C]] = None // Matteo
 
-  private var mapSideCombine: Boolean = false
+  protected var mapSideCombine: Boolean = false // Matteo
 
   /** Set a serializer for this RDD's shuffle, or null to use the default (spark.serializer) */
   def setSerializer(serializer: Serializer): ShuffledRDD[K, V, C] = {

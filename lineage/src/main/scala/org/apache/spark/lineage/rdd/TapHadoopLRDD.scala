@@ -20,6 +20,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.util.LongIntByteBuffer
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])

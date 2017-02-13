@@ -101,7 +101,7 @@ class ShuffledLRDD[K, V, C](
   }
 
   override def replay(rdd: Lineage[_]) = new ShuffledLRDD[K, V, C](rdd.asInstanceOf[Lineage[(K, V)]], part)
-    .setSerializer(serializer.getOrElse(null))
+    .setSerializer(userSpecifiedSerializer.getOrElse(null))
     .setAggregator(aggregator.get.asInstanceOf[LAggregator[K, V, C]].setLineage(false))
     .asInstanceOf[ShuffledLRDD[K, V, C]]
     .setMapSideCombine(mapSideCombine)

@@ -7,7 +7,7 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.util.Utils
+import org.apache.spark.util.{PackIntIntoLong, Utils}
 import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.{OneToOneDependency, Partitioner, TaskContext}
 
@@ -232,14 +232,22 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage containing only the elements that satisfy a predicate.
    */
-  override def filter(f: T => Boolean): Lineage[T] = new FilteredLRDD[T](this, context.clean(f))
+  override def filter(f: T => Boolean): Lineage[T] = {
+    val cleanF = context.clean(f)
+    new MapPartitionsLRDD[T, T](
+      this,
+      (context, pid, iter) => iter.filter(cleanF),
+      preservesPartitioning = true)
+  }
 
   /**
    * Return a new Lineage by first applying a function to all elements of this
    * Lineage, and then flattening the results.
    */
-  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =
-    new FlatMappedLRDD[U, T](this, lineageContext.sparkContext.clean(f))
+  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] ={
+    val cleanF = lineageContext.sparkContext.clean(f)
+    new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.flatMap(cleanF))
+  }
 
   /**
    * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
@@ -279,7 +287,10 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
-  override def map[U: ClassTag](f: T => U): Lineage[U] = new MappedLRDD(this, sparkContext.clean(f))
+  override def map[U: ClassTag](f: T => U): Lineage[U] = {
+    val cleanF = sparkContext.clean(f)
+    new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.map(cleanF))
+  }
 
   /**
    * Return a new RDD by applying a function to each partition of this RDD.

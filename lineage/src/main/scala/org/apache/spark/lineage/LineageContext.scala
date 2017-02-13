@@ -25,6 +25,7 @@ import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 
+import scala.Enumeration.Value
 import scala.collection.mutable
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions

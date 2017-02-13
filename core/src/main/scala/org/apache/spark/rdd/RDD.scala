@@ -945,12 +945,14 @@ abstract class RDD[T: ClassTag](
 
   /**
    * Return an array that contains all of the elements in this RDD.
+   * Modified by Matteo: null values are filtered out. Null may appear because of empty tasks
+   * not being executed
    *
    * @note This method should only be used if the resulting array is expected to be small, as
    * all the data is loaded into the driver's memory.
    */
   def collect(): Array[T] = withScope {
-    val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray)
+    val results = sc.runJob(this, (iter: Iterator[T]) => iter.toArray).filter(_ != null)
     Array.concat(results: _*)
   }
 
@@ -1663,7 +1665,7 @@ abstract class RDD[T: ClassTag](
   // Other internal methods and fields
   // =======================================================================
 
-  private var storageLevel: StorageLevel = StorageLevel.NONE
+  protected var storageLevel: StorageLevel = StorageLevel.NONE // Matteo
 
   /** User code that created this RDD (e.g. `textFile`, `parallelize`). */
   @transient private[spark] val creationSite = sc.getCallSite()

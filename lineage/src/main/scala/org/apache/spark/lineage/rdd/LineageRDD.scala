@@ -30,6 +30,7 @@ import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.rdd.Lineage._
 import org.apache.spark.lineage.{Direction, HashAwarePartitioner, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
 import scala.reflect._

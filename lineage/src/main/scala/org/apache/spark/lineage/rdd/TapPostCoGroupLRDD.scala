@@ -20,6 +20,8 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.util.LongLongByteBuffer
+import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.{CompactBuffer, OpenHashSet, PrimitiveKeyOpenHashMap}
 
 import scala.reflect.ClassTag

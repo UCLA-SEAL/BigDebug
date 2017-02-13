@@ -48,7 +48,8 @@ private[spark] trait ShuffleManager {
       handle: ShuffleHandle,
       startPartition: Int,
       endPartition: Int,
-      context: TaskContext): ShuffleReader[K, C]
+      context: TaskContext,
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] // Modified by Matteo
 
   /**
    * Remove a shuffle's metadata from the ShuffleManager.

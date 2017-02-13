@@ -24,7 +24,9 @@ import org.apache.hadoop.mapred.{FileOutputCommitter, FileOutputFormat, JobConf,
 import org.apache.spark.Partitioner._
 import org.apache.spark._
 import org.apache.spark.deploy.SparkHadoopUtil
+import org.apache.spark.executor.OutputMetrics
 import org.apache.spark.lineage.LAggregator
+import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.util.collection.CompactBuffer
@@ -210,7 +212,9 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    */
   override def mapValues[U](f: V => U): Lineage[(K, U)] = {
     val cleanF = self.context.clean(f)
-    new MappedValuesLRDD(self, cleanF)
+    new MapPartitionsLRDD[(K, U), (K, V)](self,
+      (context, pid, iter) => iter.map { case (k, v) => (k, cleanF(v)) },
+      preservesPartitioning = true)
   }
 
   /**
@@ -219,7 +223,11 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    */
   override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = {
     val cleanF = self.context.clean(f)
-    new FlatMappedValuesLRDD(self, cleanF)
+    new MapPartitionsLRDD[(K, U), (K, V)](self,
+      (context, pid, iter) => iter.flatMap { case (k, v) =>
+        cleanF(v).map(x => (k, x))
+      },
+      preservesPartitioning = true)
   }
 
   /**
@@ -309,9 +317,10 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       val config = wrappedConf.value
       // Hadoop wants a 32-bit task attempt ID, so if ours is bigger than Int.MaxValue, roll it
       // around by taking a mod. We expect that no task will be attempted 2 billion times.
-      val attemptNumber = (context.attemptId % Int.MaxValue).toInt
+      val attemptNumber = (context.taskAttemptId % Int.MaxValue).toInt
 
-      val (outputMetrics, bytesWrittenCallback) = initHadoopOutputMetrics(context, config)
+      val outputMetricsAndBytesWrittenCallback: Option[(OutputMetrics, () => Long)] =
+        initHadoopOutputMetrics(context)
 
       writer.setup(context.stageId, context.partitionId, attemptNumber)
       writer.open()
@@ -322,14 +331,16 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
           writer.write(record._1.asInstanceOf[AnyRef], record._2.asInstanceOf[AnyRef])
 
           // Update bytes written metric every few records
-          maybeUpdateOutputMetrics(bytesWrittenCallback, outputMetrics, recordsWritten)
+          maybeUpdateOutputMetrics(outputMetricsAndBytesWrittenCallback, recordsWritten)
           recordsWritten += 1
         }
       } finally {
         writer.close()
       }
       writer.commit()
-      bytesWrittenCallback.foreach { fn => outputMetrics.bytesWritten = fn() }
+      outputMetricsAndBytesWrittenCallback.foreach { case (om, callback) =>
+        om.setBytesWritten(callback())
+      }
     }
 
     self.lineageContext.runJob(self, writeToFile)

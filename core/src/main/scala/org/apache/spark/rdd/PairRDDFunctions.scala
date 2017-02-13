@@ -1231,7 +1231,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
   // We should abstract the duplicate code in a less awkward way.
 
   // return type: (output metrics, bytes written callback), defined only if the latter is defined
-  private def initHadoopOutputMetrics(
+  protected def initHadoopOutputMetrics(//Matteo
       context: TaskContext): Option[(OutputMetrics, () => Long)] = {
     val bytesWrittenCallback = SparkHadoopUtil.get.getFSBytesWrittenOnThreadCallback()
     bytesWrittenCallback.map { b =>
@@ -1239,7 +1239,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
     }
   }
 
-  private def maybeUpdateOutputMetrics(
+  protected def maybeUpdateOutputMetrics(// Matteo
       outputMetricsAndBytesWrittenCallback: Option[(OutputMetrics, () => Long)],
       recordsWritten: Long): Unit = {
     if (recordsWritten % PairRDDFunctions.RECORDS_BETWEEN_BYTES_WRITTEN_METRIC_UPDATES == 0) {
@@ -1268,7 +1268,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
 
   // Note: this needs to be a function instead of a 'val' so that the disableOutputSpecValidation
   // setting can take effect:
-  private def isOutputSpecValidationEnabled: Boolean = {
+  protected[spark] def isOutputSpecValidationEnabled: Boolean = { // Matteo
     val validationDisabled = PairRDDFunctions.disableOutputSpecValidation.value
     val enabledInConf = self.conf.getBoolean("spark.hadoop.validateOutputSpecs", true)
     enabledInConf && !validationDisabled
