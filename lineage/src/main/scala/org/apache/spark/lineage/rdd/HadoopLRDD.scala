@@ -17,24 +17,23 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapred.{InputFormat, JobConf}
-import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.rdd.HadoopRDD
+import org.apache.spark.util.SerializableConfiguration
 
 import scala.reflect._
 
 class HadoopLRDD[K, V](
     @transient lc: LineageContext,
-    broadcastedConf: Broadcast[SerializableWritable[Configuration]],
+    broadcastedConf: Broadcast[SerializableConfiguration],
     initLocalJobConfFuncOpt: Option[JobConf => Unit],
     inputFormatClass: Class[_ <: InputFormat[K, V]],
     keyClass: Class[K],
     valueClass: Class[V],
     minPartitions: Int
-  ) extends HadoopRDD[K, V](
+  ) extends HadoopRDD[K, V] (
     lc.sparkContext,
     broadcastedConf,
     initLocalJobConfFuncOpt,
@@ -52,8 +51,7 @@ class HadoopLRDD[K, V](
       minPartitions: Int
   ) = this(
       lc,
-      lc.sparkContext.broadcast(new SerializableWritable(conf))
-        .asInstanceOf[Broadcast[SerializableWritable[Configuration]]],
+      lc.sparkContext.broadcast(new SerializableConfiguration(conf)),
       None /* initLocalJobConfFuncOpt */,
       inputFormatClass,
       keyClass,

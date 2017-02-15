@@ -17,30 +17,29 @@
 
 package org.apache.spark
 
-import java.util.{Queue, Properties}
+import java.util.{Properties, Queue}
 import java.util.concurrent.ThreadPoolExecutor
-
-import org.apache.spark.lineage.util.ByteBuffer
 
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
+import org.apache.spark.lineage.util.ByteBuffer
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.util._
 
 private[spark] class TaskContextImpl(
-    val stageId: Int,
-    val partitionId: Int,
-    override val taskAttemptId: Long,
-    override val attemptNumber: Int,
-    override val taskMemoryManager: TaskMemoryManager,
-    localProperties: Properties,
-    @transient private val metricsSystem: MetricsSystem,
-    // The default value is only used in tests.
-    override val taskMetrics: TaskMetrics = TaskMetrics.empty)
+                                      val stageId: Int,
+                                      val partitionId: Int,
+                                      override val taskAttemptId: Long,
+                                      override val attemptNumber: Int,
+                                      override val taskMemoryManager: TaskMemoryManager,
+                                      localProperties: Properties,
+                                      @transient private val metricsSystem: MetricsSystem,
+                                      // The default value is only used in tests.
+                                      override val taskMetrics: TaskMetrics = TaskMetrics.empty)
   extends TaskContext
   with Logging {
 
@@ -59,7 +58,9 @@ private[spark] class TaskContextImpl(
   // Whether the task has failed.
   @volatile private var failed: Boolean = false
 
-  /** Matteo *************************************************************************************/
+  /**
+   * ***************************************** Matteo ********************************************
+   */
   // Used to pipeline records through taps inside the same stage
   @transient var currentInputId: Int = -1
 
@@ -72,15 +73,15 @@ private[spark] class TaskContextImpl(
 
   @transient private var bufferPoolLarge: Queue[Array[Byte]] = null
 
-  def setThreadPool(pool: ThreadPoolExecutor) = this.threadPool = pool
+  def setThreadPool(pool: ThreadPoolExecutor): Unit = this.threadPool = pool
 
-  def setBufferPool(pool: Queue[Array[Byte]]) = this.bufferPool = pool
+  def setBufferPool(pool: Queue[Array[Byte]]): Unit = this.bufferPool = pool
 
-  def setBufferPoolLarge(pool: Queue[Array[Byte]]) = this.bufferPoolLarge = pool
+  def setBufferPoolLarge(pool: Queue[Array[Byte]]): Unit = this.bufferPoolLarge = pool
 
   def getFromBufferPool(): Array[Byte] = {
     val buffer = bufferPool.poll()
-    if(buffer == null) {
+    if (buffer == null) {
       return new Array[Byte](64 * 1024 * 128)
     }
     buffer
@@ -88,17 +89,19 @@ private[spark] class TaskContextImpl(
 
   def getFromBufferPoolLarge(): Array[Byte] = {
     val buffer = bufferPoolLarge.poll()
-    if(buffer == null) {
+    if (buffer == null) {
       return new Array[Byte](64 * 1024 * 1024)
     }
     buffer
   }
 
-  def addToBufferPool(data: Array[Byte]) = bufferPool.add(data)
+  def addToBufferPool(data: Array[Byte]): Unit = bufferPool.add(data)
 
-  def addToBufferPoolLarge(data: Array[Byte]) = bufferPoolLarge.add(data)
+  def addToBufferPoolLarge(data: Array[Byte]): Unit = bufferPoolLarge.add(data)
 
-  /***********************************************************************************************/
+  /**
+   * *************************************************************************************
+   */
 
 
   override def addTaskCompletionListener(listener: TaskCompletionListener): this.type = {

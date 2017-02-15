@@ -41,8 +41,8 @@ case class Aggregator[K, V, C] (
   def combineValuesByKey(
       iter: Iterator[_ <: Product2[K, V]],
       context: TaskContext): Iterator[(K, C)] = {
-    if(!isSpillEnabled){
-      val combiners = new AppendOnlyMap[K,C]
+    if (!isSpillEnabled) {
+      val combiners = new AppendOnlyMap[K, C]
       var kv: Product2[K, V] = null
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)
@@ -52,7 +52,7 @@ case class Aggregator[K, V, C] (
         combiners.changeValue(kv._1, update)
       }
       combiners.iterator
-    }else{
+    } else {
       val combiners = new ExternalAppendOnlyMap[K, V, C](createCombiner, mergeValue, mergeCombiners)
       combiners.insertAll(iter)
       updateMetrics(context, combiners)
@@ -64,7 +64,7 @@ case class Aggregator[K, V, C] (
       iter: Iterator[_ <: Product2[K, C]],
       context: TaskContext, isCache: Boolean = false): Iterator[(K, C)] = {  // Matteo
     if (!isSpillEnabled) {
-      val combiners = new AppendOnlyMap[K,C]
+      val combiners = new AppendOnlyMap[K, C]
       var kc: Product2[K, C] = null
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeCombiners(oldValue, kc._2) else kc._2

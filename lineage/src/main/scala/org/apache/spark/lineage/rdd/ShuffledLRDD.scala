@@ -32,7 +32,7 @@ import scala.reflect._
  * @tparam C the combiner class.
  */
 
-class ShuffledLRDD[K, V, C](
+class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     @transient var previous: Lineage[_ <: Product2[K, V]],
     part: Partitioner
   ) extends ShuffledRDD[K, V, C](previous, part) with Lineage[(K, C)] {

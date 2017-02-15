@@ -24,8 +24,8 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
+import org.apache.spark.util.SerializableConfiguration
 
-import scala.Enumeration.Value
 import scala.collection.mutable
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
@@ -93,7 +93,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       ): Lineage[(K, V)] = {
     // A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
     val confBroadcast = sparkContext.broadcast(
-      new SerializableWritable(sparkContext.hadoopConfiguration))
+      new SerializableConfiguration(sparkContext.hadoopConfiguration))
     val setInputPathsFunc = (jobConf: JobConf) => FileInputFormat.setInputPaths(jobConf, path)
 
     val rdd = new HadoopLRDD(

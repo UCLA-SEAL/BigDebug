@@ -21,6 +21,7 @@ import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.rdd.RDD
+import org.apache.spark.util.PackIntIntoLong
 
 import scala.reflect._
 
@@ -70,13 +71,18 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     initializeBuffer()
 
-    SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
+    //SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
 
     firstParent[T].iterator(split, context).map(tap)
   }
 
-  override def filter(f: T => Boolean): Lineage[T] =
-    new FilteredLRDD[T](this, sparkContext.clean(f))
+  override def filter(f: T => Boolean): Lineage[T] ={
+    val cleanF = sparkContext.clean(f)
+    new MapPartitionsLRDD[T, T](
+      this,
+      (context, pid, iter) => iter.filter(cleanF),
+      preservesPartitioning = true)
+  }
 
   override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r._2.toLong))
 

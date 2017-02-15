@@ -2713,7 +2713,7 @@ private[spark] class CircularBuffer(sizeInBytes: Int = 10240) extends java.io.Ou
 object PackIntIntoLong {
   private final val RIGHT: Long = 0xFFFFFFFFL
 
-  def apply(left: Int, right: Int) = left.toLong << 32 | right & 0xFFFFFFFFL
+  def apply(left: Int, right: Int): Long = left.toLong << 32 | right & 0xFFFFFFFFL
 
   def getLeft(value: Long): Int = (value >>> 32).toInt // >>> operator 0-fills from left
 

@@ -20,7 +20,12 @@ package org.apache.spark.util.collection
 import java.io._
 import java.util.Comparator
 
+import scala.collection.{mutable, BufferedIterator}
+import scala.collection.mutable.ArrayBuffer
+
 import com.google.common.io.ByteStreams
+
+import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.executor.ShuffleWriteMetrics
 import org.apache.spark.internal.Logging
@@ -28,10 +33,6 @@ import org.apache.spark.serializer.{DeserializationStream, Serializer, Serialize
 import org.apache.spark.storage.{BlockId, BlockManager}
 import org.apache.spark.util.CompletionIterator
 import org.apache.spark.util.collection.ExternalAppendOnlyMap.HashComparator
-import org.apache.spark.{SparkEnv, TaskContext}
-
-import scala.collection.{BufferedIterator, mutable}
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * :: DeveloperApi ::

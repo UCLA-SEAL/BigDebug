@@ -15,33 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.spark.shuffle
+package org.apache.spark.lineage
 
-import org.apache.spark._
-import org.apache.spark.internal.Logging
+import org.apache.spark.{InterruptibleIterator, MapOutputTracker, SparkEnv, TaskContext}
 import org.apache.spark.serializer.SerializerManager
+import org.apache.spark.shuffle.{BaseShuffleHandle, BlockStoreShuffleReader}
 import org.apache.spark.storage.{BlockManager, ShuffleBlockFetcherIterator}
 import org.apache.spark.util.CompletionIterator
 import org.apache.spark.util.collection.ExternalSorter
 
-/**
- * Fetches and reads the partitions in range [startPartition, endPartition) from a shuffle by
- * requesting them from other nodes' block stores.
- */
-private[spark] class BlockStoreShuffleReader[K, C](
+
+private[spark] class LBlockStoreShuffleReader[K, C](
     handle: BaseShuffleHandle[K, _, C],
     startPartition: Int,
     endPartition: Int,
     context: TaskContext,
+    var lineage: Boolean = false,
     serializerManager: SerializerManager = SparkEnv.get.serializerManager,
     blockManager: BlockManager = SparkEnv.get.blockManager,
-    mapOutputTracker: MapOutputTracker = SparkEnv.get.mapOutputTracker)
-  extends ShuffleReader[K, C] with Logging {
+    mapOutputTracker: MapOutputTracker = SparkEnv.get.mapOutputTracker
+  ) extends BlockStoreShuffleReader[K, C](
+    handle,
+    startPartition,
+    endPartition,
+    context,
+    serializerManager,
+    blockManager,
+    mapOutputTracker) {
 
-  private val dep = handle.dependency
+  val dep = handle.dependency
 
   /** Read the combined key-values for this reduce task */
-  override def read(): Iterator[Product2[K, C]] = {
+  override def read(isCache: Option[Boolean] = None, shuffId: Int = 0): Iterator[Product2[K, C]] = {
     val blockFetcherItr = new ShuffleBlockFetcherIterator(
       context,
       blockManager.shuffleClient,
@@ -78,6 +83,17 @@ private[spark] class BlockStoreShuffleReader[K, C](
     // An interruptible iterator must be used here in order to support task cancellation
     val interruptibleIter = new InterruptibleIterator[(Any, Any)](context, metricIter)
 
+    if (isCache.isDefined) {
+      if (isCache.get) {
+        return interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]
+      } else {
+        if (interruptibleIter.isEmpty) {
+          return Iterator.empty
+        }
+        lineage = true
+      }
+    }
+
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
         // We are reading values that are already combined
@@ -110,10 +126,5 @@ private[spark] class BlockStoreShuffleReader[K, C](
       case None =>
         aggregatedIter
     }
-  }
-
-  // Youfu
-  def read(isShuffleCache: Option[Boolean] = None, shuffleId: Int = 0): Iterator[Product2[K, C]] = {
-    read()
   }
 }

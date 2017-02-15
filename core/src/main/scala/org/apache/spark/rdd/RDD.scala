@@ -107,7 +107,7 @@ abstract class RDD[T: ClassTag](
 
   /** Added by Matteo ########################################################################## */
 
-  def updateDependencies(_deps: Seq[Dependency[_]]) = {
+  def updateDependencies(_deps: Seq[Dependency[_]]): Unit = {
     deps = _deps
     dependencies_ = deps
   }
@@ -116,7 +116,7 @@ abstract class RDD[T: ClassTag](
 
   def isLineageActive: Boolean = captureLineage
 
-  def materializeBuffer: Array[Any] =  Array[Any]()
+  def materializeBuffer: Array[Any] = Array[Any]()
 
   def releaseBuffer(): Unit = throw new UnsupportedOperationException("No buffer to release")
 

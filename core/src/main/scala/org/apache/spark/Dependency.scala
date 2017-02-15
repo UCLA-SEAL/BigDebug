@@ -109,7 +109,7 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
   override def getParents(partitionId: Int): List[Int] = List(partitionId)
 
   /** Added by Matteo */
-  def tapDependency(tap: RDD[_] = null) = {
+  def tapDependency(tap: RDD[_] = null): OneToOneDependency[T] = {
     new OneToOneDependency[T](tap.asInstanceOf[RDD[T]])
   }
 }

@@ -76,19 +76,20 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * In addition, users can control the partitioning of the output RDD, and whether to perform
    * map-side aggregation (if a mapper can produce multiple items with the same key).
    */
-  override def combineByKey[C](createCombiner: V => C,
-      mergeValue: (C, V) => C,
-      mergeCombiners: (C, C) => C,
-      partitioner: Partitioner,
-      mapSideCombine: Boolean = true,
-      serializer: Serializer = null): Lineage[(K, C)] = {
+  override def combineByKeyWithClassTag[C](
+               createCombiner: V => C,
+               mergeValue: (C, V) => C,
+               mergeCombiners: (C, C) => C,
+               partitioner: Partitioner,
+               mapSideCombine: Boolean = true,
+               serializer: Serializer = null)(implicit ct: ClassTag[C]): Lineage[(K, C)] =  {
     require(mergeCombiners != null, "mergeCombiners must be defined") // required as of Spark 0.9.0
     if (keyClass.isArray) {
       if (mapSideCombine) {
         throw new SparkException("Cannot use map-side combining with array keys.")
       }
       if (partitioner.isInstanceOf[HashPartitioner]) {
-        throw new SparkException("Default partitioner cannot partition array keys.")
+        throw new SparkException("HashPartitioner cannot partition array keys.")
       }
     }
     val aggregator = new LAggregator[K, V, C](
@@ -97,11 +98,29 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       mergeCombiners,
       lineageContext.isLineageActive)
 
-    new ShuffledLRDD[K, V, C](self, partitioner)
-      .setSerializer(serializer)
-      .setAggregator(aggregator)
-      .asInstanceOf[ShuffledLRDD[K, V, C]]
-      .setMapSideCombine(mapSideCombine)
+      new ShuffledLRDD[K, V, C](self, partitioner)
+        .setSerializer(serializer)
+        .setAggregator(aggregator)
+        .asInstanceOf[ShuffledLRDD[K, V, C]]
+        .setMapSideCombine(mapSideCombine)
+  }
+
+  /**
+   * Generic function to combine the elements for each key using a custom set of aggregation
+   * functions. This method is here for backward compatibility. It does not provide combiner
+   * classtag information to the shuffle.
+   *
+   * @see [[combineByKeyWithClassTag]]
+   */
+  override def combineByKey[C](
+                       createCombiner: V => C,
+                       mergeValue: (C, V) => C,
+                       mergeCombiners: (C, C) => C,
+                       partitioner: Partitioner,
+                       mapSideCombine: Boolean = true,
+                       serializer: Serializer = null): Lineage[(K, C)] =  {
+    combineByKeyWithClassTag(createCombiner, mergeValue, mergeCombiners,
+      partitioner, mapSideCombine, serializer)(null)
   }
 
   /**

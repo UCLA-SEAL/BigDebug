@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 import org.apache.spark._
 import org.apache.spark.internal.Logging
+import org.apache.spark.lineage.LBlockStoreShuffleReader
 import org.apache.spark.shuffle._
 
 /**
@@ -114,9 +115,20 @@ private[spark] class SortShuffleManager(conf: SparkConf) extends ShuffleManager 
       handle: ShuffleHandle,
       startPartition: Int,
       endPartition: Int,
-      context: TaskContext): ShuffleReader[K, C] = {
-    new BlockStoreShuffleReader(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+      context: TaskContext,
+      lineage: Option[Boolean] = None): ShuffleReader[K, C] = { // Matteo
+    if (lineage.isDefined) {
+      new LBlockStoreShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+        startPartition,
+        endPartition,
+        context,
+        lineage.get)
+    } else {
+      new BlockStoreShuffleReader(
+        handle.asInstanceOf[BaseShuffleHandle[K, _, C]], startPartition, endPartition, context)
+    }
+
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */
