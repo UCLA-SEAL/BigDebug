@@ -53,7 +53,7 @@ import org.apache.spark.util.Utils;
  * writes incoming records to separate files, one file per reduce partition, then concatenates these
  * per-partition files to form a single output file, regions of which are served to reducers.
  * Records are not buffered in memory. This is essentially identical to
- * {@link org.apache.spark.shuffle.hash.HashShuffleWriter}, except that it writes output in a format
+ * {org.apache.spark.shuffle.hash.HashShuffleWriter}, except that it writes output in a format
  * that can be served / consumed via {@link org.apache.spark.shuffle.IndexShuffleBlockResolver}.
  * <p>
  * This write path is inefficient for shuffles with large numbers of reduce partitions because it
@@ -120,7 +120,6 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     this.shuffleBlockResolver = shuffleBlockResolver;
   }
 
-  @Override
   public void write(Iterator<Product2<K, V>> records) throws IOException {
     assert (partitionWriters == null);
     if (!records.hasNext()) {
@@ -216,6 +215,11 @@ final class BypassMergeSortShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     }
     partitionWriters = null;
     return lengths;
+  }
+
+  @Override
+  public void write(Iterator<Product2<K, V>> records, boolean isLineage) throws IOException {
+    write(records);
   }
 
   @Override

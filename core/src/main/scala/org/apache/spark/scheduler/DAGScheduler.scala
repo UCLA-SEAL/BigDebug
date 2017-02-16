@@ -1181,6 +1181,19 @@ class DAGScheduler(
           case smt: ShuffleMapTask =>
             val shuffleStage = stage.asInstanceOf[ShuffleMapStage]
             updateAccumulators(event)
+            // Modified by Matteo
+//            var status = event.result.asInstanceOf[MapStatus]
+//            var execId = event.taskInfo.executorId
+//            if(status == null) {
+//              val compressedSizes = Array.fill(stage.numPartitions)(0L)
+//              val location = stage.parents.filter(p =>
+//                p.isInstanceOf[ShuffleMapStage]
+//                  && p.asInstanceOf[ShuffleMapStage].outputLocs.isEmpty)
+//                .head.asInstanceOf[ShuffleMapStage].outputLocs.head.head.location
+//              status = MapStatus(location, compressedSizes)
+//            } else {
+//              execId = status.location.executorId
+//            }
             val status = event.result.asInstanceOf[MapStatus]
             val execId = status.location.executorId
             logDebug("ShuffleMapTask finished on " + execId)

@@ -25,6 +25,7 @@ import java.util.Properties
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.executor.TaskMetrics
+import org.apache.spark.lineage.LineageManager
 import org.apache.spark.rdd.RDD
 
 /**
@@ -84,7 +85,12 @@ private[spark] class ResultTask[T, U](
       threadMXBean.getCurrentThreadCpuTime - deserializeStartCpuTime
     } else 0L
 
-    func(context, rdd.iterator(partition, context))
+    try {
+      func(context, rdd.iterator(partition, context))
+    } finally {
+      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager)
+      // Added by Matteo
+    }
   }
 
   // This is only callable on the driver side.

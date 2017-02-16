@@ -156,7 +156,6 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
     write(JavaConverters.asScalaIteratorConverter(records).asScala());
   }
 
-  @Override
   public void write(scala.collection.Iterator<Product2<K, V>> records) throws IOException {
     // Keep track of success so we know if we encountered an exception
     // We do this rather than a standard try/catch/re-throw to handle
@@ -184,6 +183,10 @@ public class UnsafeShuffleWriter<K, V> extends ShuffleWriter<K, V> {
         }
       }
     }
+  }
+  @Override
+  public void write(scala.collection.Iterator<Product2<K, V>> records, boolean isLineage) throws IOException {
+    write(records);
   }
 
   private void open() throws IOException {

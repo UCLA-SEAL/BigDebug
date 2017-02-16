@@ -48,19 +48,22 @@ private[spark] class SortShuffleWriter[K, V, C](
   private val writeMetrics = context.taskMetrics().shuffleWriteMetrics
 
   /** Write a bunch of records to this task's output */
-  override def write(records: Iterator[Product2[K, V]]): Unit = {
-    sorter = if (dep.mapSideCombine) {
+  // Matteo
+  override def write(records: Iterator[Product2[K, V]], isLineage: Boolean = false): Unit = {
+    if (dep.mapSideCombine) {
       require(dep.aggregator.isDefined, "Map-side combine without Aggregator specified!")
-      new ExternalSorter[K, V, C](
+      sorter = new ExternalSorter[K, V, C](
         context, dep.aggregator, Some(dep.partitioner), dep.keyOrdering, dep.serializer)
+      sorter.insertAll(records)
     } else {
       // In this case we pass neither an aggregator nor an ordering to the sorter, because we don't
       // care whether the keys get sorted in each partition; that will be done on the reduce side
       // if the operation being run is sortByKey.
-      new ExternalSorter[K, V, V](
+      sorter = new ExternalSorter[K, V, V](
         context, aggregator = None, Some(dep.partitioner), ordering = None, dep.serializer)
+      sorter.insertAll(records, if (isLineage) Some(false) else None, context)
     }
-    sorter.insertAll(records)
+
 
     // Don't bother including the time to open the merged output file in the shuffle write time,
     // because it just opens a single file, so is typically too fast to measure accurately

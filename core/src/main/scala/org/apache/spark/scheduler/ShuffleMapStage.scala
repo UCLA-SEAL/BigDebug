@@ -51,8 +51,9 @@ private[spark] class ShuffleMapStage(
    * List of [[MapStatus]] for each partition. The index of the array is the map partition id,
    * and each value in the array is the list of possible [[MapStatus]] for a partition
    * (a single task might run multiple times).
+   * Youfu change it from private to public
    */
-  private[this] val outputLocs = Array.fill[List[MapStatus]](numPartitions)(Nil)
+  val outputLocs = Array.fill[List[MapStatus]](numPartitions)(Nil)
 
   override def toString: String = "ShuffleMapStage " + id
 

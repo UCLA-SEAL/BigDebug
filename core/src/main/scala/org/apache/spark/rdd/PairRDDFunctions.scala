@@ -1239,7 +1239,7 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
     }
   }
 
-  protected def maybeUpdateOutputMetrics(// Matteo
+  protected def maybeUpdateOutputMetrics( // Matteo
       outputMetricsAndBytesWrittenCallback: Option[(OutputMetrics, () => Long)],
       recordsWritten: Long): Unit = {
     if (recordsWritten % PairRDDFunctions.RECORDS_BETWEEN_BYTES_WRITTEN_METRIC_UPDATES == 0) {

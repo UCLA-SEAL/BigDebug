@@ -238,11 +238,12 @@ private[spark] class TaskSetManager(
    * Return None if the list is empty.
    * This method also cleans up any tasks in the list that have already
    * been launched, since we want that to happen lazily.
+   * Modified by Matteo
    */
   private def dequeueTaskFromList(
-      execId: String,
-      host: String,
-      list: ArrayBuffer[Int]): Option[Int] = {
+              execId: String,
+              host: String,
+              list: ArrayBuffer[Int]): Option[Int] = {
     var indexOffset = list.size
     while (indexOffset > 0) {
       indexOffset -= 1
@@ -251,12 +252,39 @@ private[spark] class TaskSetManager(
         // This should almost always be list.trimEnd(1) to remove tail
         list.remove(indexOffset)
         if (copiesRunning(index) == 0 && !successful(index)) {
-          return Some(index)
+          if (tasks(index)!= null) {
+            return Some(index)
+          } else {
+            val taskId = sched.newTaskId()
+            val info = new TaskInfo(sched.newTaskId(), index, 0, System.currentTimeMillis(),
+              execId, execId, TaskLocality.ANY, false)
+            taskInfos(index) = info
+            sched.dagScheduler.taskStarted(tasks(index), info)
+            handleSuccessfulTask(index, new DirectTaskResult)
+          }
         }
       }
     }
     None
   }
+//  private def dequeueTaskFromList(
+//      execId: String,
+//      host: String,
+//      list: ArrayBuffer[Int]): Option[Int] = {
+//    var indexOffset = list.size
+//    while (indexOffset > 0) {
+//      indexOffset -= 1
+//      val index = list(indexOffset)
+//      if (!isTaskBlacklistedOnExecOrNode(index, execId, host)) {
+//        // This should almost always be list.trimEnd(1) to remove tail
+//        list.remove(indexOffset)
+//        if (copiesRunning(index) == 0 && !successful(index)) {
+//          return Some(index)
+//        }
+//      }
+//    }
+//    None
+//  }
 
   /** Check whether a task is currently running an attempt on a given host */
   private def hasAttemptOnHost(taskIndex: Int, host: String): Boolean = {

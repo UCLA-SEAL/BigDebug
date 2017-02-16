@@ -22,7 +22,7 @@ import java.lang.management.ManagementFactory
 import java.net.URL
 import java.nio.ByteBuffer
 import java.util.Properties
-import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit}
 import javax.annotation.concurrent.GuardedBy
 
 import scala.collection.JavaConverters._
@@ -34,7 +34,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.rpc.RpcTimeout
-import org.apache.spark.scheduler.{AccumulableInfo, DirectTaskResult, IndirectTaskResult, Task}
+import org.apache.spark.scheduler.{DirectTaskResult, IndirectTaskResult, Task}
 import org.apache.spark.shuffle.FetchFailedException
 import org.apache.spark.storage.{StorageLevel, TaskResultBlockId}
 import org.apache.spark.util._
@@ -83,6 +83,13 @@ private[spark] class Executor(
 
   // Start worker thread pool
   private val threadPool = ThreadUtils.newDaemonCachedThreadPool("Executor task launch worker")
+  // Matteo
+  // TODO make the number of buffers configurable from conf
+  val bufferPool = new ConcurrentLinkedQueue[Array[Byte]]()
+  val bufferPoolLarge = new ConcurrentLinkedQueue[Array[Byte]]()
+  for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 * 128))
+  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1024))
+
   private val executorSource = new ExecutorSource(threadPool, executorId)
   // Pool used for threads that supervise task killing / cancellation
   private val taskReaperPool = ThreadUtils.newDaemonCachedThreadPool("Task reaper")
@@ -312,6 +319,9 @@ private[spark] class Executor(
         logDebug("Task " + taskId + "'s epoch is " + task.epoch)
         env.mapOutputTracker.updateEpoch(task.epoch)
 
+        task.setThreadPool(threadPool) // Matteo
+        task.setBufferPool(bufferPool) // Matteo
+        task.setBufferPoolLarge(bufferPoolLarge) // Matteo
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()
         taskStartCpu = if (threadMXBean.isCurrentThreadCpuTimeSupported) {

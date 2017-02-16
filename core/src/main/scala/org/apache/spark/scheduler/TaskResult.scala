@@ -43,7 +43,10 @@ private[spark] class DirectTaskResult[T](
   private var valueObjectDeserialized = false
   private var valueObject: T = _
 
-  def this() = this(null.asInstanceOf[ByteBuffer], null)
+  // Matteo
+  def this() = this(ByteBuffer.wrap(Array[Byte]()), null)
+
+//  def this() = this(null.asInstanceOf[ByteBuffer], null)
 
   override def writeExternal(out: ObjectOutput): Unit = Utils.tryOrIOException {
     out.writeInt(valueBytes.remaining)
@@ -77,6 +80,8 @@ private[spark] class DirectTaskResult[T](
    * the first time, the caller should avoid to block other threads.
    *
    * After the first time, `value()` is trivial and just returns the deserialized `valueObject`.
+   *
+   * Modified By Youfu
    */
   def value(resultSer: SerializerInstance = null): T = {
     if (valueObjectDeserialized) {
@@ -84,10 +89,14 @@ private[spark] class DirectTaskResult[T](
     } else {
       // This should not run when holding a lock because it may cost dozens of seconds for a large
       // value
-      val ser = if (resultSer == null) SparkEnv.get.serializer.newInstance() else resultSer
-      valueObject = ser.deserialize(valueBytes)
-      valueObjectDeserialized = true
-      valueObject
+      if (valueBytes.array().size != 0) {
+        val ser = if (resultSer == null) SparkEnv.get.serializer.newInstance() else resultSer
+        valueObject = ser.deserialize(valueBytes)
+        valueObjectDeserialized = true
+        valueObject
+      } else {
+        null.asInstanceOf[T]
+      }
     }
   }
 }

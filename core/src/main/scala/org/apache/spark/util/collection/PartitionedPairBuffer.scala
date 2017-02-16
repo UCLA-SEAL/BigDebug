@@ -30,6 +30,7 @@ import org.apache.spark.util.collection.WritablePartitionedPairCollection._
 private[spark] class PartitionedPairBuffer[K, V](initialCapacity: Int = 64)
   extends WritablePartitionedPairCollection[K, V] with SizeTracker
 {
+
   import PartitionedPairBuffer._
 
   require(initialCapacity <= MAXIMUM_CAPACITY,
@@ -48,6 +49,20 @@ private[spark] class PartitionedPairBuffer[K, V](initialCapacity: Int = 64)
       growArray()
     }
     data(2 * curSize) = (partition, key.asInstanceOf[AnyRef])
+    data(2 * curSize + 1) = value.asInstanceOf[AnyRef]
+    curSize += 1
+    afterUpdate()
+  }
+
+  /**
+   * Add an element into the buffer
+   * Added By Youfu
+   */
+  def insert(tuple: (Int, K), value: V): Unit = {
+    if (curSize == capacity) {
+      growArray()
+    }
+    data(2 * curSize) = tuple.asInstanceOf[AnyRef]
     data(2 * curSize + 1) = value.asInstanceOf[AnyRef]
     curSize += 1
     afterUpdate()

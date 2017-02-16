@@ -27,6 +27,7 @@ import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
+import org.apache.spark.lineage.LineageManager
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
 
@@ -94,6 +95,12 @@ private[spark] class ShuffleMapTask(
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
+      // The reduce size requires a certain amount of free heap memory in order to work properly.
+      // If freeMemory is not enough, we call the garbage collector
+      // Matteo
+      if(Runtime.getRuntime.freeMemory() < 9000000000L) {
+        System.gc()
+      }
       writer.stop(success = true).get
     } catch {
       case e: Exception =>
@@ -106,6 +113,9 @@ private[spark] class ShuffleMapTask(
             log.debug("Could not stop writer", e)
         }
         throw e
+    } finally {
+      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager)
+      // Added by Matteo
     }
   }
 

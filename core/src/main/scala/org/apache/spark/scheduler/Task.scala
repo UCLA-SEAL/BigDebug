@@ -19,7 +19,9 @@ package org.apache.spark.scheduler
 
 import java.io.{DataInputStream, DataOutputStream}
 import java.nio.ByteBuffer
+import java.util
 import java.util.Properties
+import java.util.concurrent.ThreadPoolExecutor
 
 import scala.collection.mutable
 import scala.collection.mutable.HashMap
@@ -86,6 +88,9 @@ private[spark] abstract class Task[T](
       metricsSystem,
       metrics)
     TaskContext.setTaskContext(context)
+    context.setThreadPool(threadPool) // Matteo
+    context.setBufferPool(bufferPool) // Matteo
+    context.setBufferPoolLarge(bufferPoolLarge) // Matteo
     taskThread = Thread.currentThread()
 
     if (_killed) {
@@ -153,6 +158,27 @@ private[spark] abstract class Task[T](
 
   protected var _executorDeserializeTime: Long = 0
   protected var _executorDeserializeCpuTime: Long = 0
+
+
+  /**
+   * ***************************************** Matteo ********************************************
+   */
+
+  var threadPool: ThreadPoolExecutor = null
+
+  var bufferPool: util.Queue[Array[Byte]] = null
+
+  var bufferPoolLarge: util.Queue[Array[Byte]] = null
+
+  def setThreadPool(pool: ThreadPoolExecutor): Unit = this.threadPool = pool
+
+  def setBufferPool(pool: util.Queue[Array[Byte]]): Unit = this.bufferPool = pool
+
+  def setBufferPoolLarge(pool: util.Queue[Array[Byte]]): Unit = this.bufferPoolLarge = pool
+
+  /**
+   * *************************************************************************************
+   */
 
   /**
    * Whether the task has been killed.

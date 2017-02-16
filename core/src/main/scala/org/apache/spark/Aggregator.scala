@@ -62,7 +62,8 @@ case class Aggregator[K, V, C] (
 
   def combineCombinersByKey(
       iter: Iterator[_ <: Product2[K, C]],
-      context: TaskContext, isCache: Boolean = false): Iterator[(K, C)] = {  // Matteo
+      context: TaskContext,
+      isCache: Boolean = false): Iterator[(K, C)] = {  // Matteo
     if (!isSpillEnabled) {
       val combiners = new AppendOnlyMap[K, C]
       var kc: Product2[K, C] = null

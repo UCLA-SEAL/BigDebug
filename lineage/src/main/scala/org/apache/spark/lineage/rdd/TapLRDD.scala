@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LineageManager, LineageContext}
 import org.apache.spark.lineage.util.LongIntByteBuffer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
@@ -71,7 +71,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     initializeBuffer()
 
-    //SparkEnv.get.cacheManager.asInstanceOf[LCacheManager].initMaterialization(this, split, context)
+    LineageManager.initMaterialization(this, split, context)
 
     firstParent[T].iterator(split, context).map(tap)
   }

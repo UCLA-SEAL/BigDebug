@@ -84,7 +84,7 @@ class LAggregator[K, V, C] (
   override def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext, isCache: Boolean = false)
     : Iterator[(K, C)] = {
     if (!isSpillEnabled) {
-      val combiners = new AppendOnlyMap[K,C]
+      val combiners = new AppendOnlyMap[K, C]
       var kc: Product2[K, C] = null
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeCombiners(oldValue, kc._2) else kc._2

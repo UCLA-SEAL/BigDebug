@@ -139,7 +139,7 @@ class BypassMergeSortShuffleWriterSuite extends SparkFunSuite with BeforeAndAfte
       taskContext,
       conf
     )
-    writer.write(Iterator.empty)
+    writer.write(Iterator.empty, false)
     writer.stop( /* success = */ true)
     assert(writer.getPartitionLengths.sum === 0)
     assert(outputFile.exists())
@@ -163,7 +163,7 @@ class BypassMergeSortShuffleWriterSuite extends SparkFunSuite with BeforeAndAfte
       taskContext,
       conf
     )
-    writer.write(records)
+    writer.write(records, false)
     writer.stop( /* success = */ true)
     assert(temporaryFilesCreated.nonEmpty)
     assert(writer.getPartitionLengths.sum === outputFile.length())
@@ -200,7 +200,7 @@ class BypassMergeSortShuffleWriterSuite extends SparkFunSuite with BeforeAndAfte
     )
 
     intercept[SparkException] {
-      writer.write(records)
+      writer.write(records, false)
     }
 
     assert(temporaryFilesCreated.nonEmpty)
@@ -226,7 +226,7 @@ class BypassMergeSortShuffleWriterSuite extends SparkFunSuite with BeforeAndAfte
           throw new SparkException("Intentional failure")
         }
         (i, i)
-      }))
+      }), false)
     }
     assert(temporaryFilesCreated.nonEmpty)
     writer.stop( /* success = */ false)

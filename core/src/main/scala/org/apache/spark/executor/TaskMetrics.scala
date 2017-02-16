@@ -54,7 +54,8 @@ class TaskMetrics private[spark] () extends Serializable {
   private val _memoryBytesSpilled = new LongAccumulator
   private val _diskBytesSpilled = new LongAccumulator
   private val _peakExecutionMemory = new LongAccumulator
-  private val _updatedBlockStatuses = new CollectionAccumulator[(BlockId, BlockStatus)]
+  val _updatedBlockStatuses = new CollectionAccumulator[(BlockId, BlockStatus)]
+  // Youfu modified the above from private
 
   /**
    * Time taken on the executor to deserialize this task.
