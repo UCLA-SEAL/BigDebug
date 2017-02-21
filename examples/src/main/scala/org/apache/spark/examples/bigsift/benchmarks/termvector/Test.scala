@@ -28,61 +28,54 @@ class Test extends Testing[String] with Serializable {
 
 		//   inputRDD.collect().foreach(println)
 		val finalRdd = inputRDD.map(s => {
-			var wordFreqMap: Map[String, Int] = Map()
-			val wordDocList: MutableList[(String, Int)] = MutableList()
-			val colonIndex = s.indexOf(":")
-			val docName = s.substring(0, colonIndex)
-			val content = s.substring(colonIndex + 1)
-			val wordList = content.trim.split(" ")
-			for (w <- wordList) {
-				if (wordFreqMap.contains(w)) {
-					val newCount = wordFreqMap(w) + 1
-					if (newCount > 10) {
-						wordFreqMap = wordFreqMap updated(w, 10000)
-					} else
-						wordFreqMap = wordFreqMap updated(w, newCount)
-				} else {
-					if (!w.contains(","))
-						wordFreqMap = wordFreqMap + (w -> 1)
-				}
-			}
-			// wordFreqMap = wordFreqMap.filter(p => p._2 > 1)
-			wordFreqMap = TermVector.sortByValue(wordFreqMap)
-			(docName, wordFreqMap)
-		})
-			.filter(pair => {
-			if (pair._2.isEmpty) false
-			else true
-		}).groupByKey()
-			//This map mark the ones that could crash the program
-			.map(pair => {
-			var mark = false
-			var value = new String("")
-			var totalNum = 0
-			val array = pair._2.toList
-			for (l <- array) {
-				for ((k, v) <- l) {
-					value += k + "-" + v + ","
-					totalNum += v
-				}
-			}
-			value = value.substring(0, value.length - 1)
-			val ll = value.split(",")
-			if (totalNum / ll.size > 5) mark = true
-			if (mark) value += "*"
-			(pair._1, value)
-		})
+      var wordFreqMap: Map[String, Int] = Map()
+      val colonIndex = s.indexOf(":")
+      val docName = s.substring(0, colonIndex)
+      val content = s.substring(colonIndex + 1)
+      val wordList = content.trim.split(" ")
+      for (w <- wordList) {
+        if(TermVector.filterSym(w)){
+          if (wordFreqMap.contains(w)) {
+            val newCount = wordFreqMap(w) + 1
+            /**** Seeding Error***/
+            if (newCount > 10) {
+              wordFreqMap = wordFreqMap updated(w, 10000)
+            }
+            /*********************/
+            else
+              wordFreqMap = wordFreqMap updated(w, newCount)
+          } else {
+            wordFreqMap = wordFreqMap + (w -> 1)
+          }
+        }
+      }
+      (docName, wordFreqMap)
+    })
+      .filter(pair => {
+      if (pair._2.isEmpty) false
+      else true
+    }).reduceByKey{ (v1, v2) =>
+      var map: Map[String, Int] = Map()
+      map = v1
+      var returnMap : Map[String, Int] = Map()
+      for((k,v) <- v2){
+        if(map.contains(k)){
+          val count = map(k)+ v
+          map = map updated(k, count)
+        }else{
+          map = map + (k -> 1)
+        }
+      }
+      map
+    }.filter(s => TermVector.failure(s._2))
 
 		val start = System.nanoTime
 		val out = finalRdd.collect()
 		num = num + 1
-		logger.log(Level.INFO, "TimeTest : " + (System.nanoTime() - start) / 1000 + "")
-		logger.log(Level.INFO, "TestRuns :" + num + "")
 		println( s""">>>>>>>>>>>>>>>>>>>>>>>>>>   Number of Runs $num <<<<<<<<<<<<<<<<<<<<<<<""")
 
 		for (o <- out) {
-			//	println(o)
-			if (o.asInstanceOf[(String, String)]._2.substring(o.asInstanceOf[(String, String)]._2.length - 1).equals("*")) returnValue = true
+	     returnValue = true
 		}
 		returnValue
 	}
@@ -91,61 +84,56 @@ class Test extends Testing[String] with Serializable {
 		//assume that test will pass, which returns false
 		var returnValue = false
 		val finalRdd = inputRDD.map(s => {
-			var wordFreqMap: Map[String, Int] = Map()
-			val colonIndex = s.indexOf(":")
-			val docName = s.substring(0, colonIndex)
-			val content = s.substring(colonIndex + 1)
-			val wordList = content.trim.split(" ")
-			for (w <- wordList) {
-				if (wordFreqMap.contains(w)) {
-					val newCount = wordFreqMap(w) + 1
-					if (newCount > 10) {
-						wordFreqMap = wordFreqMap updated(w, 10000)
-					} else
-						wordFreqMap = wordFreqMap updated(w, newCount)
-				} else {
-					if (!w.contains(","))
-						wordFreqMap = wordFreqMap + (w -> 1)
-				}
-			}
-			// wordFreqMap = wordFreqMap.filter(p => p._2 > 1)
-			wordFreqMap = TermVector.sortByValue(wordFreqMap)
-			(docName, wordFreqMap)
-		})
-			.filter(pair => {
-			if (pair._2.isEmpty) false
-			else true
-		}).groupBy(_._1)
-			//This map mark the ones that could crash the program
-			.map(pair => {
-			var mark = false
-			var value = new String("")
-			var totalNum = 0
-			val array = pair._2.toList
-			for (l <- array) {
-
-				for ((k, v) <- l._2) {
-					value += k + "-" + v + ","
-					totalNum += v
-				}
-			}
-			value = value.substring(0, value.length - 1)
-			val ll = value.split(",")
-			if (totalNum / ll.size > 5) mark = true
-			if (mark) value += "*"
-			(pair._1, value)
-		})
+      var wordFreqMap: Map[String, Int] = Map()
+      val colonIndex = s.indexOf(":")
+      val docName = s.substring(0, colonIndex)
+      val content = s.substring(colonIndex + 1)
+      val wordList = content.trim.split(" ")
+      for (w <- wordList) {
+        if(TermVector.filterSym(w)){
+          if (wordFreqMap.contains(w)) {
+            val newCount = wordFreqMap(w) + 1
+            /**** Seeding Error***/
+            if (newCount > 10) {
+              wordFreqMap = wordFreqMap updated(w, 10000)
+            }
+            /*********************/
+            else
+              wordFreqMap = wordFreqMap updated(w, newCount)
+          } else {
+            wordFreqMap = wordFreqMap + (w -> 1)
+          }
+        }
+      }
+      // wordFreqMap = wordFreqMap.filter(p => p._2 > 1)
+      (docName, wordFreqMap)
+    })
+      .filter(pair => {
+      if (pair._2.isEmpty) false
+      else true
+    }).groupBy(_._1).map{ v1 =>
+      var map: Map[String, Int] = Map()
+      for(e1 <- v1._2){
+        for((k,v) <- e1._2){
+          if(map.contains(k)){
+            val count = map(k)+ v
+            map = map updated(k, count)
+          }else{
+            map = map + (k -> 1)
+          }
+        }
+      }
+      (v1._1, map)
+    }.filter(s => TermVector.failure(s._2))
 
 		val start = System.nanoTime
 		val out = finalRdd
 		num = num + 1
-		logger.log(Level.INFO, "TimeTest : " + (System.nanoTime() - start) / 1000 + "")
-		logger.log(Level.INFO, "TestRuns :" + num + "")
 		println( s""">>>>>>>>>>>>>>>>>>>>>>>>>>   Number of Runs $num <<<<<<<<<<<<<<<<<<<<<<<""")
 
 		for (o <- out) {
 			//	println(o)
-			if (o._2.substring(o._2.length - 1).equals("*")) returnValue = true
+			 returnValue = true
 		}
 		returnValue
 

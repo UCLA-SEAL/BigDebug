@@ -41,7 +41,7 @@ object TermVectorDDOnly {
       val sparkConf = new SparkConf()
 
       var logFile = ""
-      var local = 500
+      var local = 0
       if(args.length < 2) {
         sparkConf.setMaster("local[6]")
         sparkConf.setAppName("TermVector_LineageDD").set("spark.executor.memory", "2g")
@@ -74,48 +74,43 @@ object TermVectorDDOnly {
         val content = s.substring(colonIndex + 1)
         val wordList = content.trim.split(" ")
         for (w <- wordList) {
-          if (wordFreqMap.contains(w)) {
-            val newCount = wordFreqMap(w) + 1
-            /**** Seeding Error***/
-            if (newCount > 10) {
-              wordFreqMap = wordFreqMap updated(w, 10000)
-            }
-            /*********************/
-            else
-              wordFreqMap = wordFreqMap updated(w, newCount)
-          } else {
-            if(!w.contains(","))
+          if(TermVector.filterSym(w)){
+            if (wordFreqMap.contains(w)) {
+              val newCount = wordFreqMap(w) + 1
+              /**** Seeding Error***/
+              if (newCount > 10) {
+                wordFreqMap = wordFreqMap updated(w, 10000)
+              }
+              /*********************/
+              else
+                wordFreqMap = wordFreqMap updated(w, newCount)
+            } else {
               wordFreqMap = wordFreqMap + (w -> 1)
+            }
           }
         }
         // wordFreqMap = wordFreqMap.filter(p => p._2 > 1)
-        wordFreqMap = sortByValue(wordFreqMap)
         (docName, wordFreqMap)
       })
         .filter(pair => {
         if (pair._2.isEmpty) false
         else true
-      })
-        .groupByKey()
-        //This map mark the ones that could crash the program
-        .map(pair => {
-        var mark = false
-        var value = new String("")
-        var totalNum = 0
-        for (l <- pair._2) {
-          for ((k, v) <- l) {
-            value += k + "-" + v + ","
-            totalNum += v
+      }).reduceByKey{ (v1, v2) =>
+        var map: Map[String, Int] = Map()
+        map = v1
+        var returnMap : Map[String, Int] = Map()
+        for((k,v) <- v2){
+          if(map.contains(k)){
+            val count = map(k)+ v
+            map = map updated(k, count)
+          }else{
+            map = map + (k -> 1)
           }
         }
-        value = value.substring(0, value.length - 1)
-        val ll = value.split(",")
-        if (totalNum / ll.size > 5) mark = true
-        if (mark) value += "*"
-        (pair._1, value)
-      })
-
+        map
+      }.filter(s => TermVector.failure(s._2))
       val out = wordDoc.collect()
+
       /**************************
         Time Logging
         **************************/
@@ -129,14 +124,6 @@ object TermVectorDDOnly {
         **************************/
 
 
-
-
-      //print the list for debugging
-      //      println("****************************")
-      //      for (l <- list) {
-      //        println(l)
-      //      }
-      //      println("****************************")
 
       /**************************
         Time Logging

@@ -84,6 +84,7 @@ object TermVector {
         val content = s.substring(colonIndex + 1)
         val wordList = content.trim.split(" ")
         for (w <- wordList) {
+          if(TermVector.filterSym(w)){
           if (wordFreqMap.contains(w)) {
             val newCount = wordFreqMap(w) + 1
             /**** Seeding Error***/
@@ -94,37 +95,30 @@ object TermVector {
             else
               wordFreqMap = wordFreqMap updated(w, newCount)
           } else {
-            if(!w.contains(","))
               wordFreqMap = wordFreqMap + (w -> 1)
+          }
           }
         }
         // wordFreqMap = wordFreqMap.filter(p => p._2 > 1)
-        wordFreqMap = sortByValue(wordFreqMap)
         (docName, wordFreqMap)
       })
            .filter(pair => {
         if (pair._2.isEmpty) false
         else true
-      })
-           .groupByKey()
-           //This map mark the ones that could crash the program
-           .map(pair => {
-        var mark = false
-        var value = new String("")
-        var totalNum = 0
-        for (l <- pair._2) {
-          for ((k, v) <- l) {
-            value += k + "-" + v + ","
-            totalNum += v
+      }).reduceByKey{ (v1, v2) =>
+        var map: Map[String, Int] = Map()
+        map = v1
+        var returnMap : Map[String, Int] = Map()
+        for((k,v) <- v2){
+          if(map.contains(k)){
+            val count = map(k)+ v
+            map = map updated(k, count)
+          }else{
+            map = map + (k -> 1)
           }
-        }
-        value = value.substring(0, value.length - 1)
-        val ll = value.split(",")
-        if (totalNum / ll.size > 5) mark = true
-        if (mark) value += "*"
-        (pair._1, value)
-      })
-
+          }
+        map
+      }.filter(s => TermVector.failure(s._2))
       val out = wordDoc.collectWithId()
 
       /**************************
@@ -152,10 +146,9 @@ object TermVector {
 
       var list = List[Long]()
       for (o <- out) {
-        if (o._1._2.substring(o._1._2.length - 1).equals("*")) {
           println(o._1._1 + " : " + o._1._2 + " - " + o._2)
           list = o._2 :: list
-        }
+
       }
 
       //print the list for debugging
@@ -238,5 +231,22 @@ object TermVector {
 
     }
   }
+def failure(m : Map[String, Int]): Boolean ={
+  var fails = false
+  for((k,v) <- m){
+    if(v > 50) fails = true
+  }
+  return fails
+}
+  def filterSym(str:String): Boolean ={
+    val sym: Array[String] = Array(">","<" , "*" , "="  , "#" , "+" , "-" , ":" , "{" , "}" , "/","~" , "1" , "2" , "3" ,"4" , "5" , "6" , "7" , "8" , "9" , "0")
+    for(i<- sym){
+      if(str.contains(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 }
 
