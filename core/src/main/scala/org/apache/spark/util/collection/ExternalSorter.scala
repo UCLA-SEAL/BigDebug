@@ -765,6 +765,52 @@ private[spark] class ExternalSorter[K, V, C](
     val lengths = new Array[Long](numPartitions)
     val writer = blockManager.getDiskWriter(blockId, outputFile, serInstance, fileBufferSize,
       context.taskMetrics().shuffleWriteMetrics)
+      // We must perform merge-sort; get an iterator by partition and write everything directly.
+    for ((id, elements) <- this.partitionedIterator) {
+      if (elements.hasNext) {
+        // Modified by Matteo
+        // currentInputId == -1 if the lineage is not active (or no record exist for partition)
+        if (context.asInstanceOf[TaskContextImpl].currentInputId == -1) {
+          for (elem <- elements) {
+            writer.write(elem._1, elem._2)
+          }
+        } else {
+          // If combiner is not active we have already generated the proper ids.
+          // Add the partition otherwise (packed into a Long for consistency)
+          for (elem <- elements) {
+            val newElem = new Tuple2(elem._1, if (isGroupBy) {
+              elem._2
+            } else {
+              new Tuple2(elem._2, PackIntIntoLong(context.partitionId, 0))
+            })
+            writer.write(newElem._1, newElem._2)
+          }
+        }
+//          for (elem <- elements) {
+//            writer.write(elem._1, elem._2)
+//          }
+        val segment = writer.commitAndGet()
+        lengths(id) = segment.length
+      }
+    }
+
+    writer.close()
+    context.taskMetrics().incMemoryBytesSpilled(memoryBytesSpilled)
+    context.taskMetrics().incDiskBytesSpilled(diskBytesSpilled)
+    context.taskMetrics().incPeakExecutionMemory(peakMemoryUsedBytes)
+
+    lengths
+  }
+
+  // this is a back up to above function
+  def writePartitionedFile_backup(
+                            blockId: BlockId,
+                            outputFile: File): Array[Long] = {
+
+    // Track location of each range in the output file
+    val lengths = new Array[Long](numPartitions)
+    val writer = blockManager.getDiskWriter(blockId, outputFile, serInstance, fileBufferSize,
+      context.taskMetrics().shuffleWriteMetrics)
 
     if (spills.isEmpty) {
       // Case where we only have in-memory data
@@ -782,27 +828,9 @@ private[spark] class ExternalSorter[K, V, C](
       // We must perform merge-sort; get an iterator by partition and write everything directly.
       for ((id, elements) <- this.partitionedIterator) {
         if (elements.hasNext) {
-          // Modified by Matteo
-          // currentInputId == 0 if the lineage is not active (or no record exist for partition)
-          if (context.asInstanceOf[TaskContextImpl].currentInputId == -1) {
-            for (elem <- elements) {
-              writer.write(elem._1, elem._2)
-            }
-          } else {
-            // If combiner is not active we have already generated the proper ids.
-            // Add the partition otherwise (packed into a Long for consistency)
-            for (elem <- elements) {
-              val newElem = new Tuple2(elem._1, if (isGroupBy) {
-                elem._2
-              } else {
-                new Tuple2(elem._2, PackIntIntoLong(context.partitionId, 0))
-              })
-              writer.write(newElem._1, newElem._2)
-            }
+          for (elem <- elements) {
+            writer.write(elem._1, elem._2)
           }
-//          for (elem <- elements) {
-//            writer.write(elem._1, elem._2)
-//          }
           val segment = writer.commitAndGet()
           lengths(id) = segment.length
         }

@@ -84,6 +84,7 @@ private[spark] class LBlockStoreShuffleReader[K, C](
     // An interruptible iterator must be used here in order to support task cancellation
     val interruptibleIter = new InterruptibleIterator[(Any, Any)](context, metricIter)
 
+
     if (isCache.isDefined) {
       if (isCache.get) {
         return interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]
@@ -97,6 +98,7 @@ private[spark] class LBlockStoreShuffleReader[K, C](
 
     val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
+
         // We are reading values that are already combined
         val combinedKeyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, C)]]
         dep.aggregator.get.combineCombinersByKey(combinedKeyValuesIterator, context)
@@ -107,10 +109,30 @@ private[spark] class LBlockStoreShuffleReader[K, C](
         val keyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, Nothing)]]
         dep.aggregator.get.combineValuesByKey(keyValuesIterator, context)
       }
+    } else if (dep.aggregator.isEmpty && dep.mapSideCombine) {
+      throw new IllegalStateException("Aggregator is empty for map-side combine")
     } else {
-      require(!dep.mapSideCombine, "Map-side combine without Aggregator specified!")
-      interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]
+      // Convert the Product2s to pairs since this is what downstream RDDs currently expect
+      interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]].map(pair => (pair._1, pair._2))
     }
+
+//    val aggregatedIter: Iterator[Product2[K, C]] = if (dep.aggregator.isDefined) {
+//      if (dep.mapSideCombine) {
+//
+//        // We are reading values that are already combined
+//        val combinedKeyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, C)]]
+//        dep.aggregator.get.combineCombinersByKey(combinedKeyValuesIterator, context)
+//      } else {
+//        // We don't know the value type, but also don't care -- the dependency *should*
+//        // have made sure its compatible w/ this aggregator, which will convert the value
+//        // type to the combined type C
+//        val keyValuesIterator = interruptibleIter.asInstanceOf[Iterator[(K, Nothing)]]
+//        dep.aggregator.get.combineValuesByKey(keyValuesIterator, context)
+//      }
+//    } else {
+//      require(!dep.mapSideCombine, "Map-side combine without Aggregator specified!")
+//      interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]
+//    }
 
     // Sort the output if there is a sort ordering defined.
     dep.keyOrdering match {

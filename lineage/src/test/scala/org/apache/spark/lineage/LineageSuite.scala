@@ -103,7 +103,8 @@ class LineageSuite extends FunSuite with LocalLineageContext with Matchers {
   }
 
   test("AverageLengthError") {
-    val logFile = "lineage/src/test/resources/README.md"
+//    val logFile = "lineage/src/test/resources/README.md"
+    val logFile = "/Users/youfuli/IdeaProjects/spark-lineage-2.1/lineage/src/test/resources/README.md"
     lc = new LineageContext(new SparkContext("local[2]", "AverageLengthErrorTest"))
 
     lc.setCaptureLineage(true)
