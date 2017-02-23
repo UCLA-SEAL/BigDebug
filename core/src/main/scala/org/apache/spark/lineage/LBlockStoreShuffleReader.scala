@@ -80,7 +80,6 @@ private[spark] class LBlockStoreShuffleReader[K, C](
       },
       context.taskMetrics().mergeShuffleReadMetrics())
 
-    // TODO: Maybe something is wrong here.
     // An interruptible iterator must be used here in order to support task cancellation
     val interruptibleIter = new InterruptibleIterator[(Any, Any)](context, metricIter)
 
