@@ -159,8 +159,6 @@ class LineageSuite extends FunSuite with LocalLineageContext with Matchers {
     linRdd = linRdd.goBack()
     linRdd.collect() should equal (Array(((0,362254112),(0,59)), ((1,362254112),(1,22)),
       ((1,362254112),(1,29))))
-//    var hhh = linRdd.show().collect()
-//    hhh.map(item => println(item.toString))
     linRdd.show().collect() should equal (Array("((V,109),362254112)", "((V,8),362254112)",
       "((V,101),362254112)"))
     linRdd = linRdd.goBack()
@@ -175,9 +173,9 @@ class LineageSuite extends FunSuite with LocalLineageContext with Matchers {
     linRdd.collect() should equal (Array(((0,362254112),59), ((1,975088374),29), ((1,965664971),22),
       ((1,965664971),29), ((1,1521554037),22), ((1,-1404379293),29), ((1,-1727041554),22),
       ((1,362254112),22), ((1,362254112),29), ((1,814537616),22)))
-//    linRdd.show().collect() should equal (Array("((V,109),362254112)", "((#,2),-1727041554)",
-//      "((A,1),814537616)", "((A,5),814537616)", "((V,8),362254112)", "((t,3),975088374)",
-//      "((V,101),362254112)", "((N,4),1521554037)", "((H,6),965664971)", "(([,12),-1404379293)"))
+    linRdd.show().collect() should equal (Array("((V,109),362254112)", "((#,2),-1727041554)",
+      "((A,1),814537616)", "((A,5),814537616)", "((V,8),362254112)", "((t,3),975088374)",
+      "((V,101),362254112)", "((N,4),1521554037)", "((H,6),965664971)", "(([,12),-1404379293)"))
     linRdd = linRdd.goNext()
     linRdd.collect() should equal (Array(((0,116),975088374), ((0,65),814537616),
       ((0,35),-1727041554), ((0,86),362254112), ((0,72),965664971), ((0,91),-1404379293),

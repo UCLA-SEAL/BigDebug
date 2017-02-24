@@ -357,18 +357,36 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
               new ShuffledLRDD[Int, Any, Any](prev.map(r => (r._1._2, r)), part)
                 .map(r => r._2)
             }
-
-            result = new ShowRDD(rightJoin[(Long, Int), String](current.asInstanceOf[Lineage[(RecordId, _)]].map {
-            r => ((PackIntIntoLong(r._1._1,
-            if(pre.isCombinerEnabled) 0
-            else r._2 match {
+            result = new ShowRDD(rightJoin[(Long, Int), String](current.asInstanceOf[Lineage[(RecordId, _)]].map { r => ((PackIntIntoLong(r._1._1, if(pre.isCombinerEnabled) 0 else r._2 match {
               case r1: Int => r1
               case r2: (Int, Int)@unchecked => r2._2
-              case _ => 0 // Added by Youfu
             }), r._1._2), r._1._1) }, pre.getCachedData.map { r =>
               val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
               ((r._2._2, hash), ((r._1, r._2._1), hash).toString())
             })).cache()
+          // Following is a detailed version to set result
+
+//            val join_left = current.asInstanceOf[Lineage[(RecordId, _)]].map {
+//              r => ((PackIntIntoLong(r._1._1,
+//                if(pre.isCombinerEnabled) 0
+//                else r._2 match {
+//                  case r1: Int => r1
+//                  case r2: (Int, Int)@unchecked => r2._2
+//                  case _ => 0 // Added by Youfu
+//                }), r._1._2), r._1._1.asInstanceOf[Any])
+//            }
+//            join_left.collect().foreach(println)
+//            val join_right = pre.getCachedData.map {
+//              r =>
+//                val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
+//                val return_VAL =((r._2._2, hash), ((r._1, r._2._1), hash).toString())
+//                return_VAL
+//            }
+//            join_right.collect().foreach(println)
+//            val join_rdd = rightJoin[(Long, Int), String](join_left, join_right)
+//            join_rdd.collect().foreach(println)
+//            result = new ShowRDD(join_rdd)
+//            result = result.cache()
           case post : TapPostShuffleLRDD[(Any, Long) @unchecked] =>
             val current: Lineage[(Int, Any)] = if(!lineageContext.getlastOperation.isDefined) {
               prev.asInstanceOf[Lineage[(RecordId, (CompactBuffer[Int], Int))]].map(r => (r._2._2, r._1))

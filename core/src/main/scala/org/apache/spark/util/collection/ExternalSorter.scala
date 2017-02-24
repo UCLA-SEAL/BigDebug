@@ -282,6 +282,7 @@ private[spark] class ExternalSorter[K, V, C](
       }
     }
   }
+
   /**
    * Spill the current in-memory collection to disk if needed.
    *
@@ -763,8 +764,10 @@ private[spark] class ExternalSorter[K, V, C](
 
     // Track location of each range in the output file
     val lengths = new Array[Long](numPartitions)
+
     val writer = blockManager.getDiskWriter(blockId, outputFile, serInstance, fileBufferSize,
       context.taskMetrics().shuffleWriteMetrics)
+
       // We must perform merge-sort; get an iterator by partition and write everything directly.
     for ((id, elements) <- this.partitionedIterator) {
       if (elements.hasNext) {
@@ -783,17 +786,18 @@ private[spark] class ExternalSorter[K, V, C](
             } else {
               new Tuple2(elem._2, PackIntIntoLong(context.partitionId, 0))
             })
+            println(newElem)
             writer.write(newElem._1, newElem._2)
           }
         }
 //          for (elem <- elements) {
 //            writer.write(elem._1, elem._2)
 //          }
+
         val segment = writer.commitAndGet()
         lengths(id) = segment.length
       }
     }
-
     writer.close()
     context.taskMetrics().incMemoryBytesSpilled(memoryBytesSpilled)
     context.taskMetrics().incDiskBytesSpilled(diskBytesSpilled)

@@ -140,7 +140,7 @@ private[spark] class LBlockStoreShuffleReader[K, C](
         // the ExternalSorter won't spill to disk.
         val sorter =
           new ExternalSorter[K, C, C](context, ordering = Some(keyOrd), serializer = dep.serializer)
-        sorter.insertAll(aggregatedIter)
+        sorter.insertAll(aggregatedIter, Some(true), context)
         context.taskMetrics().incMemoryBytesSpilled(sorter.memoryBytesSpilled)
         context.taskMetrics().incDiskBytesSpilled(sorter.diskBytesSpilled)
         context.taskMetrics().incPeakExecutionMemory(sorter.peakMemoryUsedBytes)
