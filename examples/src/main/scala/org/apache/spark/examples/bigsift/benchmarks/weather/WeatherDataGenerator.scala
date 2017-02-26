@@ -47,7 +47,7 @@ object WeatherDataGenerator {
 
 }
   def getLowSnow(): String = {
-    if(Random.nextInt(100000) == 99999){
+    if(Random.nextInt(90000000) == 99999){
       return  "90in"
     }
     if(Random.nextInt(2) == 0){
@@ -57,7 +57,7 @@ object WeatherDataGenerator {
     }
   }
     def getHighSnow(): String ={
-      if(Random.nextInt(100000) == 99999){
+      if(Random.nextInt(90000000) == 99999){
        return  "90in"
       }
       if(Random.nextInt(2) == 0){

@@ -3,10 +3,8 @@ package org.apache.spark.examples.bigsift.benchmarks.weather
 import java.util.{StringTokenizer, Calendar}
 import java.util.logging._
 
-import org.apache.spark.examples.bigsift.benchmarks.histogrammovies.Test
 import org.apache.spark.examples.bigsift.bigsift.{SequentialSplit, DDNonExhaustive}
-import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.SparkContext._
 import org.apache.spark.{SparkContext, SparkConf}
 
 /**
@@ -28,7 +26,7 @@ object WeatherAnalysisDDOnly {
       val sparkConf = new SparkConf()
 
       var logFile = ""
-      var local = 500
+      var local = 0
       if (args.length < 2) {
         sparkConf.setMaster("local[6]")
         sparkConf.setAppName("Inverted Index").set("spark.executor.memory", "2g")
@@ -45,8 +43,6 @@ object WeatherAnalysisDDOnly {
 
       val ctx = new SparkContext(sparkConf)
 
-      val lc = new LineageContext(ctx)
-      lc.setCaptureLineage(lineage)
 
       //start recording time for lineage
       /** ************************
@@ -59,7 +55,7 @@ object WeatherAnalysisDDOnly {
         * Time Logging
         * *************************/
 
-      val lines = lc.textFile(logFile, 1)
+      val lines = ctx.textFile(logFile, 1)
       val split = lines.flatMap{s =>
         val tokens = s.split(",")
         // finds the state for a zipcode
@@ -80,7 +76,7 @@ object WeatherAnalysisDDOnly {
         val delta =  s._2.max - s._2.min
         (s._1 , delta)
       }.filter(s => WeatherAnalysis.failure(s._2))
-      val output = deltaSnow.collectWithId()
+      val output = deltaSnow.collect
 
       /** ************************
         * Time Logging
@@ -90,45 +86,6 @@ object WeatherAnalysisDDOnly {
       val jobEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
-
-      /** ************************
-        * Time Logging
-        * *************************/
-
-
-      lc.setCaptureLineage(false)
-      Thread.sleep(1000)
-
-
-      var list = List[Long]()
-      for (o <- output) {
-        list = o._2 :: list
-
-      }
-
-      /** ************************
-        * Time Logging
-        * *************************/
-      val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageStartTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
-      /** ************************
-        * Time Logging
-        * *************************/
-
-      var linRdd = deltaSnow.getLineage()
-      linRdd.collect
-      linRdd = linRdd.filter { l => list.contains(l) }
-      linRdd = linRdd.goBackAll()
-      val showMeRdd = linRdd.show(false).toRDD
-
-      /** ************************
-        * Time Logging
-        * *************************/
-      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
@@ -148,7 +105,7 @@ object WeatherAnalysisDDOnly {
 
       val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(lines , new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
       /** ************************
         * Time Logging

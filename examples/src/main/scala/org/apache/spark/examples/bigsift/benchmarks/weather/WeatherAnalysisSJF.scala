@@ -29,6 +29,7 @@ object WeatherAnalysisSJF {
 
       var logFile = ""
       var local = 500
+      var applySJF = 0
       if (args.length < 2) {
         sparkConf.setMaster("local[6]")
         sparkConf.setAppName("Inverted Index").set("spark.executor.memory", "2g")
@@ -37,6 +38,7 @@ object WeatherAnalysisSJF {
 
         logFile = args(0)
         local = args(1).toInt
+        applySJF = args(2).toInt
 
       }
       //set up lineage
@@ -100,12 +102,6 @@ object WeatherAnalysisSJF {
       Thread.sleep(1000)
 
 
-      var list = List[Long]()
-      for (o <- output) {
-        list = o._2 :: list
-
-      }
-
       /** ************************
         * Time Logging
         * *************************/
@@ -116,15 +112,27 @@ object WeatherAnalysisSJF {
         * Time Logging
         * *************************/
 
-      var linRdd = deltaSnow.getLineage()
-      linRdd.collect
-      linRdd = linRdd.filter { l => list.contains(l) }
-      linRdd = linRdd.goBackAll()
-      val showMeRdd = linRdd.show(false).toRDD
+
+
+
+      //list of bad inputs
+      var list = List[Tuple2[Long, Long]]() // linID and size
+      for (o <- output) {
+        var linRdd = deltaSnow.getLineage()
+        linRdd.collect
+        var size = linRdd.filter { l => o._2 == l }.goBackAll().count()
+        list = Tuple2(o._2, size) :: list
+      }
+
+      if (applySJF == 1) {
+        list = list.sortWith(_._2 < _._2)
+      }
+
 
       /** ************************
         * Time Logging
         * *************************/
+      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
       val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
       val lineageEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
@@ -138,29 +146,63 @@ object WeatherAnalysisSJF {
       /** ************************
         * Time Logging
         * *************************/
-      val DeltaDebuggingStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val DeltaDebuggingStartTime = System.nanoTime()
-      logger.log(Level.INFO, "Record DeltaDebugging + L  (unadjusted) time starts at " + DeltaDebuggingStartTimestamp)
-      /** ************************
-        * Time Logging
-        * *************************/
-
-
-      val delta_debug = new DDNonExhaustive[String]
-      delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val SJFStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      val SJFStartTime = System.nanoTime()
+      logger.log(Level.INFO, "SJF (unadjusted) time starts at " + SJFStartTimestamp)
 
       /** ************************
         * Time Logging
         * *************************/
-      val DeltaDebuggingEndTime = System.nanoTime()
-      val DeltaDebuggingEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      logger.log(Level.INFO, "DeltaDebugging (unadjusted) + L  ends at " + DeltaDebuggingEndTimestamp)
-      logger.log(Level.INFO, "DeltaDebugging (unadjusted)  + L takes " + (DeltaDebuggingEndTime - DeltaDebuggingStartTime) / 1000 + " milliseconds")
+
+
+      for (e <- list) {
+        var linRdd = deltaSnow.getLineage()
+        linRdd.collect
+        val mappedRDD = linRdd.filter { l => e._1 == l }.goBackAll().show(false).toRDD
+        logger.log(Level.INFO, s"""Debugging Lineage [id , size] : $e""")
+
+
+        /** ************************
+          * Time Logging
+          * *************************/
+        val DeltaDebuggingStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val DeltaDebuggingStartTime = System.nanoTime()
+        logger.log(Level.INFO, "Record DeltaDebugging + L  (unadjusted) time starts at " + DeltaDebuggingStartTimestamp)
+        /** ************************
+          * Time Logging
+          * *************************/
+
+
+        val delta_debug = new DDNonExhaustive[String]
+        delta_debug.setMoveToLocalThreshold(local)
+        val returnedRDD = delta_debug.ddgen(mappedRDD, new Test(), new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+        /** ************************
+          * Time Logging
+          * *************************/
+        val DeltaDebuggingEndTime = System.nanoTime()
+        val DeltaDebuggingEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        logger.log(Level.INFO, "DeltaDebugging (unadjusted) + L  ends at " + DeltaDebuggingEndTimestamp)
+        logger.log(Level.INFO, "DeltaDebugging (unadjusted)  + L takes " + (DeltaDebuggingEndTime - DeltaDebuggingStartTime) / 1000 + " milliseconds")
+
+        /** ************************
+          * Time Logging
+          * *************************/
+
+      }
+
 
       /** ************************
         * Time Logging
         * *************************/
+      val SJFEndTime = System.nanoTime()
+      val SJFEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      logger.log(Level.INFO, "SJF (unadjusted) + L  ends at " + SJFEndTimestamp)
+      logger.log(Level.INFO, "SJF (unadjusted) + L takes " + (SJFEndTime - SJFStartTime) / 1000 + " milliseconds")
+
+      /** ************************
+        * Time Logging
+        * *************************/
+
 
       println("Job's DONE!")
       ctx.stop()
