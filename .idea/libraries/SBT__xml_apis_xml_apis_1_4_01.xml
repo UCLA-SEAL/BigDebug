@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="SBT: xml-apis:xml-apis:1.4.01">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib_managed/jars/xml-apis-1.4.01.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
