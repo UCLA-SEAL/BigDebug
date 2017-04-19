@@ -57,6 +57,7 @@ import java.util.NoSuchElementException;
 
 import static it.unimi.dsi.fastutil.HashCommon.arraySize;
 import static it.unimi.dsi.fastutil.HashCommon.maxFill;
+
 /** A type-specific hash map with a fast, small-footprint implementation.
  *
  * <P>Instances of this class use a hash table to represent a map. The table is
@@ -73,8 +74,8 @@ import static it.unimi.dsi.fastutil.HashCommon.maxFill;
  *
  * <p>Taken from fastutil and modified by Matteo
  *
- * @see Hash
- * @see HashCommon
+ * @see it.unimi.dsi.fastutil.Hash
+ * @see it.unimi.dsi.fastutil.HashCommon
  */
 public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringBitmap> implements java.io.Serializable, Cloneable, Hash {
     private static final long serialVersionUID = 0L;
@@ -120,31 +121,31 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         value = new RoaringBitmap[ n + 1 ];
         for ( int i = 0; i < n + 1; i++) value [ i ] = new RoaringBitmap();
     }
-    /** Creates a new hash map with {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
+    /** Creates a new hash map with {@link it.unimi.dsi.fastutil.Hash#DEFAULT_LOAD_FACTOR} as load factor.
      *
      * @param expected the expected number of elements in the hash map.
      */
     public Int2RoaringBitMapOpenHashMap(final int expected) {
         this( expected, DEFAULT_LOAD_FACTOR );
     }
-    /** Creates a new hash map with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} entries
-     * and {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
+    /** Creates a new hash map with initial expected {@link it.unimi.dsi.fastutil.Hash#DEFAULT_INITIAL_SIZE} entries
+     * and {@link it.unimi.dsi.fastutil.Hash#DEFAULT_LOAD_FACTOR} as load factor.
      */
     public Int2RoaringBitMapOpenHashMap() {
         this( DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR );
     }
     /** Creates a new hash map copying a given one.
      *
-     * @param m a {@link Map} to be copied into the new hash map.
+     * @param m a {@link java.util.Map} to be copied into the new hash map.
      * @param f the load factor.
      */
     public Int2RoaringBitMapOpenHashMap(final Map<? extends Integer, ? extends RoaringBitmap> m, final float f) {
         this( m.size(), f );
         putAll( m );
     }
-    /** Creates a new hash map with {@link Hash#DEFAULT_LOAD_FACTOR} as load factor copying a given one.
+    /** Creates a new hash map with {@link it.unimi.dsi.fastutil.Hash#DEFAULT_LOAD_FACTOR} as load factor copying a given one.
      *
-     * @param m a {@link Map} to be copied into the new hash map.
+     * @param m a {@link java.util.Map} to be copied into the new hash map.
      */
     public Int2RoaringBitMapOpenHashMap(final Map<? extends Integer, ? extends RoaringBitmap> m) {
         this( m, DEFAULT_LOAD_FACTOR );
@@ -158,7 +159,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         this( m.size(), f );
         putAll( m );
     }
-    /** Creates a new hash map with {@link Hash#DEFAULT_LOAD_FACTOR} as load factor copying a given type-specific one.
+    /** Creates a new hash map with {@link it.unimi.dsi.fastutil.Hash#DEFAULT_LOAD_FACTOR} as load factor copying a given type-specific one.
      *
      * @param m a type-specific map to be copied into the new hash map.
      */
@@ -177,7 +178,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         if ( k.length != v.length ) throw new IllegalArgumentException( "The key array and the value array have different lengths (" + k.length + " and " + v.length + ")" );
         for( int i = 0; i < k.length; i++ ) this.put( k[ i ], v[ i ] );
     }
-    /** Creates a new hash map with {@link Hash#DEFAULT_LOAD_FACTOR} as load factor using the elements of two parallel arrays.
+    /** Creates a new hash map with {@link it.unimi.dsi.fastutil.Hash#DEFAULT_LOAD_FACTOR} as load factor using the elements of two parallel arrays.
      *
      * @param k the array of keys of the new hash map.
      * @param v the array of corresponding values in the new hash map.
@@ -230,7 +231,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             int curr;
             final int[] key = this.key;
             // The starting point.
-            if ( ! ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) {
+            if ( ! ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) {
                 if ( ( (curr) == (k) ) ) return pos;
                 while( ! ( (curr = key[ pos = ( pos + 1 ) & mask ]) == (0) ) )
                     if ( ( (curr) == (k) ) ) return pos;
@@ -273,7 +274,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                     value[ last ] = null;
                     return;
                 }
-                slot = ( it.unimi.dsi.fastutil.HashCommon.mix( (curr) ) ) & mask;
+                slot = ( HashCommon.mix( (curr) ) ) & mask;
                 if ( last <= pos ? last >= slot || slot > pos : last >= slot && slot > pos ) break;
                 pos = ( pos + 1 ) & mask;
             }
@@ -291,7 +292,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         final int[] key = this.key;
         int pos;
         // The starting point.
-        if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return defRetValue;
+        if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return defRetValue;
         if ( ( (k) == (curr) ) ) return removeEntry( pos );
         while( true ) {
             if ( ( (curr = key[ pos = ( pos + 1 ) & mask ]) == (0) ) ) return defRetValue;
@@ -309,7 +310,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         final int[] key = this.key;
         int pos;
         // The starting point.
-        if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return (this.defRetValue);
+        if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return (this.defRetValue);
         if ( ( (curr) == (k) ) ) return (removeEntry( pos ));
         while( true ) {
             if ( ( (curr = key[ pos = ( pos + 1 ) & mask ]) == (0) ) ) return (this.defRetValue);
@@ -323,7 +324,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         final int[] key = this.key;
         int pos;
         // The starting point.
-        if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return (this.defRetValue);
+        if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return (this.defRetValue);
         if ( ( (k) == (curr) ) ) return (value[ pos ]);
         // There's always an unused entry.
         while( true ) {
@@ -338,7 +339,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         final int[] key = this.key;
         int pos;
         // The starting point.
-        if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return defRetValue;
+        if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return defRetValue;
         if ( ( (k) == (curr) ) ) return value[ pos ];
         // There's always an unused entry.
         while( true ) {
@@ -353,7 +354,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         final int[] key = this.key;
         int pos;
         // The starting point.
-        if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
+        if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
         if ( ( (k) == (curr) ) ) return true;
         // There's always an unused entry.
         while( true ) {
@@ -408,7 +409,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
      * rather the position in the hash table of the corresponding entry. This
      * is necessary so that calls to {@link java.util.Map.Entry#setValue(Object)} are reflected in
      * the map */
-    final class MapEntry implements Int2ObjectMap.Entry <RoaringBitmap>, Map.Entry<Integer, RoaringBitmap> {
+    final class MapEntry implements Entry <RoaringBitmap>, Map.Entry<Integer, RoaringBitmap> {
         // The table index this entry refers to, or -1 if this entry has been deleted.
         int index;
         MapEntry( final int index ) {
@@ -473,7 +474,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                     // We are just enumerating elements from the wrapped list.
                     last = Integer.MIN_VALUE;
                     final int k = wrapped.getInt( - pos - 1 );
-                    int p = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask;
+                    int p = ( HashCommon.mix( (k) ) ) & mask;
                     while ( ! ( (k) == (key[ p ]) ) ) p = ( p + 1 ) & mask;
                     return p;
                 }
@@ -498,7 +499,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                         value[ last ] = null;
                         return;
                     }
-                    slot = ( it.unimi.dsi.fastutil.HashCommon.mix( (curr) ) ) & mask;
+                    slot = ( HashCommon.mix( (curr) ) ) & mask;
                     if ( last <= pos ? last >= slot || slot > pos : last >= slot && slot > pos ) break;
                     pos = ( pos + 1 ) & mask;
                 }
@@ -533,9 +534,9 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             return n - i - 1;
         }
     }
-    private class EntryIterator extends MapIterator implements ObjectIterator<Int2ObjectMap.Entry <RoaringBitmap> > {
+    private class EntryIterator extends MapIterator implements ObjectIterator<Entry <RoaringBitmap> > {
         private MapEntry entry;
-        public Int2ObjectMap.Entry <RoaringBitmap> next() {
+        public Entry <RoaringBitmap> next() {
             return entry = new MapEntry( nextEntry() );
         }
         @Override
@@ -544,18 +545,18 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             entry.index = -1; // You cannot use a deleted entry.
         }
     }
-    private class FastEntryIterator extends MapIterator implements ObjectIterator<Int2ObjectMap.Entry <RoaringBitmap> > {
+    private class FastEntryIterator extends MapIterator implements ObjectIterator<Entry <RoaringBitmap> > {
         private final MapEntry entry = new MapEntry();
         public MapEntry next() {
             entry.index = nextEntry();
             return entry;
         }
     }
-    private final class MapEntrySet extends AbstractObjectSet<Int2ObjectMap.Entry <RoaringBitmap> > implements FastEntrySet <RoaringBitmap> {
-        public ObjectIterator<Int2ObjectMap.Entry <RoaringBitmap> > iterator() {
+    private final class MapEntrySet extends AbstractObjectSet<Entry <RoaringBitmap> > implements FastEntrySet <RoaringBitmap> {
+        public ObjectIterator<Entry <RoaringBitmap> > iterator() {
             return new EntryIterator();
         }
-        public ObjectIterator<Int2ObjectMap.Entry <RoaringBitmap> > fastIterator() {
+        public ObjectIterator<Entry <RoaringBitmap> > fastIterator() {
             return new FastEntryIterator();
         }
         @SuppressWarnings("unchecked")
@@ -568,7 +569,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             final int[] key = Int2RoaringBitMapOpenHashMap.this.key;
             int pos;
             // The starting point.
-            if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
+            if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
             if ( ( (k) == (curr) ) ) return ( (value[ pos ]) == null ? ((e.getValue())) == null : (value[ pos ]).equals((e.getValue())) );
             // There's always an unused entry.
             while( true ) {
@@ -593,7 +594,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
             final int[] key = Int2RoaringBitMapOpenHashMap.this.key;
             int pos;
             // The starting point.
-            if ( ( (curr = key[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
+            if ( ( (curr = key[ pos = ( HashCommon.mix( (k) ) ) & mask ]) == (0) ) ) return false;
             if ( ( (curr) == (k) ) ) {
                 if ( ( (value[ pos ]) == null ? (v) == null : (value[ pos ]).equals(v) ) ) {
                     removeEntry( pos );
@@ -765,7 +766,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
         for( int j = newN; j-- != 0; ) newValue[ j ] = new RoaringBitmap();
         for( int j = realSize(); j-- != 0; ) {
             while( ( (key[ --i ]) == (0) ) );
-            if ( ! ( (newKey[ pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (key[ i ]) ) ) & mask ]) == (0) ) )
+            if ( ! ( (newKey[ pos = ( HashCommon.mix( (key[ i ]) ) ) & mask ]) == (0) ) )
                 while ( ! ( (newKey[ pos = ( pos + 1 ) & mask ]) == (0) ) );
             newKey[ pos ] = key[ i ];
             newValue[ pos ] = value[ i ];
@@ -853,7 +854,7 @@ public class Int2RoaringBitMapOpenHashMap extends AbstractInt2ObjectMap<RoaringB
                 containsNullKey = true;
             }
             else {
-                pos = ( it.unimi.dsi.fastutil.HashCommon.mix( (k) ) ) & mask;
+                pos = ( HashCommon.mix( (k) ) ) & mask;
                 while ( ! ( (key[ pos ]) == (0) ) ) pos = ( pos + 1 ) & mask;
                 key[ pos ] = k;
             }

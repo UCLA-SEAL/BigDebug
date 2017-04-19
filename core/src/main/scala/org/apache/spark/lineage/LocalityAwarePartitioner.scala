@@ -2,7 +2,6 @@ package org.apache.spark.lineage
 
 import org.apache.spark.Partitioner
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.util.PackIntIntoLong
 
 class LocalityAwarePartitioner(partitions: Int) extends Partitioner {
 

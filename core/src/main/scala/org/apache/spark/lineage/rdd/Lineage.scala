@@ -7,9 +7,9 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.util.{PackIntIntoLong, Utils}
 import org.apache.spark.util.collection.CompactBuffer
-import org.apache.spark.{TaskContext, OneToOneDependency, Partitioner}
+import org.apache.spark.util.{PackIntIntoLong, Utils}
+import org.apache.spark.{OneToOneDependency, Partitioner, TaskContext}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag

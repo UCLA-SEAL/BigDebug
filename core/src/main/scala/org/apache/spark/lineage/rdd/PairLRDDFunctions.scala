@@ -95,7 +95,6 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       mergeValue,
       mergeCombiners,
       lineageContext.isLineageActive)
-
     new ShuffledLRDD[K, V, C](self, partitioner)
       .setSerializer(serializer)
       .setAggregator(aggregator)

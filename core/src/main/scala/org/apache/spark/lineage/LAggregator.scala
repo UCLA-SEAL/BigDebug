@@ -19,7 +19,9 @@ package org.apache.spark.lineage
 
 import com.google.common.hash.Hashing
 import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.debugging.LineageHandler
 import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.rdd.RDD
 import org.apache.spark.util.collection._
 import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
 
@@ -32,17 +34,25 @@ import org.apache.spark.{Aggregator, TaskContext, TaskContextImpl}
  * @param mergeCombiners function to merge outputs from multiple mergeValue function.
  */
 @DeveloperApi
-class LAggregator[K, V, C] (
-    createCombiner: V => C,
-    mergeValue: (C, V) => C,
-    mergeCombiners: (C, C) => C,
-    var isLineage: Boolean = false)
+class LAggregator[K, V, C](
+                            createCombiner: V => C,
+                            mergeValue: (C, V) => C,
+                            mergeCombiners: (C, C) => C,
+                            var isLineage: Boolean = false)
   extends Aggregator[K, V, C](createCombiner, mergeValue, mergeCombiners) {
 
+  /** **BS @ Gulzar **/
+  var _rddid: Int = -1;
+
+  def setRDD(rddid: Int) {
+    _rddid = rddid
+  }
+
+  /** **/
   override def combineValuesByKey(iter: Iterator[_ <: Product2[K, V]], context: TaskContext)
-      : Iterator[(K, C)] = {
+  : Iterator[(K, C)] = {
     if (!isSpillEnabled) {
-      val combiners = new AppendOnlyMap[K,C]
+      val combiners = new AppendOnlyMap[K, C]
       var kv: Product2[K, V] = null
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeValue(oldValue, kv._2) else createCombiner(kv._2)
@@ -55,7 +65,7 @@ class LAggregator[K, V, C] (
     } else {
       val combiners = new ExternalAppendOnlyMap[K, V, C](createCombiner, mergeValue, mergeCombiners)
 
-      if(!isLineage) {
+      if (!isLineage) {
         combiners.insertAll(iter)
       } else {
         var pair: Product2[K, Product2[V, Long]] = null
@@ -85,9 +95,9 @@ class LAggregator[K, V, C] (
   }
 
   override def combineCombinersByKey(iter: Iterator[_ <: Product2[K, C]], context: TaskContext, isCache: Boolean = false)
-    : Iterator[(K, C)] = {
+  : Iterator[(K, C)] = {
     if (!isSpillEnabled) {
-      val combiners = new AppendOnlyMap[K,C]
+      val combiners = new AppendOnlyMap[K, C]
       var kc: Product2[K, C] = null
       val update = (hadValue: Boolean, oldValue: C) => {
         if (hadValue) mergeCombiners(oldValue, kc._2) else kc._2
@@ -99,7 +109,7 @@ class LAggregator[K, V, C] (
       combiners.iterator
     } else {
       val combiners = new ExternalAppendOnlyMap[K, C, C](identity, mergeCombiners, mergeCombiners)
-      if(!isLineage) {
+      if (!isLineage) {
         while (iter.hasNext) {
           val pair = iter.next()
           combiners.insert(pair._1, pair._2)
@@ -107,15 +117,26 @@ class LAggregator[K, V, C] (
       } else {
         var pair: Product2[K, Product2[C, Long]] = null
         val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Long]]]]
-        if(isCache) {
+        if (isCache) {
           while (iter.hasNext) {
             pair = tappedIter.next()
-            combiners.insert(pair._1, pair._2._1)
+
+            /** *BS @ Gulzar **/
+            try {
+              combiners.insert(pair._1, pair._2._1)
+            }
+            catch {
+              case e: Exception =>
+                LineageHandler.setCrash((pair._1, pair._2._1),_rddid , e, context, pair._2._2)
+              //                Int, exception: Exception, context: TaskContext , lineageID : Long)
+            }
+
+
           }
         } else {
           val buffer = new LongIntByteBuffer(context.asInstanceOf[TaskContextImpl].getFromBufferPool())
 
-         // val tmp = new OpenHashMap[Int, String]()
+          // val tmp = new OpenHashMap[Int, String]()
           while (iter.hasNext) {
             pair = tappedIter.next()
             combiners.insert(pair._1, pair._2._1)

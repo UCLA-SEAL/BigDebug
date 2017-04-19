@@ -22,12 +22,12 @@ import java.sql.DriverManager
 
 import com.google.common.hash.Hashing
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{Path, FileUtil, FileSystem}
+import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
-import org.apache.spark.lineage.rdd.Lineage._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.rdd.Lineage._
 import org.apache.spark.lineage.{Direction, HashAwarePartitioner, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong

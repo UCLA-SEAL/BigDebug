@@ -324,7 +324,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     }
     captureLineage = newLineage
   }
+/****BS @ Gulzar**/
+private var culprit = false
 
+  def setCulprit() = {
+    culprit = true
+    captureLineage = false
+  }
+/***********/
   def getBackward(path: Int = 0) = {
     // CurrentLineagePosition should be always set at this point
     assert(currentLineagePosition.isDefined)
@@ -346,7 +353,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
     currentLineagePosition = Some(currentLineagePosition.get.dependencies(path).rdd)
 
-    if(!lastOperation.isDefined || lastOperation.get == Direction.FORWARD) {
+   if(!lastOperation.isDefined || lastOperation.get == Direction.FORWARD && !culprit) {
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {

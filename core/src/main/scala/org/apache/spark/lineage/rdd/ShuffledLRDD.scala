@@ -40,6 +40,14 @@ class ShuffledLRDD[K, V, C](
 
   override def ttag = classTag[(K, C)]
 
+  /***BS @ Gulzar**/
+ override def setAggregator(aggregator: Aggregator[K, V, C]): ShuffledRDD[K, V, C] = {
+    aggregator.asInstanceOf[LAggregator[K,V,C]].setRDD(this.id)
+    this.aggregator = Option(aggregator)
+    this
+  }
+  /****************/
+
   override def lineageContext: LineageContext = previous.lineageContext
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
