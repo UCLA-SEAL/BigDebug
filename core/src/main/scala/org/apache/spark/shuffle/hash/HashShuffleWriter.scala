@@ -19,10 +19,12 @@ package org.apache.spark.shuffle.hash
 
 import org.apache.spark._
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.scheduler.MapStatus
+import org.apache.spark.scheduler.{ShuffleMapTask, MapStatus}
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle._
 import org.apache.spark.storage.BlockObjectWriter
+
+import org.apache.spark.rdd.RDD
 
 private[spark] class HashShuffleWriter[K, V](
     shuffleBlockManager: FileShuffleBlockManager,
@@ -50,7 +52,7 @@ private[spark] class HashShuffleWriter[K, V](
 
   /** Write a bunch of records to this task's output */
   // Matteo
-  override def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false): Unit = {
+  override def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false ,  shuffletask: ShuffleMapTask = null): Unit = {
     val iter = if (dep.aggregator.isDefined) {
       if (dep.mapSideCombine) {
         dep.aggregator.get.combineValuesByKey(records, context)

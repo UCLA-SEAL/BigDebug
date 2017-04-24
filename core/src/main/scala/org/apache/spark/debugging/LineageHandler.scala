@@ -88,7 +88,7 @@ object LineageHandler {
      }
 
     }
-    
+
   }
 
     def setTopRDD(rdd: RDD[_], id: Int): Unit = {
@@ -155,15 +155,27 @@ object LineageHandler {
 
           val tmp = tap.asInstanceOf[Lineage[(Any, Array[Int] ) ]]
 //               get.map(r => (r._1._2, r._2.asInstanceOf[Array[Int]]))
-          val lineage = new LineageRDD(getLineage(tmp, lineageID.asInstanceOf[Int]).flatMap(r => r._2.map(b => (r._1, (Dummy, b)))))
-          lineage.goBackAll().show
+          val lineage = new LineageRDD(getLineage(tmp, lineageID.asInstanceOf[Int]).flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
+          val a = lineage.goBackAll()
+               a.collect().foreach(println)
+          println("showing lineage now")
+          a.show(true)
       }
       disableTopRDDset = false;
       0L
     }
 
     def getLineage[T, V](prev: Lineage[(T, V)], next: T) = {
-      prev.filter(current => true)
+       prev.filter { current =>
+         true
+       /* current._1 match {
+          case t : Tuple2[Any, T] =>
+            t._2 == next
+          case _ =>
+            current._1 == next
+        }
+*/
+      }
     }
 
     def startLineageQuery(): Unit = {
@@ -193,7 +205,7 @@ object LineageHandler {
     }
   }
     def releaseLock(exeID : String): Unit ={
-    val actor = executorActor(exeID)
+   // val actor = executorActor(exeID)
     if(executorActor.contains(exeID)){
       executorActor(exeID) ! ReleaseLock()
     }else{

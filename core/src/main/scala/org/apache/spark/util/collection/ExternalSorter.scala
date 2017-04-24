@@ -23,12 +23,15 @@ import java.util.Comparator
 import com.google.common.hash.Hashing
 import com.google.common.io.ByteStreams
 import org.apache.spark._
+import org.apache.spark.debugging.LineageHandler
 import org.apache.spark.executor.ShuffleWriteMetrics
 import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.scheduler.ShuffleMapTask
 import org.apache.spark.serializer.{DeserializationStream, Serializer}
 import org.apache.spark.storage.{BlockId, BlockObjectWriter}
 import org.apache.spark.util.PackIntIntoLong
 
+import org.apache.spark.rdd.RDD
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -86,7 +89,7 @@ private[spark] class ExternalSorter[K, V, C](
     aggregator: Option[Aggregator[K, V, C]] = None,
     partitioner: Option[Partitioner] = None,
     ordering: Option[Ordering[K]] = None,
-    serializer: Option[Serializer] = None)
+    serializer: Option[Serializer] = None ,shuffletask: ShuffleMapTask = null)
   extends Logging with Spillable[SizeTrackingPairCollection[(Int, K), C]] {
 
   private val numPartitions = partitioner.map(_.numPartitions).getOrElse(1)
@@ -210,7 +213,14 @@ private[spark] class ExternalSorter[K, V, C](
       while (records.hasNext) {
         addElementsRead()
         kv = records.next()
-        map.changeValue((getPartition(kv._1), kv._1), update)
+        try {
+          map.changeValue((getPartition(kv._1), kv._1), update)
+        }catch{
+          case e:Exception =>
+            shuffletask.finalizeTask(kv, shuffletask.rdd_.id , e,Hashing.murmur3_32().hashString(kv._1.toString).asInt())
+//            LineageHandler.setCrash(kv, shuffletask.rdd_.id , e,Hashing.murmur3_32().hashString(kv._1.toString).asInt())
+        }
+
         maybeSpillCollection(usingMap = true)
       }
     } else if (bypassMergeSort) {

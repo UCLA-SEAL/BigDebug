@@ -18,10 +18,12 @@
 package org.apache.spark.shuffle.sort
 
 import org.apache.spark.executor.ShuffleWriteMetrics
-import org.apache.spark.scheduler.MapStatus
+import org.apache.spark.scheduler.{ShuffleMapTask, MapStatus}
 import org.apache.spark.shuffle.{BaseShuffleHandle, IndexShuffleBlockManager, ShuffleWriter}
 import org.apache.spark.util.collection.ExternalSorter
 import org.apache.spark.{Logging, SparkEnv, TaskContext}
+
+import org.apache.spark.rdd.RDD
 
 private[spark] class SortShuffleWriter[K, V, C](
     shuffleBlockManager: IndexShuffleBlockManager,
@@ -48,18 +50,18 @@ private[spark] class SortShuffleWriter[K, V, C](
 
   /** Write a bunch of records to this task's output */
   // Matteo
-  override def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false): Unit = {
+  override def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false  , shuffletask: ShuffleMapTask = null): Unit = {
     if (dep.mapSideCombine) {
       require(dep.aggregator.isDefined, "Map-side combine without Aggregator specified!")
       sorter = new ExternalSorter[K, V, C](
-        dep.aggregator, Some(dep.partitioner), dep.keyOrdering, dep.serializer)
+        dep.aggregator, Some(dep.partitioner), dep.keyOrdering, dep.serializer , shuffletask)
       sorter.insertAll(records)
     } else {
       // In this case we pass neither an aggregator nor an ordering to the sorter, because we don't
       // care whether the keys get sorted in each partition; that will be done on the reduce side
       // if the operation being run is sortByKey.
       sorter = new ExternalSorter[K, V, V](
-        None, Some(dep.partitioner), None, dep.serializer)
+        None, Some(dep.partitioner), None, dep.serializer, shuffletask)
       sorter.insertAll(records, if(isLineage) Some(false) else None, context)
     }
 

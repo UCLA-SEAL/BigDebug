@@ -17,6 +17,9 @@
 
 package org.apache.spark
 
+import org.apache.spark.debugging.LineageHandler
+import org.apache.spark.lineage.rdd.Lineage
+
 import scala.language.implicitConversions
 
 import java.io._
@@ -1305,12 +1308,26 @@ class SparkContext(config: SparkConf) extends Logging with ExecutorAllocationCli
    * flag specifies whether the scheduler can run the computation on the driver rather than
    * shipping it out to the cluster, for short actions like first().
    */
+  /**BD**/
+
+
+
   def runJob[T, U: ClassTag](
       rdd: RDD[T],
       func: (TaskContext, Iterator[T]) => U,
       partitions: Seq[Int],
       allowLocal: Boolean,
       resultHandler: (Int, U) => Unit) {
+
+    /** BS @Gulzar */
+    LineageHandler.setTopRDD(rdd, dagScheduler.getJobId())
+    LineageHandler.setSparkContext(this)
+    rdd match {
+      case lrdd: Lineage[T] => LineageHandler.setLineageContext(lrdd.lineageContext)
+      case _ =>
+    }
+    /** BS @Gulzar */
+
     if (stopped) {
       throw new IllegalStateException("SparkContext has been shutdown")
     }

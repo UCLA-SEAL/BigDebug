@@ -160,6 +160,13 @@ class DAGScheduler(
     eventProcessActor ! CompletionEvent(task, reason, result, accumUpdates, taskInfo, taskMetrics)
   }
 
+
+/*** BS @ Gulzar */
+  def getJobId(): Int ={
+    nextJobId.get()
+  }
+  /***********/
+
   /**
    * Update metrics for in-progress tasks and let the master know that the BlockManager is still
    * alive. Return true if the driver knows about the given block manager. Otherwise, return false,

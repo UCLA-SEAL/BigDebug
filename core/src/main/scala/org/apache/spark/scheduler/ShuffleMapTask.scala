@@ -19,6 +19,8 @@ package org.apache.spark.scheduler
 
 import java.nio.ByteBuffer
 
+import org.apache.spark.debugging.LineageHandler
+
 import scala.language.existentials
 
 import org.apache.spark._
@@ -51,6 +53,8 @@ private[spark] class ShuffleMapTask(
     this(0, null, new Partition { override def index = 0 }, null)
   }
 
+  var rdd_ : RDD[_] = null
+
   @transient private val preferredLocs: Seq[TaskLocation] = {
     if (locs == null) Nil else locs.toSet.toSeq
   }
@@ -60,13 +64,13 @@ private[spark] class ShuffleMapTask(
     val ser = SparkEnv.get.closureSerializer.newInstance()
     val (rdd, dep) = ser.deserialize[(RDD[_], ShuffleDependency[_, _, _])](
       ByteBuffer.wrap(taskBinary.value), Thread.currentThread.getContextClassLoader)
-
+      rdd_ = rdd
     metrics = Some(context.taskMetrics)
     var writer: ShuffleWriter[Any, Any] = null
     try {
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
-      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]], rdd.isLineageActive)
+      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]], rdd.isLineageActive , this)
 
       // The reduce size requires a certain amount of free heap memory in order to work properly.
       // If freeMemory is not enough, we call the garbage collector
@@ -89,9 +93,24 @@ private[spark] class ShuffleMapTask(
         throw e
     } finally {
       SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context) // Added by Matteo
+      if(record!=null) {
+        LineageHandler.setCrash(record, subtaskID, exception, lineageID)
+      }
     }
   }
-
+  /****Bs @ Gulzar **/
+  var record : Any =null
+  var subtaskID = -1
+  var exception:Exception =null
+  var lineageID = -1
+  def finalizeTask(r: Any, s: Int, e: Exception, l : Int): Unit ={
+    record = r;
+    subtaskID = s;
+    exception = e
+    lineageID = l;
+    //SparkEnv.get.cacheManager.finalizeTaskCache(rdd_, partition.index, context)
+  }
+  /****Bs @ Gulzar **/
   override def preferredLocations: Seq[TaskLocation] = preferredLocs
 
   override def toString = "ShuffleMapTask(%d, %d)".format(stageId, partitionId)

@@ -17,14 +17,16 @@
 
 package org.apache.spark.shuffle
 
-import org.apache.spark.scheduler.MapStatus
+import org.apache.spark.scheduler.{ShuffleMapTask, MapStatus}
+
+import org.apache.spark.rdd.RDD
 
 /**
  * Obtained inside a map task to write out records to the shuffle system.
  */
 private[spark] trait ShuffleWriter[K, V] {
   /** Write a bunch of records to this task's output */
-  def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false): Unit // Matteo
+  def write(records: Iterator[_ <: Product2[K, V]], isLineage: Boolean = false , shuffletask: ShuffleMapTask = null): Unit // Matteo
 
   /** Close this writer, passing along whether the map completed */
   def stop(success: Boolean): Option[MapStatus]

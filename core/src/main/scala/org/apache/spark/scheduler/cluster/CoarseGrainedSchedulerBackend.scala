@@ -19,6 +19,8 @@ package org.apache.spark.scheduler.cluster
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.apache.spark.debugging.LineageHandler
+
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -84,6 +86,13 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val actorSyste
     }
 
     def receiveWithLogging = {
+/**BS @ Gulzar**/
+      case NotifyCrashCulprit(str, exec, stageID, taskID, subtaskID, exception, waiting, id) =>
+        LineageHandler.enrollCrash(str, stageID, taskID, subtaskID, exception, waiting, exec, id)
+      /**BS @ Gulzar**/
+
+
+
       case RegisterExecutor(executorId, hostPort, cores) =>
         Utils.checkHostPort(hostPort, "Host port expected " + hostPort)
         if (executorDataMap.contains(executorId)) {
@@ -91,6 +100,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val actorSyste
         } else {
           logInfo("Registered executor: " + sender + " with ID " + executorId)
           sender ! RegisteredExecutor
+
+          /**BS @ Gulzar**/
+          LineageHandler.registerExecutor(executorId, sender)
+          /**BS @ Gulzar**/
 
           addressToExecutorId(sender.path.address) = executorId
           totalCoreCount.addAndGet(cores)

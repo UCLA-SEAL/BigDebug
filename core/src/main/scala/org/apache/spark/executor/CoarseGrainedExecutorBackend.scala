@@ -19,6 +19,8 @@ package org.apache.spark.executor
 
 import java.nio.ByteBuffer
 
+import org.apache.spark.debugging.{LineageHandler, ExecutorManager}
+
 import scala.concurrent.Await
 
 import akka.actor.{Actor, ActorSelection, ActorSystem, Props}
@@ -39,7 +41,7 @@ private[spark] class CoarseGrainedExecutorBackend(
     hostPort: String,
     cores: Int,
     sparkProperties: Seq[(String, String)],
-    actorSystem: ActorSystem)
+    actorSystem: ActorSystem, conf: SparkConf = null)
   extends Actor with ActorLogReceive with ExecutorBackend with Logging {
 
   Utils.checkHostPort(hostPort, "Expected hostport")
@@ -47,14 +49,33 @@ private[spark] class CoarseGrainedExecutorBackend(
   var executor: Executor = null
   var driver: ActorSelection = null
 
+
+
+/**BS @ Gulzar*/
+  def getConf(): SparkConf = {
+    conf
+  }
+
+  def getExecutorId(): String = {
+    executorId
+  }
+  /**BS @ Gulzar*/
   override def preStart() {
     logInfo("Connecting to driver: " + driverUrl)
     driver = context.actorSelection(driverUrl)
+
+    /**BS @ Gulzar*/
+    ExecutorManager.SetDriver(driver)
+    ExecutorManager.SetExecutorId(executorId)
+    /**BS @ Gulzar*/
     driver ! RegisterExecutor(executorId, hostPort, cores)
     context.system.eventStream.subscribe(self, classOf[RemotingLifecycleEvent])
   }
 
   override def receiveWithLogging = {
+    case ReleaseLock() =>
+      println("Got Release")
+    LineageHandler.releaseLocalLock();
     case RegisteredExecutor =>
       logInfo("Successfully registered with driver")
       val (hostname, _) = Utils.parseHostPort(hostPort)

@@ -47,6 +47,9 @@ private[spark] class TaskContextImpl(val stageId: Int,
   // Used to pipeline records through taps inside the same stage
   @transient var currentInputId: Int = -1
 
+  // Used to mantains input ids for crash culprit
+ // @transient var currentInputId: List[(Int, Any)] = Nil
+
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null
 
