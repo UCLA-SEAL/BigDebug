@@ -52,8 +52,8 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
     }
 
     toMaterialize.foreach(tap => {
-      val t = new Runnable() {
-        override def run() {
+   //   val t = new Runnable() {
+   //     override def run() {
           val key = RDDBlockId(tap._1.id, split)
           val arr = tap._1.materializeBuffer
           try {
@@ -64,10 +64,10 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
           } finally {
             tap._1.releaseBuffer()
           }
-        }
-      }
+//        }
+//      }
 
-      context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
+//      context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
     })
 
     val metrics = context.taskMetrics

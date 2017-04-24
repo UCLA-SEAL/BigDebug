@@ -140,7 +140,7 @@ object LineageHandler {
       }
       val tap = if(rdd.isInstanceOf[TapLRDD[_]])  rdd else getTapRDD(rdd)
 
-      disableTopRDDset = true;
+      disableTopRDDset = true
       tap match {
         case h: TapHadoopLRDD[_, _] =>
           getLineage[Long, String](tap.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
@@ -155,7 +155,7 @@ object LineageHandler {
 
           val tmp = tap.asInstanceOf[Lineage[(Any, Array[Int] ) ]]
 //               get.map(r => (r._1._2, r._2.asInstanceOf[Array[Int]]))
-          val lineage = new LineageRDD(getLineage(tmp, lineageID.asInstanceOf[Int]).flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
+          val lineage = new LineageRDD(getLineage(tmp, lineageID.asInstanceOf[Int]).flatMap(r => r._2.map(b => (r._1, (Dummy, b)))))//flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
           val a = lineage.goBackAll()
                a.collect().foreach(println)
           println("showing lineage now")
@@ -167,14 +167,13 @@ object LineageHandler {
 
     def getLineage[T, V](prev: Lineage[(T, V)], next: T) = {
        prev.filter { current =>
-         true
-       /* current._1 match {
-          case t : Tuple2[Any, T] =>
+       //  true
+        current._1 match {
+          case t : Tuple2[_, _] =>
             t._2 == next
           case _ =>
-            current._1 == next
+            current._2 == next
         }
-*/
       }
     }
 

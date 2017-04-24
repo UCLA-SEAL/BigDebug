@@ -75,9 +75,9 @@ private[spark] class ShuffleMapTask(
       // The reduce size requires a certain amount of free heap memory in order to work properly.
       // If freeMemory is not enough, we call the garbage collector
       // Matteo
-      if(Runtime.getRuntime.freeMemory() < 9000000000L) {
-        System.gc()
-      }
+//      if(Runtime.getRuntime.freeMemory() < 9000000000L) {
+//        System.gc()
+//      }
 
       return writer.stop(success = true).get
     } catch {

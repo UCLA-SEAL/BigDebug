@@ -353,7 +353,7 @@ private var culprit = false
 
     currentLineagePosition = Some(currentLineagePosition.get.dependencies(path).rdd)
 
-   if(!lastOperation.isDefined || lastOperation.get == Direction.FORWARD && !culprit) {
+   if((!lastOperation.isDefined || lastOperation.get == Direction.FORWARD) && !culprit) {
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {

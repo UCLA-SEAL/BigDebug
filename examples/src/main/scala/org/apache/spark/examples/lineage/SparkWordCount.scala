@@ -61,7 +61,7 @@ object SparkWordCount {
     lc.setCaptureLineage(true)
 
     // Job
-    val file = lc.textFile(logFile, 2)
+    val file = lc.textFile(logFile, 1)
     val pairs = file.flatMap(line => line.trim().split(" ")).map(word => (word.trim(), 1))
     val counts = pairs.reduceByKey(_ + _)
     //val result = counts
@@ -153,7 +153,7 @@ object SparkWordCount {
       var linRdd = counts.getLineage()
     println(linRdd.collect().length)
     linRdd.collect().foreach(println)
-      linRdd = linRdd.filter(_ == 6232546377L)
+  //    linRdd = linRdd.filter(_ == 6232546377L)
     linRdd.collect().foreach(println)
     val show = linRdd.show()
    // linRdd.collect().foreach(println)
