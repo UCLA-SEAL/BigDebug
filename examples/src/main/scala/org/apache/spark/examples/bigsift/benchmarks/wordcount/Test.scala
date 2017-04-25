@@ -10,7 +10,6 @@ import java.util.StringTokenizer
 import java.util.logging.{FileHandler, LogManager, Logger}
 
 import org.apache.spark.SparkContext._
-import org.apache.spark.examples.bigsift.benchmarks.sequencecount.WordCount
 import org.apache.spark.examples.bigsift.bigsift.interfaces.Testing
 import org.apache.spark.examples.bigsift.bigsift.interfaces.Testing
 import org.apache.spark.rdd.RDD

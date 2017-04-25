@@ -109,14 +109,7 @@ object HistogramRatingsDDOnly {
         }
         ratingMap.toIterable
       })
-      val counts  = ratings.groupByKey()
-        .map(pair => {
-          var total = 0
-          for (num <- pair._2) {
-            total += num
-          }
-          (pair._1, total)
-        })
+      val counts  = ratings.reduceByKey(_+_)
       val output = counts.collect()
 
       /** ************************

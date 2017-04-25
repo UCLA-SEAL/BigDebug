@@ -108,14 +108,7 @@ object HistogramRaters {
 
         }
         list.toList
-      }.groupByKey()
-        .map(pair => {
-        var total = 0
-        for (num <- pair._2) {
-          total += num
-        }
-        (pair._1, total)
-      }).filter(s => HistogramRatings.failure(s._2))
+      }.reduceByKey(_+_).filter(s => HistogramRatings.failure(s._2))
       val output2 = ratings.collectWithId()
 
       println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")

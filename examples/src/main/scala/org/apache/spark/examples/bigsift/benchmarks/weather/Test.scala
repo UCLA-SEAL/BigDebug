@@ -15,11 +15,13 @@ import scala.collection.mutable.MutableList
 class Test extends Testing[String] with Serializable {
   var num = 0;
 
+
   def usrTest(inputRDD: RDD[String], lm: LogManager, fh: FileHandler): Boolean = {
     //use the same logger as the object file
     val logger: Logger = Logger.getLogger(classOf[Test].getName)
     lm.addLogger(logger)
     logger.addHandler(fh)
+
 
     //assume that test will pass which returns false
     var returnValue = false
@@ -53,9 +55,13 @@ class Test extends Testing[String] with Serializable {
     }
     return returnValue
   }
-
+  var res = List[Int]()
   def usrTest(inputRDD: Array[String], lm: LogManager, fh: FileHandler): Boolean = {
     //use the same logger as the object file
+    if(res.contains(inputRDD.hashCode())){
+      return false
+    }
+   // res += inputRDD.hashCode()
     val logger: Logger = Logger.getLogger(classOf[Test].getName)
     lm.addLogger(logger)
     logger.addHandler(fh)

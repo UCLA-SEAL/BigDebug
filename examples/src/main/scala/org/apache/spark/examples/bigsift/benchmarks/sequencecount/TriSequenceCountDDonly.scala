@@ -47,8 +47,6 @@ object TriSequenceCountDDonly {
       //set up spark context
       val ctx = new SparkContext(sparkConf)
 
-
-
       //start recording time for lineage
       /**************************
         * Time Logging
@@ -60,9 +58,7 @@ object TriSequenceCountDDonly {
         * Time Logging
         **************************/
       val lines = ctx.textFile(logFile, 5)
-
       val sequence = lines.filter(s => TriSequenceCount.filterSym(s)).flatMap(s => {
-
         var wordStringP1 = new String("")
         var wordStringP2 = new String("")
         var wordStringP3 = new String("")
@@ -89,15 +85,7 @@ object TriSequenceCountDDonly {
         }
         sequenceList.toList
 
-      })//.reduceByKey(_+_)
-        .groupByKey()
-        .map(pair => {
-          var total = 0
-          for (num <- pair._2) {
-            total += num
-          }
-          (pair._1, total )
-        }).filter(s => TriSequenceCount.failure(s))
+      }).reduceByKey(_+_).filter(s => TriSequenceCount.failure(s))
 
       val out = sequence.collect()
 
@@ -127,7 +115,6 @@ object TriSequenceCountDDonly {
 
 
       val delta_debug = new DDNonExhaustive[String]
-      //delta_debug.setRecordsThreshold(100)
       val test = new Test
       val returnedRDD = delta_debug.ddgen(lines, test, new SequentialSplit[String], lm, fh , DeltaDebuggingStartTime)
 

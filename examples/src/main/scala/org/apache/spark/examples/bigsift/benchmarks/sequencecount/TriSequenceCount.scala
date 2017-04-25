@@ -91,14 +91,7 @@ object TriSequenceCount {
         sequenceList.toList
 
       })//.reduceByKey(_+_)
-        .groupByKey()
-        .map(pair => {
-        var total = 0
-        for (num <- pair._2) {
-          total += num
-        }
-        (pair._1, total )
-      }).filter(s => TriSequenceCount.failure(s))
+        .reduceByKey(_+_).filter(s => TriSequenceCount.failure(s))
 
       /**Annotating bugs on cluster**/
      val out =   sequence.collectWithId()

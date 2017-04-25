@@ -118,7 +118,7 @@ class Test extends Testing[String] with Serializable {
         for (num <- pair._2) {
           total += num._2
         }
-        (pair._1/2, total)
+        (pair._1, total)
       }).filter(a=> HistogramMovies.failure(a._2))
     val out = wordDoc
     num = num + 1

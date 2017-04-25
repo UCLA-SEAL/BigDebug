@@ -101,20 +101,13 @@ object HistogramMoviesDDOnly {
         val avg = Math.floor(avgReview * 2.toDouble)
         if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
       }
-      val counts = averageRating.groupByKey()
-        .map(pair => {
-          var total = 0
-          for (num <- pair._2) {
-            total += num
-          }
-          (pair._1/2, total)
-        }).filter(a=> HistogramMovies.failure(a._2))
+      val counts = averageRating.reduceByKey(_+_).filter(a=> HistogramMovies.failure(a._2))
       val output = counts.collect()
 
       /** ************************
         * Time Logging
         * *************************/
-      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
+      println(">>>>>>>>>>>>>  Original Job Done  <<<<<<<<<<<<<<<")
       val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
       val jobEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)

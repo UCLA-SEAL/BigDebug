@@ -104,17 +104,9 @@ object HistogramRatersDDOnly {
 
         }
         list.toList
-      }.groupByKey()
-        .map(pair => {
-        var total = 0
-        for (num <- pair._2) {
-          total += num
-        }
-        (pair._1, total)
-      }).filter(s => HistogramRatings.failure(s._2))
+      }.reduceByKey(_+_).filter(s => HistogramRatings.failure(s._2))
       val output2 = ratings.collect()
-      println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")
-      println(">>>>>>>>>>>>>  Starting Second Trace  <<<<<<<<<<<<<<<")
+      println(">>>>>>>>>>>>>  Original Job Done  <<<<<<<<<<<<<<<")
 
       /** ******************************************************************************************************************************************************************************
         * Time Logging

@@ -52,14 +52,14 @@ object WordCountDDOnly {
       /**************************
         Time Logging
         **************************/
-      val lines = sc.textFile(logFile, 5)
+      val lines = ctx.textFile(logFile, 5)
 
-      val sequence = lines.filter(s => WordC.filterSym(s)).flatMap(s => {
+      val sequence = lines.filter(s => WordCount.filterSym(s)).flatMap(s => {
         s.split(" ").map(w  => addFault(s , w) )
       }).reduceByKey(_+_).filter(s => WordCount.failure(s))
 
       /**Annotating bugs on cluster**/
-      val out =   sequence.collectWithId()
+      val out =   sequence.collect()
       /**************************
         Time Logging
         **************************/
@@ -71,53 +71,6 @@ object WordCountDDOnly {
       /**************************
         Time Logging
         **************************/
-      //stop capturing lineage information
-      lc.setCaptureLineage(false)
-      Thread.sleep(1000)
-
-      //print out the result for debugging purposes
-      for (o <- out) {
-        println(o._1._1 + ": " + o._1._2 + " - " + o._2)
-
-      }
-      //list of bad inputs
-      var list = List[Long]()
-      for (o <- out) {
-        list = o._2 :: list
-      }
-
-
-      /**************************
-        Time Logging
-        **************************/
-      val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageStartTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
-      /**************************
-        Time Logging
-        **************************/
-
-
-      var linRdd = sequence.getLineage()
-      linRdd.collect
-
-      linRdd = linRdd.filter { l => list.contains(l)}
-      linRdd = linRdd.goBackAll()
-
-      val mappedRDD = linRdd.show(false).toRDD
-
-      /**************************
-        Time Logging
-        **************************/
-      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
-      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (lineageEndTime-lineageStartTime)/1000 + "milliseconds")
-      /**************************
-        Time Logging
-        **************************/
-
 
 
       /**************************
@@ -135,7 +88,7 @@ object WordCountDDOnly {
 
       val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local)
-      val returnedRDD = delta_debug.ddgen(mappedRDD, new Test, new SequentialSplit[String], lm, fh , DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(lines, new Test, new SequentialSplit[String], lm, fh , DeltaDebuggingStartTime)
       /**************************
         Time Logging
         **************************/

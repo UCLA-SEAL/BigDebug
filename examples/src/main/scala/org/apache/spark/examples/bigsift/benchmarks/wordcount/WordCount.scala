@@ -1,4 +1,4 @@
-package org.apache.spark.examples.bigsift.benchmarks.w
+package org.apache.spark.examples.bigsift.benchmarks.wordcount
 
 /**
  * Created by Michael on 11/12/15.

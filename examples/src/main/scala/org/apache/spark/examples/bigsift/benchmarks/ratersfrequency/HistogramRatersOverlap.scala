@@ -236,8 +236,6 @@ object HistogramRatersOverlap {
           runDD(mappedRDD, logger, local, lm, fh)
         }
       }
-
-
       /** ************************
         * Time Logging
         * *************************/
@@ -299,16 +297,15 @@ object HistogramRatersOverlap {
       (rater , -99999)
     }else if(movieid.equals("39910") && rater.equals("1140255")){
       (rater , -99999)
-    }else if(movieid.equals("9977350000") && rater.equals("2464728")){
-      (rater , -99999)
-    }else if(movieid.equals("9977350000") && rater.equals("803605")){
-      (rater , -99999)
-    }else if(movieid.equals("9977350000") && rater.equals("1722054")){
-      (rater , -99999)
+//    }else if(movieid.equals("9977350000") && rater.equals("2464728")){
+//      (rater , -99999)
+//    }else if(movieid.equals("9977350000") && rater.equals("803605")){
+//      (rater , -99999)
+//    }else if(movieid.equals("9977350000") && rater.equals("1722054")){
+//      (rater , -99999)
     }else{
       (rater , 1)
     }
-
   }
   def failure(record:Int): Boolean ={
         record< 0
