@@ -29,7 +29,7 @@ private[spark] object CoarseGrainedClusterMessages {
 
   /***BD @ Gulzar**/
 
-  case class NotifyCrashCulprit(record: String, execID: String, stageID: Int, taskID: Int, subtaskID: Int, exception: Exception, waiting: Boolean, currentID: Int)
+  case class NotifyCrashCulprit(record: String, execID: String, stageID: Int, taskID: Int, subtaskID: Int, exception: Exception, waiting: Boolean, currentID: (Int , Int))
     extends CoarseGrainedClusterMessage
 
   case class ReleaseLock() extends  CoarseGrainedClusterMessage

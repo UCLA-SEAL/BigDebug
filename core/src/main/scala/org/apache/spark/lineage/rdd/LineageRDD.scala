@@ -298,7 +298,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           lineageContext.getLastLineageSeen.get match {
             case _: TapPreShuffleLRDD[_] | _: TapPreCoGroupLRDD[_] =>
               result = new ShowRDD[Long](
-                rightJoin[Long, String](prev.map(_.swap).asInstanceOf[Lineage[(Any, (RecordId))]],
+                rightJoin[Long, String](prev.map(_.swap).asInstanceOf[Lineage[(Any, (RecordId))]], //// FIX IT
                   position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                     .map(r => (r._1.get(), r._2.toString))
                 ).cache())
@@ -390,6 +390,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
         }
 
       if(print)  result.collect.foreach(println)
+      lineageContext.latestShow = result
       result
     } else {
       throw new UnsupportedOperationException("what position are you talking about?")

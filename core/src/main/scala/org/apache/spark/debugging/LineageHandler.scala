@@ -45,9 +45,9 @@ object LineageHandler {
     val currentID = context match {
       case _: TaskContextImpl =>
         val a = context.asInstanceOf[TaskContextImpl].currentInputId
-          a
+        (a  , context.partitionId())
       case _ =>
-        -1
+        (-1 , -1)
     }
     val driver = ExecutorManager.GetDriver
     if (sparkContext == null) {
@@ -64,7 +64,7 @@ object LineageHandler {
     }
 
     }
-  def setCrash(record: Any, subtaskID: Int, exception: Exception, lineageID : Int): Any = {
+  def setCrash(record: Any, subtaskID: Int, exception: Exception, lineageID : (Int, Int)): Any = {
 
     val driver = ExecutorManager.GetDriver
     if (sparkContext == null) {
@@ -118,14 +118,15 @@ object LineageHandler {
       }
     }
 
-    def enrollCrash(record: String, stageID: Int, taskID: Int, subtaskID: Int, exception: Exception, waiting: Boolean, sender: String, currentID: Int): Unit = {
+    def enrollCrash(record: String, stageID: Int, taskID: Int, subtaskID: Int, exception: Exception, waiting: Boolean, sender: String, currentID: (Int , Int)): Unit = {
+
       DebugHelper.log("INFO", "TaskExecutorManager", s"Enroll Crash ( $stageID , $taskID , $subtaskID ) $record  $currentID Error: $exception")
       currentCrash = new UnresolvedCrashRecords(record, stageID, taskID, subtaskID, currentID)
       startLineageQuery();
       releaseLock(sender);
     }
 
-    def getLineageofCrashingRecord(rddID: Int, lineageID: Int): Long = {
+    def getLineageofCrashingRecord(rddID: Int, lineageID: (Int, Int)): Long = {
       if (lineageContext == null) {
         return -1L
       }
@@ -144,7 +145,7 @@ object LineageHandler {
       tap match {
         case h: TapHadoopLRDD[_, _] =>
           getLineage[Long, String](tap.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
-            .map(r => (r._1.get(), r._2.toString)), lineageID.asInstanceOf[Int])
+            .map(r => (r._1.get(), r._2.toString)), lineageID.asInstanceOf[(Long, Long)])
             .cache().collect().foreach(println)
         case t: TapLRDD[_] =>
           lineageContext.setCulprit()
@@ -155,9 +156,9 @@ object LineageHandler {
 
           val tmp = tap.asInstanceOf[Lineage[(Any, Array[Int] ) ]]
 //               get.map(r => (r._1._2, r._2.asInstanceOf[Array[Int]]))
-          val lineage = new LineageRDD(getLineage(tmp, lineageID.asInstanceOf[Int]).flatMap(r => r._2.map(b => (r._1, (Dummy, b)))))//flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
+          val lineage = new LineageRDD(getLineage(tmp, lineageID).flatMap(r => r._2.map(b => (r._1, (Dummy, b)))))//flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
           val a = lineage.goBackAll()
-               a.collect().foreach(println)
+          a.collect().foreach(println)
           println("showing lineage now")
           a.show(true)
       }
@@ -165,12 +166,12 @@ object LineageHandler {
       0L
     }
 
-    def getLineage[T, V](prev: Lineage[(T, V)], next: T) = {
+    def getLineage[T, V](prev: Lineage[(T, V)], next: (T , T)) = {
        prev.filter { current =>
-       //  true
+        // true
         current._1 match {
           case t : Tuple2[_, _] =>
-            t._2 == next
+            t._2 == next._1 && t._1 == next._2
           case _ =>
             current._2 == next
         }
@@ -178,7 +179,7 @@ object LineageHandler {
     }
 
     def startLineageQuery(): Unit = {
-      var lin_id: Int = 0
+      var lin_id: (Int, Int) = (0, 0)
       var rddId = -1
       // if (currentCrash.linID.hashCode() == h_code) {
       lin_id = currentCrash.linID
@@ -217,4 +218,4 @@ object LineageHandler {
 
 
 
-case class UnresolvedCrashRecords(record: String, stageID: Int, taskID: Int, rddID: Int, linID:Int)
+case class UnresolvedCrashRecords(record: String, stageID: Int, taskID: Int, rddID: Int, linID:(Int , Int))

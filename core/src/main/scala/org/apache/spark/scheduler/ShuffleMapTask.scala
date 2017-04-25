@@ -94,7 +94,8 @@ private[spark] class ShuffleMapTask(
     } finally {
       SparkEnv.get.cacheManager.finalizeTaskCache(rdd, partition.index, context) // Added by Matteo
       if(record!=null) {
-        LineageHandler.setCrash(record, subtaskID, exception, lineageID)
+        LineageHandler.setCrash(record, subtaskID, exception, (lineageID , context.partitionId()))
+
       }
     }
   }
@@ -108,7 +109,7 @@ private[spark] class ShuffleMapTask(
     subtaskID = s;
     exception = e
     lineageID = l;
-    //SparkEnv.get.cacheManager.finalizeTaskCache(rdd_, partition.index, context)
+//    SparkEnv.get.cacheManager.finalizeTaskCache(rdd_, partition.index, context)
   }
   /****Bs @ Gulzar **/
   override def preferredLocations: Seq[TaskLocation] = preferredLocs
