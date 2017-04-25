@@ -158,7 +158,7 @@ private[spark] object CoarseGrainedExecutorBackend extends Logging {
       val sparkHostPort = hostname + ":" + boundPort
       actorSystem.actorOf(
         Props(classOf[CoarseGrainedExecutorBackend],
-          driverUrl, executorId, sparkHostPort, cores, props, actorSystem),
+          driverUrl, executorId, sparkHostPort, cores, props, actorSystem , null),
         name = "Executor")
       workerUrl.foreach { url =>
         actorSystem.actorOf(Props(classOf[WorkerWatcher], url), name = "WorkerWatcher")

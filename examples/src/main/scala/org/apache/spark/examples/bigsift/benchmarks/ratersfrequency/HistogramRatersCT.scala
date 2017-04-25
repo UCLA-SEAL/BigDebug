@@ -15,7 +15,7 @@ import scala.collection.mutable
   * Created by malig on 11/30/16.
   */
 
-object HistogramRaters {
+object HistogramRatersCT {
 
   private val division = 0.5f
   private val exhaustive = 1
@@ -108,7 +108,12 @@ object HistogramRaters {
 
         }
         list.toList
-      }.reduceByKey(_+_).filter(s => HistogramRaters.failure(s._2))
+      }.reduceByKeyandTest(
+        {_+_} ,
+        {HistogramRatings.failure}
+        )
+
+
       val output2 = ratings.collectWithId()
 
       println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")

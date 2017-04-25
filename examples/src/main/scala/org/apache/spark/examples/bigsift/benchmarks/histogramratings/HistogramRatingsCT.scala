@@ -1,9 +1,8 @@
-package org.apache.spark.examples.bigsift.benchmarks.ratersfrequency
+package org.apache.spark.examples.bigsift.benchmarks.histogramratings
 
 import java.util.logging._
 import java.util.{Calendar, StringTokenizer}
 
-import org.apache.spark.examples.bigsift.benchmarks.histogramratings.HistogramRatings
 import org.apache.spark.examples.bigsift.bigsift.{DDNonExhaustive, SequentialSplit}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
@@ -13,9 +12,14 @@ import scala.collection.mutable
 
 /**
   * Created by malig on 11/30/16.
+  * Seed error with respect to the movie specific rating.
+  * When traced back, from the rating count, it would lead to Error in several movies
+  *
+  *
+  *
   */
 
-object HistogramRaters {
+object HistogramRatingsCT {
 
   private val division = 0.5f
   private val exhaustive = 1
@@ -65,109 +69,116 @@ object HistogramRaters {
       /** ************************
         * Time Logging
         * *************************/
-      var jobStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      var jobStartTime = System.nanoTime()
+      val jobStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      val jobStartTime = System.nanoTime()
       logger.log(Level.INFO, "JOb starts at " + jobStartTimestamp)
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
-      val ratings  =  lc.textFile(logFile, 1).flatMap{ s =>
-        val list: mutable.MutableList[(String, Int)] = mutable.MutableList()
+      val lines = lc.textFile(logFile, 1)
+
+      //Compute once first to compare to the groundTruth to trace the lineage
+
+      val ratings  = lines.flatMap(s => {
+        var ratingMap : Map[Int, Int] =  Map()
         var rating: Int = 0
-        var movieIndex: Int = 0
         var reviewIndex: Int = 0
-        var totalReviews = 0
-        var sumRatings = 0
-        var avgReview = 0.0f
-        var absReview: Float = 0.0f
-        var fraction: Float = 0.0f
-        var outValue = 0.0f
-        var reviews = new String()
-        //var line = new String()
-        var tok = new String()
-        var ratingStr = new String()
-        var fault = false
-        var movieStr = new String
+        var movieIndex: Int = 0
+        var reviews: String = new String
+        var tok: String = new String
+        var ratingStr: String = new String
+        var raterStr: String = new String
+        var movieStr:String = new String
         movieIndex = s.indexOf(":")
         if (movieIndex > 0) {
           reviews = s.substring(movieIndex + 1)
           movieStr = s.substring(0,movieIndex)
-          val token = new StringTokenizer(reviews, ",")
-          while (token.hasMoreTokens()) {
-            tok = token.nextToken()
+          val token: StringTokenizer = new StringTokenizer(reviews, ",")
+          while (token.hasMoreTokens) {
+            tok = token.nextToken
             reviewIndex = tok.indexOf("_")
-            val rater = tok.substring(0,reviewIndex).trim()
+            raterStr = tok.substring(0, reviewIndex)
             ratingStr = tok.substring(reviewIndex + 1)
-            rating = java.lang.Integer.parseInt(ratingStr)
-            if(movieStr.equals("1995670000") && rater.equals("53679"))
-              list += Tuple2(rater, -999999)
-            else
-               list += Tuple2(rater, 1)
+            rating = ratingStr.toInt
+            var rater = raterStr.toLong
+            if (rating == 1 || rating == 2) {
+              if (rater % 13 != 0) {
+                val old_rat = ratingMap.getOrElse(rating, 0)
+                ratingMap = ratingMap updated(rating, old_rat+1)
+              }
+            }
+            else {
+              if(movieStr.equals("1995670000") && raterStr.equals("2256305") && rating == 5) {
+                val old_rat = ratingMap.getOrElse(rating, 0)
+                ratingMap = ratingMap updated(rating, old_rat + Int.MinValue)
+              }else {
+                val old_rat = ratingMap.getOrElse(rating, 0)
+                ratingMap = ratingMap updated(rating, old_rat+1)
+              }
+            }
           }
-
         }
-        list.toList
-      }.reduceByKey(_+_).filter(s => HistogramRaters.failure(s._2))
-      val output2 = ratings.collectWithId()
+        ratingMap.toIterable
+      })
+      val counts  = ratings.reduceByKey(_+_)
+        .filter(s => HistogramRatings.failure(s._2))
+      val output = counts.collectWithId()
 
-      println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")
-      println(">>>>>>>>>>>>>  Starting Second Trace  <<<<<<<<<<<<<<<")
-
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
-
+      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
       val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val jobEndTime = System.nanoTime()
+      val jobEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
 
       lc.setCaptureLineage(false)
       Thread.sleep(1000)
 
 
-    var list = List[Long]()
-      for (o <- output2) {
-        list = o._2 :: list
-
+      var list = List[Long]()
+      for (o <- output) {
+          //println(o._1._1 + ": " + o._1._2 + " - " + o._2)
+          list = o._2 :: list
       }
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageStartTime = System.nanoTime()
+      val lineageStartTime = System.nanoTime()
       logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
-      var linRdd2 = ratings.getLineage()
-      linRdd2.collect
-      linRdd2 = linRdd2.filter { l => list.contains(l) }
-      linRdd2 = linRdd2.goBackAll()
-      val showMeRdd2 = linRdd2.show(false).toRDD
+      var linRdd = counts.getLineage()
+      linRdd.collect
+      linRdd = linRdd.filter { l => list.contains(l) }
+      linRdd = linRdd.goBackAll()
+      val showMeRdd = linRdd.show(false).toRDD
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
-       val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageEndTime = System.nanoTime()
+      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      val lineageEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val DeltaDebuggingStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
@@ -175,15 +186,14 @@ object HistogramRaters {
       logger.log(Level.INFO, "Record DeltaDebugging + L  (unadjusted) time starts at " + DeltaDebuggingStartTimestamp)
       /** ************************
         * Time Logging
-        * ****************************************************************************************************************************************************************************/
+        * *************************/
 
 
-       val delta_debug = new DDNonExhaustive[String]
+      val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd2 , new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
-
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val DeltaDebuggingEndTime = System.nanoTime()
@@ -193,15 +203,16 @@ object HistogramRaters {
 
       /** ************************
         * Time Logging
-        * **************************/
-
-
+        * *************************/
 
       println("Job's DONE!")
       ctx.stop()
     }
   }
+
+
   def failure(record:Int): Boolean ={
-        record< 0
+        record < 0
+
   }
 }

@@ -1,21 +1,19 @@
-package org.apache.spark.examples.bigsift.benchmarks.ratersfrequency
+package org.apache.spark.examples.bigsift.benchmarks.histogrammovies
 
+import java.util.{StringTokenizer, Calendar}
 import java.util.logging._
-import java.util.{Calendar, StringTokenizer}
 
-import org.apache.spark.examples.bigsift.benchmarks.histogramratings.HistogramRatings
-import org.apache.spark.examples.bigsift.bigsift.{DDNonExhaustive, SequentialSplit}
+import org.apache.spark.examples.bigsift.bigsift.{SequentialSplit, DDNonExhaustive}
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.{SparkConf, SparkContext}
 
-import scala.collection.mutable
+import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.{SparkContext, SparkConf}
 
 /**
   * Created by malig on 11/30/16.
   */
 
-object HistogramRaters {
+object HistogramMoviesCT {
 
   private val division = 0.5f
   private val exhaustive = 1
@@ -47,10 +45,8 @@ object HistogramRaters {
         sparkConf.setAppName("Inverted Index").set("spark.executor.memory", "2g")
         logFile = "/home/ali/work/temp/git/bigsift/src/benchmarks/histogrammovies/data/file1s.data"
       } else {
-
         logFile = args(0)
         local = args(1).toInt
-
       }
       //set up lineage
       var lineage = true
@@ -65,15 +61,17 @@ object HistogramRaters {
       /** ************************
         * Time Logging
         * *************************/
-      var jobStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      var jobStartTime = System.nanoTime()
+      val jobStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      val jobStartTime = System.nanoTime()
       logger.log(Level.INFO, "JOb starts at " + jobStartTimestamp)
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
-      val ratings  =  lc.textFile(logFile, 1).flatMap{ s =>
-        val list: mutable.MutableList[(String, Int)] = mutable.MutableList()
+      val lines = lc.textFile(logFile, 1)
+
+      //Compute once first to compare to the groundTruth to trace the lineage
+      val averageRating = lines.map { s =>
         var rating: Int = 0
         var movieIndex: Int = 0
         var reviewIndex: Int = 0
@@ -97,77 +95,75 @@ object HistogramRaters {
           while (token.hasMoreTokens()) {
             tok = token.nextToken()
             reviewIndex = tok.indexOf("_")
-            val rater = tok.substring(0,reviewIndex).trim()
             ratingStr = tok.substring(reviewIndex + 1)
             rating = java.lang.Integer.parseInt(ratingStr)
-            if(movieStr.equals("1995670000") && rater.equals("53679"))
-              list += Tuple2(rater, -999999)
-            else
-               list += Tuple2(rater, 1)
+              sumRatings += rating
+              totalReviews += 1
           }
+          avgReview = sumRatings.toFloat / totalReviews.toFloat
 
         }
-        list.toList
-      }.reduceByKey(_+_).filter(s => HistogramRaters.failure(s._2))
-      val output2 = ratings.collectWithId()
+        val avg = Math.floor(avgReview * 2.toDouble)
+        if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
+      }
+      val counts = averageRating.reduceByKey(_+_)
+      .filter(a=> HistogramMovies.failure(a._2))
+      val output = counts.collectWithId()
 
-      println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")
-      println(">>>>>>>>>>>>>  Starting Second Trace  <<<<<<<<<<<<<<<")
-
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
-
+      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
       val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val jobEndTime = System.nanoTime()
+      val jobEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
 
       lc.setCaptureLineage(false)
       Thread.sleep(1000)
 
 
-    var list = List[Long]()
-      for (o <- output2) {
+      var list = List[Long]()
+      for (o <- output) {
         list = o._2 :: list
 
       }
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageStartTime = System.nanoTime()
+      val lineageStartTime = System.nanoTime()
       logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
-      var linRdd2 = ratings.getLineage()
-      linRdd2.collect
-      linRdd2 = linRdd2.filter { l => list.contains(l) }
-      linRdd2 = linRdd2.goBackAll()
-      val showMeRdd2 = linRdd2.show(false).toRDD
+      var linRdd = counts.getLineage()
+      linRdd.collect
+      linRdd = linRdd.filter { l => list.contains(l) }
+      linRdd = linRdd.goBackAll()
+      val showMeRdd = linRdd.show(false).toRDD
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
-       val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageEndTime = System.nanoTime()
+      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+      val lineageEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        * *************************/
 
 
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val DeltaDebuggingStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
@@ -175,15 +171,14 @@ object HistogramRaters {
       logger.log(Level.INFO, "Record DeltaDebugging + L  (unadjusted) time starts at " + DeltaDebuggingStartTimestamp)
       /** ************************
         * Time Logging
-        * ****************************************************************************************************************************************************************************/
+        * *************************/
 
 
-       val delta_debug = new DDNonExhaustive[String]
+      val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd2 , new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
-
-      /** ******************************************************************************************************************************************************************************
+      /** ************************
         * Time Logging
         * *************************/
       val DeltaDebuggingEndTime = System.nanoTime()
@@ -193,9 +188,7 @@ object HistogramRaters {
 
       /** ************************
         * Time Logging
-        * **************************/
-
-
+        * *************************/
 
       println("Job's DONE!")
       ctx.stop()
