@@ -73,23 +73,16 @@ object InvertedIndex
         wordDocList.toList
       })
         .filter(r => InvertedIndex.filterSym(r._1))
-        .groupByKey()
-        .map(pair => {
-        val docSet = scala.collection.mutable.Set[String]()
-        var value = new String("")
-        val itr = pair._2.toIterator
-        var word = pair._1
-        while (itr.hasNext) {
-          val doc = itr.next()
-          docSet += doc
-          /** ******** Bug Seeding *********************/
-          if (doc.contains("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/bigsift/wikipedia_50GB/file202") && word.equals("is")) {
-            word += "*$*"
-          }
-          /*********************************************/
-        }
-        (word, docSet)
-      }).filter(s => InvertedIndex.failure(s._1))
+        .map{
+       p =>
+         val docSet = scala.collection.mutable.Set[String]()
+         docSet += p._2
+         (p._1 , (p._1,docSet))
+      }.reduceByKey{
+        (s1,s2) =>
+         val s = s1._2.union(s2._2)
+          (s1._1, s)
+      }.filter(s => InvertedIndex.failure((s._1,s._2._2)))
       val output = wordDoc.collectWithId()
       /** ************************
         * Time Logging
@@ -107,7 +100,7 @@ object InvertedIndex
 
       var list = List[Long]()
       for (o <- output) {
-          println(o._1._1 + ": " + o._1._2 + " - " + o._2)
+         // println(o._1._1 + ": " + o._1._2 + " - " + o._2)
           list = o._2 :: list
       }
       /** ************************
@@ -172,9 +165,9 @@ object InvertedIndex
     }
   }
 
-  def failure(record: String): Boolean ={
-        record.endsWith("*$*")
-    }
+  def failure(r: (String,  scala.collection.mutable.Set[String])): Boolean ={
+     (r._2.contains("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/bigsift/wikipedia_50GB/file202") && r._1.equals("is"))
+  }
   def filterSym(str:String): Boolean ={
     val sym: Array[String] = Array(">","<" , "*" , "="  , "#" , "+" , "-" , ":" , "{" , "}" , "/","~" , "1" , "2" , "3" ,"4" , "5" , "6" , "7" , "8" , "9" , "0")
     for(i<- sym){

@@ -35,23 +35,16 @@ class Test extends Testing[String] with Serializable {
       wordDocList.toList
     })
       .filter(r => InvertedIndex.filterSym(r._1))
-      .groupByKey()
-      .map(pair => {
+      .map{
+      p =>
         val docSet = scala.collection.mutable.Set[String]()
-        var value = new String("")
-        val itr = pair._2.toIterator
-        var word = pair._1
-        while (itr.hasNext) {
-          val doc = itr.next()
-          docSet += doc
-          /** ******** Bug Seeding *********************/
-          if (doc.contains("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/bigsift/wikipedia_50GB/file202") && word.equals("is")) {
-            word += "*$*"
-          }
-          /*********************************************/
-        }
-        (word, docSet)
-      }).filter(s => InvertedIndex.failure(s._1))
+        docSet += p._2
+        (p._1 , (p._1,docSet))
+    }.reduceByKey{
+      (s1,s2) =>
+        val s = s1._2.union(s2._2)
+        (s1._1, s)
+    }.filter(s => InvertedIndex.failure((s._1,s._2._2)))
     val out = wordDoc.collect()
     num = num + 1
     println( s""" >>>>>>>>>>>>>>>>>>>>>>>>>> The number of runs are $num <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,""")
@@ -98,7 +91,7 @@ class Test extends Testing[String] with Serializable {
         /*********************************************/
       }
       (word, docSet)
-    }).filter(s => InvertedIndex.failure(s._1))
+    }).filter(s => InvertedIndex.failure(s))
 
     val out = wordDoc
     num = num + 1
