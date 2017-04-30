@@ -6,6 +6,7 @@ import java.util.{Calendar, StringTokenizer}
 import org.apache.spark.examples.bigsift.bigsift.{DDNonExhaustive, SequentialSplit}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
@@ -121,8 +122,11 @@ object HistogramRatingsCT {
         }
         ratingMap.toIterable
       })
-      val counts  = ratings.reduceByKey(_+_)
-        .filter(s => HistogramRatings.failure(s._2))
+      val counts = ratings.reduceByKeyandTest({_+_} , HistogramRatings.failure)
+
+
+      var mappedRDD: RDD[String] = null
+      try {
       val output = counts.collectWithId()
 
       /** ************************
@@ -177,6 +181,15 @@ object HistogramRatingsCT {
         * Time Logging
         * *************************/
 
+      }catch{
+        case e: Exception =>
+          lc.setCaptureLineage(false)
+          mappedRDD = lc.latestShow.toRDD
+          mappedRDD.cache()
+      }
+
+
+
 
       /** ************************
         * Time Logging
@@ -191,7 +204,7 @@ object HistogramRatingsCT {
 
       val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(mappedRDD, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
       /** ************************
         * Time Logging

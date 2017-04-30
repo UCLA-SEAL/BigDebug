@@ -1,11 +1,12 @@
 package org.apache.spark.examples.bigsift.bigsift
 
 /**
-* Created by Michael on 11/12/15.
-*/
+ * Created by Michael on 11/12/15.
+ */
 import java.sql.Timestamp
 import java.util.logging.{FileHandler, Level, LogManager, Logger}
 import java.util.{ArrayList, Calendar}
+import org.apache.spark.examples.bigsift.bigsift.interfaces.{Splitting, TestingVega}
 import org.apache.spark.examples.bigsift.bigsift.interfaces.{TestingVega, Splitting}
 import org.apache.spark.rdd.RDD
 
@@ -74,7 +75,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 			var granularity_increase = 0
 			var bar_offset = 0
 			val failing_stack = new ArrayList[SubRDD[T]]()
-			failing_stack.add(0, new SubRDD[T](rdd, partitions, bar_offset , -1))
+			failing_stack.add(0, new SubRDD[T](rdd, partitions , -1))
 			while (!failing_stack.isEmpty) {
 				breakable {
 
@@ -82,7 +83,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 					rdd = subrdd.rdd
 
 					val sizeRdd = if(subrdd.count == -1)rdd.count() else subrdd.count
-					bar_offset = subrdd.bar
+
 					partitions = subrdd.partition
 					printlog(logger, sizeRdd, runTime,startTime)
 					if (sizeRdd < dd_movetolocal_threshold && runningOnCluster) {
@@ -145,7 +146,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 						if (result) { //test has failed
 							next_partitions = 2
 							bar_offset = 0
-							failing_stack.add(0, new SubRDD(rddList(i), next_partitions, bar_offset , -1))
+							failing_stack.add(0, new SubRDD(rddList(i), next_partitions , -1))
 							rdd_failed = true
 						}
 						i = i+ 1
@@ -156,22 +157,21 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 						var j = 0;
 						while(!rdd_failed && j<partitions){
 							testFunc.clearChild(2)
-							//for (j <- 0 until partitions) {
-							val i = (j + bar_offset) % partitions
 							//val rddBar = rdd.subtract(rddList(i))
 							//val result = test(rddBar, testFunc, lm, fh)
 							//val rddBar = rdd.subtract(rddList(i))
-							 test(rddList(i), testFunc, lm, fh ,0)
-							val result = test(rddList(i), testFunc, lm, fh, 2)
+							test(rddList(j), testFunc, lm, fh ,0)
+							val result = test(rddList(j), testFunc, lm, fh, 2)
 							logger.log(Level.INFO, s"""In complement stage""")
 							runTime = runTime + 1
 							printlog(logger, sizeRdd, runTime , startTime);
 							if (result) {
 								rddBar_failed = true
+								rdd_failed = true
 								next_rdd = rdd.subtract(rddList(i))
 								next_partitions = next_partitions - 1
 								bar_offset = i
-								failing_stack.add(0, new SubRDD(next_rdd, next_partitions, bar_offset , -1))
+								failing_stack.add(0, new SubRDD(next_rdd, max(next_partitions,2) , -1))
 							}
 							j = j+1
 						}
@@ -197,7 +197,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 							break
 						}
 						next_partitions = min(rddSize, partitions * 2).toInt
-						failing_stack.add(0, new SubRDD(rdd, next_partitions, bar_offset , rddSize))
+						failing_stack.add(0, new SubRDD(rdd, next_partitions , rddSize))
 						//println("DD: Increase granularity to: " + next_partitions)
 					}
 					//		val endTime = System.nanoTime
@@ -213,7 +213,9 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 	def min(l1:Long, l2:Long): Long = {
 		if(l1 < l2) l1 else l2
 	}
-
+	def max(l1:Int, l2:Int): Int = {
+		if(l1 < l2) l2 else l1
+	}
 	def ddgen(inputRDD: RDD[T], testFunc: TestingVega[T, K], splitFunc: Splitting[T], lm: LogManager, fh: FileHandler , sTime:Long): List[Boolean] = {
 		startTime = sTime
 		dd_helper(inputRDD, 2, testFunc, splitFunc, lm, fh)
@@ -239,7 +241,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 		var partitions = numberOfPartitions
 		var bar_offset = 0
 		val failing_stack = new ArrayList[SubArray[T]]()
-		failing_stack.add(0, new SubArray[T](rdd, partitions, bar_offset))
+		failing_stack.add(0, new SubArray[T](rdd, partitions))
 		while (!failing_stack.isEmpty) {
 			breakable {
 				val startTimeStampe = new Timestamp(Calendar.getInstance.getTime.getTime)
@@ -248,7 +250,6 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 				rdd = subrdd.arr
 				//Count size
 				val sizeRdd = rdd.length
-				bar_offset = subrdd.bar
 				partitions = subrdd.partition
 
 				printlog(logger, sizeRdd, runTime , startTime);
@@ -294,7 +295,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 						rdd_failed = true
 						next_partitions = 2
 						bar_offset = 0
-						failing_stack.add(0, new SubArray(rddList(i), next_partitions, bar_offset))
+						failing_stack.add(0, new SubArray(rddList(i), next_partitions))
 					}
 					i = i+1
 				}
@@ -309,11 +310,11 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 						printlog(logger, sizeRdd, runTime , startTime);
 						if (result) {
 							rddBar_failed = true
-							//              next_rdd = next_rdd.intersection(rddBar)
+							rdd_failed=true
 							next_rdd = rddBar
 							next_partitions = next_partitions - 1
 							bar_offset = i
-							failing_stack.add(0, new SubArray(next_rdd, next_partitions, bar_offset))
+							failing_stack.add(0, new SubArray(next_rdd, next_partitions))
 						}
 						j=j+1
 					}
@@ -335,7 +336,7 @@ class DDNonExhaustiveVega [T: ClassTag, K: ClassTag] {
 						break
 					}
 					next_partitions = Math.min(rdd.length, partitions * 2)
-					failing_stack.add(0, new SubArray(rdd, next_partitions, bar_offset))
+					failing_stack.add(0, new SubArray(rdd, next_partitions))
 					//println("DD: Increase granularity to: " + next_partitions)
 				}
 				val endTime = System.nanoTime

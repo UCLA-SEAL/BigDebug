@@ -7,6 +7,7 @@ import org.apache.spark.examples.bigsift.bigsift.{SequentialSplit, DDNonExhausti
 import org.apache.spark.lineage.LineageContext
 
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkContext, SparkConf}
 
 /**
@@ -106,8 +107,11 @@ object HistogramMoviesCT {
         val avg = Math.floor(avgReview * 2.toDouble)
         if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
       }
-      val counts = averageRating.reduceByKey(_+_)
-      .filter(a=> HistogramMovies.failure(a._2))
+      val counts = averageRating.reduceByKeyandTest({_+_} , HistogramMovies.failure)
+
+
+      var mappedRDD: RDD[String] = null
+      try {
       val output = counts.collectWithId()
 
       /** ************************
@@ -162,6 +166,13 @@ object HistogramMoviesCT {
         * Time Logging
         * *************************/
 
+      }catch{
+        case e: Exception =>
+          lc.setCaptureLineage(false)
+          mappedRDD = lc.latestShow.toRDD
+          mappedRDD.cache()
+      }
+
 
       /** ************************
         * Time Logging
@@ -176,7 +187,7 @@ object HistogramMoviesCT {
 
       val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(mappedRDD, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
       /** ************************
         * Time Logging

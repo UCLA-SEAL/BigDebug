@@ -7,13 +7,14 @@ import org.apache.spark.examples.bigsift.benchmarks.histogramratings.HistogramRa
 import org.apache.spark.examples.bigsift.bigsift.{DDNonExhaustive, SequentialSplit}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
 
 /**
-  * Created by malig on 11/30/16.
-  */
+ * Created by malig on 11/30/16.
+ */
 
 object HistogramRatersCT {
 
@@ -103,74 +104,82 @@ object HistogramRatersCT {
             if(movieStr.equals("1995670000") && rater.equals("53679"))
               list += Tuple2(rater, -999999)
             else
-               list += Tuple2(rater, 1)
+              list += Tuple2(rater, 1)
           }
 
         }
         list.toList
       }.reduceByKeyandTest(
-        {_+_} ,
-        {HistogramRatings.failure}
-        )
+      {_+_} ,
+      {HistogramRatings.failure}
+      )
+
+      var mappedRDD: RDD[String] = null
+      try {
+        val output2 = ratings.collectWithId()
+
+        println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")
+        println(">>>>>>>>>>>>>  Starting Second Trace  <<<<<<<<<<<<<<<")
+
+        /** ******************************************************************************************************************************************************************************
+          * Time Logging
+          * *************************/
+
+        val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val jobEndTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
+        logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
+
+        /** ************************
+          * Time Logging
+          * *******************************************************************************************************************************************************************************/
 
 
-      val output2 = ratings.collectWithId()
-
-      println(">>>>>>>>>>>>>  Second Job Done  <<<<<<<<<<<<<<<")
-      println(">>>>>>>>>>>>>  Starting Second Trace  <<<<<<<<<<<<<<<")
-
-      /** ******************************************************************************************************************************************************************************
-        * Time Logging
-        * *************************/
-
-      val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val jobEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
-
-      /** ************************
-        * Time Logging
-        * *******************************************************************************************************************************************************************************/
+        lc.setCaptureLineage(false)
+        Thread.sleep(1000)
 
 
-      lc.setCaptureLineage(false)
-      Thread.sleep(1000)
+        var list = List[Long]()
+        for (o <- output2) {
+          list = o._2 :: list
+
+        }
+
+        /** ******************************************************************************************************************************************************************************
+          * Time Logging
+          * *************************/
+        val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val lineageStartTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
+        /** ************************
+          * Time Logging
+          * *******************************************************************************************************************************************************************************/
+
+        var linRdd2 = ratings.getLineage()
+        linRdd2.collect
+        linRdd2 = linRdd2.filter { l => list.contains(l)}
+        linRdd2 = linRdd2.goBackAll()
+        val showMeRdd2 = linRdd2.show(false).toRDD
+
+        /** ******************************************************************************************************************************************************************************
+          * Time Logging
+          * *************************/
+        val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val lineageEndTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
+        logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
+
+        /** ************************
+          * Time Logging
+          * *******************************************************************************************************************************************************************************/
 
 
-    var list = List[Long]()
-      for (o <- output2) {
-        list = o._2 :: list
-
+      }catch{
+        case e: Exception =>
+          lc.setCaptureLineage(false)
+          mappedRDD = lc.latestShow.toRDD
+          mappedRDD.cache()
       }
-
-      /** ******************************************************************************************************************************************************************************
-        * Time Logging
-        * *************************/
-      val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageStartTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
-      /** ************************
-        * Time Logging
-        * *******************************************************************************************************************************************************************************/
-
-      var linRdd2 = ratings.getLineage()
-      linRdd2.collect
-      linRdd2 = linRdd2.filter { l => list.contains(l) }
-      linRdd2 = linRdd2.goBackAll()
-      val showMeRdd2 = linRdd2.show(false).toRDD
-
-      /** ******************************************************************************************************************************************************************************
-        * Time Logging
-        * *************************/
-       val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-       val lineageEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
-
-      /** ************************
-        * Time Logging
-        * *******************************************************************************************************************************************************************************/
-
 
       /** ******************************************************************************************************************************************************************************
         * Time Logging
@@ -183,9 +192,9 @@ object HistogramRatersCT {
         * ****************************************************************************************************************************************************************************/
 
 
-       val delta_debug = new DDNonExhaustive[String]
+      val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(showMeRdd2 , new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val returnedRDD = delta_debug.ddgen(mappedRDD , new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
 
       /** ******************************************************************************************************************************************************************************
@@ -207,6 +216,6 @@ object HistogramRatersCT {
     }
   }
   def failure(record:Int): Boolean ={
-        record< 0
+    record< 0
   }
 }

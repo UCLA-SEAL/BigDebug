@@ -8,6 +8,7 @@ import java.util.logging._
 import java.util.{Calendar, StringTokenizer}
 
 import org.apache.spark.examples.bigsift.bigsift.{SequentialSplit, DDNonExhaustive}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.MutableList
@@ -90,78 +91,84 @@ object TriSequenceCountCT {
         }
         sequenceList.toList
 
-      })//.reduceByKey(_+_)
-        .groupByKey()
-        .map(pair => {
-        var total = 0
-        for (num <- pair._2) {
-          total += num
-        }
-        (pair._1, total )
-      }).filter(s => TriSequenceCount.failure(s))
-
+      }).reduceByKeyandTest(
+      {_+_} ,
+      {v => TriSequenceCount.failure(("",v))}
+      )
       /**Annotating bugs on cluster**/
-     val out =   sequence.collectWithId()
-      /**************************
-        Time Logging
-        **************************/
-      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
-      val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val jobEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (jobEndTime-jobStartTime)/1000 + "milliseconds")
-      /**************************
-        Time Logging
-        **************************/
-      //stop capturing lineage information
-      lc.setCaptureLineage(false)
-      Thread.sleep(1000)
 
-      //print out the result for debugging purposes
-      for (o <- out) {
-      println(o._1._1 + ": " + o._1._2 + " - " + o._2)
 
-      }
-      //list of bad inputs
-      var list = List[Long]()
-      for (o <- out) {
+
+     var mappedRDD: RDD[String] = null
+      try {
+        val out = sequence.collectWithId()
+
+        /** ************************
+        Time Logging
+          * *************************/
+        println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
+        val jobEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val jobEndTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
+        logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
+
+        /** ************************
+        Time Logging
+          * *************************/
+        //stop capturing lineage information
+        lc.setCaptureLineage(false)
+        Thread.sleep(1000)
+
+        //print out the result for debugging purposes
+        for (o <- out) {
+          println(o._1._1 + ": " + o._1._2 + " - " + o._2)
+
+        }
+        //list of bad inputs
+        var list = List[Long]()
+        for (o <- out) {
           list = o._2 :: list
+        }
+
+
+        /** ************************
+        Time Logging
+          * *************************/
+        val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val lineageStartTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
+        /** ************************
+        Time Logging
+          * *************************/
+
+
+        var linRdd = sequence.getLineage()
+        linRdd.collect
+
+        linRdd = linRdd.filter { l => list.contains(l)}
+        linRdd = linRdd.goBackAll()
+
+        mappedRDD = linRdd.show(false).toRDD
+
+        /**************************
+        Time Logging
+          **************************/
+        println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
+        val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
+        val lineageEndTime = System.nanoTime()
+        logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
+        logger.log(Level.INFO, "JOb span at " + (lineageEndTime-lineageStartTime)/1000 + "milliseconds")
+        /**************************
+        Time Logging
+          **************************/
+
       }
-
-
-      /**************************
-        Time Logging
-        **************************/
-      val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageStartTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
-      /**************************
-        Time Logging
-        **************************/
-
-
-      var linRdd = sequence.getLineage()
-      linRdd.collect
-
-      linRdd = linRdd.filter { l => list.contains(l)}
-      linRdd = linRdd.goBackAll()
-
-      val mappedRDD = linRdd.show(false).toRDD
-
-      /**************************
-        Time Logging
-        **************************/
-      println(">>>>>>>>>>>>>  First Job Done  <<<<<<<<<<<<<<<")
-      val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
-      val lineageEndTime = System.nanoTime()
-      logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
-      logger.log(Level.INFO, "JOb span at " + (lineageEndTime-lineageStartTime)/1000 + "milliseconds")
-      /**************************
-        Time Logging
-        **************************/
-
-
-
+      catch{
+        case e: Exception =>
+          lc.setCaptureLineage(false)
+          mappedRDD = lc.latestShow.toRDD
+          mappedRDD.cache()
+      }
       /**************************
         Time Logging
         **************************/
@@ -171,8 +178,6 @@ object TriSequenceCountCT {
       /**************************
         Time Logging
         **************************/
-
-
 
 
       val delta_debug = new DDNonExhaustive[String]

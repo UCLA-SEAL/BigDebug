@@ -14,7 +14,7 @@ import scala.collection.mutable.MutableList
  * Created by ali on 12/2/16.
  */
 
-object InvertedIndex
+object InvertedIndexCT
 {
 
   private val exhaustive = 0
