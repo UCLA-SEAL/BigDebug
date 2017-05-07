@@ -84,11 +84,6 @@ class Test extends Testing[String] with Serializable {
       while (itr.hasNext) {
         val doc  = itr.next()._2
         docSet += doc
-        /** ******** Bug Seeding *********************/
-        if (doc.contains("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/bigsift/wikipedia_50GB/file202") && word.equals("is")) {
-          word += "*$*"
-        }
-        /*********************************************/
       }
       (word, docSet)
     }).filter(s => InvertedIndex.failure(s))

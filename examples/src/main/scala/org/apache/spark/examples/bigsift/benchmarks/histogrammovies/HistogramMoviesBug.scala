@@ -1,26 +1,31 @@
-package org.apache.spark.examples.bigsift.benchmarks.invertedindex
+package org.apache.spark.examples.bigsift.benchmarks.histogrammovies
 
-import java.util.Calendar
 import java.util.logging._
+import java.util.{Calendar, StringTokenizer}
 
-import org.apache.spark.examples.bigsift.bigsift.{SequentialSplit, DDNonExhaustive}
+import org.apache.spark.examples.bigsift.bigsift.{DDNonExhaustive, SequentialSplit}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext, SparkConf}
-
-import scala.collection.mutable.MutableList
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
- * Created by ali on 12/2/16.
- */
+  * Created by malig on 11/30/16.
+  */
 
-object InvertedIndexCT
-{
+object HistogramMoviesBug {
 
-  private val exhaustive = 0
+  private val division = 0.5f
+  private val exhaustive = 1
 
-  def main(args: Array[String]): Unit = {
+  def mapFunc(str: String): (Float, Int) = {
+    val token = new StringTokenizer(str)
+    val bin = token.nextToken().toFloat
+    val value = token.nextToken().toInt
+    return (bin, value)
+  }
+
+  def main(args: Array[String]) {
     try {
       //set up logging
       val lm: LogManager = LogManager.getLogManager
@@ -30,28 +35,34 @@ object InvertedIndexCT
       lm.addLogger(logger)
       logger.setLevel(Level.INFO)
       logger.addHandler(fh)
-
       //set up spark configuration
       val sparkConf = new SparkConf()
 
       var logFile = ""
       var local = 500
-      if (args.length < 2) {
-        sparkConf.setMaster("local[6]")
-        sparkConf.setAppName("Inverted Index").set("spark.executor.memory", "2g")
-        logFile = "/home/ali/work/temp/git/lineageDelta/spark-lineage/examples/src/main/scala/org/apache/spark/examples/bigsift/benchmarks/invertedindex/data/inverted"
+      var bugID = "1995670000"
+      if (args.length < 3) {
+        System.exit(1)
+        //        sparkConf.setMaster("local[6]")
+        //        sparkConf.setAppName("Inverted Index").set("spark.executor.memory", "2g")
+        //        logFile = "/home/ali/work/temp/git/bigsift/src/benchmarks/histogrammovies/data/file1s.data"
       } else {
+
         logFile = args(0)
         local = args(1).toInt
+        bugID = args(2)
+
       }
       //set up lineage
       var lineage = true
       lineage = true
 
       val ctx = new SparkContext(sparkConf)
-      //start recording time for lineage
+
       val lc = new LineageContext(ctx)
       lc.setCaptureLineage(lineage)
+
+      //start recording time for lineage
       /** ************************
         * Time Logging
         * *************************/
@@ -61,35 +72,52 @@ object InvertedIndexCT
       /** ************************
         * Time Logging
         * *************************/
+
       val lines = lc.textFile(logFile, 1)
-      val wordDoc = lines.flatMap(s => {
-        val wordDocList: MutableList[(String, String)] = MutableList()
-        val colonIndex = s.lastIndexOf("^")
-        val docName = s.substring(0, colonIndex).trim()
-        val content = s.substring(colonIndex + 1)
-        val wordList = content.trim.split(" ")
-        for (w <- wordList) {
-          wordDocList += Tuple2(w, docName)
+
+      //Compute once first to compare to the groundTruth to trace the lineage
+      val averageRating = lines.map { s =>
+        var rating: Int = 0
+        var movieIndex: Int = 0
+        var reviewIndex: Int = 0
+        var totalReviews = 0
+        var sumRatings = 0
+        var avgReview = 0.0f
+        var absReview: Float = 0.0f
+        var fraction: Float = 0.0f
+        var outValue = 0.0f
+        var reviews = new String()
+        //var line = new String()
+        var tok = new String()
+        var ratingStr = new String()
+        var fault = false
+        var movieStr = new String
+        movieIndex = s.indexOf(":")
+        if (movieIndex > 0) {
+          reviews = s.substring(movieIndex + 1)
+          movieStr = s.substring(0,movieIndex)
+          val token = new StringTokenizer(reviews, ",")
+          while (token.hasMoreTokens()) {
+            tok = token.nextToken()
+            reviewIndex = tok.indexOf("_")
+            ratingStr = tok.substring(reviewIndex + 1)
+            rating = java.lang.Integer.parseInt(ratingStr)
+              sumRatings += rating
+              totalReviews += 1
+          }
+          avgReview = sumRatings.toFloat / totalReviews.toFloat
+
         }
-        wordDocList.toList
-      })
-        .filter(r => InvertedIndex.filterSym(r._1))
-        .map{
-        p =>
-          val docSet = scala.collection.mutable.Set[String]()
-          docSet += p._2
-          (p._1 , (p._1,docSet))
-      }.reduceByKeyandTest({
-        (s1,s2) =>
-          val s = s1._2.union(s2._2)
-          (s1._1, s)
-      },{
-        InvertedIndex.failure
-      }).filter(s => InvertedIndex.failure((s._1,s._2._2)))
+        val avg = Math.floor(avgReview * 2.toDouble)
+        if(movieStr.equals(bugID)) (avg , Int.MinValue) else (avg, 1)
+      }
+//      val counts = averageRating.reduceByKey(_+_).filter(a=> HistogramMovies.failure(a._2))
+      val counts = averageRating.reduceByKeyandTest({_+_} , HistogramMovies.failure)
 
       var mappedRDD: RDD[String] = null
       try {
-      val output = wordDoc.collectWithId()
+      val output = counts.collectWithId()
+
       /** ************************
         * Time Logging
         * *************************/
@@ -98,28 +126,33 @@ object InvertedIndexCT
       val jobEndTime = System.nanoTime()
       logger.log(Level.INFO, "JOb ends at " + jobEndTimestamp)
       logger.log(Level.INFO, "JOb span at " + (jobEndTime - jobStartTime) / 1000 + "milliseconds")
+
       /** ************************
         * Time Logging
         * *************************/
+
+
       lc.setCaptureLineage(false)
       Thread.sleep(1000)
 
+
       var list = List[Long]()
       for (o <- output) {
-        // println(o._1._1 + ": " + o._1._2 + " - " + o._2)
         list = o._2 :: list
+
       }
+
       /** ************************
         * Time Logging
         * *************************/
       val lineageStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
       val lineageStartTime = System.nanoTime()
-      logger.log(Level.INFO, "Lineage starts at " + lineageStartTimestamp)
+      logger.log(Level.INFO, "JOb starts at " + lineageStartTimestamp)
       /** ************************
         * Time Logging
         * *************************/
 
-      var linRdd = wordDoc.getLineage()
+      var linRdd = counts.getLineage()
       linRdd.collect
       linRdd = linRdd.filter { l => list.contains(l) }
       linRdd = linRdd.goBackAll()
@@ -130,21 +163,21 @@ object InvertedIndexCT
         * *************************/
       val lineageEndTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
       val lineageEndTime = System.nanoTime()
-      logger.log(Level.INFO, "Lineage ends at " + lineageEndTimestamp)
-      logger.log(Level.INFO, "Lineage span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
+      logger.log(Level.INFO, "JOb ends at " + lineageEndTimestamp)
+      logger.log(Level.INFO, "JOb span at " + (lineageEndTime - lineageStartTime) / 1000 + "milliseconds")
 
       /** ************************
         * Time Logging
         * *************************/
 
+
+
       }catch{
         case e: Exception =>
-          Thread.sleep(5000)
           lc.setCaptureLineage(false)
           mappedRDD = lc.latestShow.toRDD
           mappedRDD.cache()
       }
-
       /** ************************
         * Time Logging
         * *************************/
@@ -158,7 +191,9 @@ object InvertedIndexCT
 
       val delta_debug = new DDNonExhaustive[String]
       delta_debug.setMoveToLocalThreshold(local);
-      val returnedRDD = delta_debug.ddgen(mappedRDD, new Test, new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
+      val test = new Test
+      test.setBug(bugID.trim)
+      val returnedRDD = delta_debug.ddgen(mappedRDD, test , new SequentialSplit[String], lm, fh, DeltaDebuggingStartTime)
 
       /** ************************
         * Time Logging
@@ -172,22 +207,11 @@ object InvertedIndexCT
         * Time Logging
         * *************************/
 
-      println("Job's DONE! WORKS!")
+      println("Job's DONE!")
       ctx.stop()
-
     }
   }
-
-  def failure(r: (String,  scala.collection.mutable.Set[String])): Boolean ={
-    (r._2.contains("hdfs://scai01.cs.ucla.edu:9000/clash/datasets/bigsift/wikipedia_50GB/file202") && r._1.equals("is"))
-  }
-  def filterSym(str:String): Boolean ={
-    val sym: Array[String] = Array(">","<" , "*" , "="  , "#" , "+" , "-" , ":" , "{" , "}" , "/","~" , "1" , "2" , "3" ,"4" , "5" , "6" , "7" , "8" , "9" , "0")
-    for(i<- sym){
-      if(str.contains(i)) {
-        return false;
-      }
-    }
-    return true;
+  def failure(record:Int): Boolean ={
+        record< 0
   }
 }

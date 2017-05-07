@@ -18,6 +18,7 @@
 package org.apache.spark.lineage
 
 import org.apache.spark._
+import org.apache.spark.debugging.LineageHandler
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
 
@@ -52,22 +53,46 @@ private[spark] class LCacheManager(blockManager: BlockManager) extends CacheMana
     }
 
     toMaterialize.foreach(tap => {
-   //   val t = new Runnable() {
-   //     override def run() {
-          val key = RDDBlockId(tap._1.id, split)
-          val arr = tap._1.materializeBuffer
-          try {
-            updatedBlocks ++=
-              blockManager.putArray(key, arr, tap._4, true, effectiveStorageLevel)
-          } catch {
-            case e: Exception => println(e)
-          } finally {
-            tap._1.releaseBuffer()
-          }
-//        }
-//      }
 
-//      context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
+         if(LineageHandler.isCrashFound){
+
+              //   val t = new Runnable() {
+              //     override def run() {
+              val key = RDDBlockId(tap._1.id, split)
+              val arr = tap._1.materializeBuffer
+              try {
+                   updatedBlocks ++=
+                        blockManager.putArray(key, arr, tap._4, true, effectiveStorageLevel)
+              } catch {
+                   case e: Exception => println(e)
+              } finally {
+                   tap._1.releaseBuffer()
+              }
+              //        }
+              //      }
+              //      context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
+         }else{
+                 val t = new Runnable() {
+                   override def run() {
+              val key = RDDBlockId(tap._1.id, split)
+              val arr = tap._1.materializeBuffer
+              try {
+                   updatedBlocks ++=
+                        blockManager.putArray(key, arr, tap._4, true, effectiveStorageLevel)
+              } catch {
+                   case e: Exception => println(e)
+              } finally {
+                   tap._1.releaseBuffer()
+              }
+                      }
+                    }
+                   context.asInstanceOf[TaskContextImpl].threadPool.execute(t)
+
+
+         }
+
+
+
     })
 
     val metrics = context.taskMetrics

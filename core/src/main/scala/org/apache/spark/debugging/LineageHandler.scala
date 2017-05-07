@@ -23,7 +23,17 @@ object LineageHandler {
   var currentCrash: UnresolvedCrashRecords = null
   var waitObject : Object = new Object();
   private val executorActor = new HashMap[String, ActorRef]
+  var crashFound = false;
+  def foundCrash(set: Boolean): Unit ={
+    crashFound = set
+  }
 
+  def isCrashFound() = crashFound
+
+
+  def setJobID(jobid:Int): Unit ={
+    currenJobID = jobid
+  }
 
   def setSparkContext(sc: SparkContext): Unit = {
     sparkContext = sc
@@ -158,9 +168,10 @@ object LineageHandler {
 //               get.map(r => (r._1._2, r._2.asInstanceOf[Array[Int]]))
           val lineage = new LineageRDD(getLineage(tmp, lineageID).flatMap(r => r._2.map(b => (r._1, (Dummy, b)))))//flatMap(r => r._2.map(b => (r._1.asInstanceOf[Tuple2[Any, Any]]._2, b))))
           val a = lineage.goBackAll()
-          a.collect().foreach(println)
-          println("showing lineage now")
-          a.show(true)
+         // a.collect().foreach(println)
+         // println("showing lineage now")
+          a.show()
+          sparkContext.cancelJob(currenJobID)
       }
       disableTopRDDset = false;
       0L
