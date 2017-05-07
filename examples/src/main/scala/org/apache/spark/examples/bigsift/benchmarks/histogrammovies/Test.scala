@@ -15,13 +15,16 @@ import org.apache.spark.SparkContext._
 
 class Test extends Testing[String] with Serializable {
   var num = 0;
-
+  var bugID = ""
+  def setBug(str:String) ={
+    bugID = str
+  }
   def usrTest(inputRDD: RDD[String], lm: LogManager, fh: FileHandler): Boolean = {
     //use the same logger as the object file
     val logger: Logger = Logger.getLogger(classOf[Test].getName)
     lm.addLogger(logger)
     logger.addHandler(fh)
-
+println(s"""Bug : $bugID""")
     //assume that test will pass which returns false
     var returnValue = false
     val wordDoc = inputRDD.map { s =>
@@ -57,7 +60,7 @@ class Test extends Testing[String] with Serializable {
 
       }
       val avg = Math.floor(avgReview * 2.toDouble)
-      if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
+      if(movieStr.equals(bugID)) (avg , Int.MinValue) else (avg, 1)
     }.reduceByKey(_+_).filter(a=> HistogramMovies.failure(a._2))
 
     val out = wordDoc.collect()
@@ -75,7 +78,7 @@ class Test extends Testing[String] with Serializable {
     val logger: Logger = Logger.getLogger(classOf[Test].getName)
     lm.addLogger(logger)
     logger.addHandler(fh)
-
+    println(s"""Bug : $bugID""")
     //assume that test will pass which returns false
     var returnValue = false
     val wordDoc = inputRDD.map { s =>
@@ -111,7 +114,7 @@ class Test extends Testing[String] with Serializable {
 
       }
       val avg = Math.floor(avgReview * 2.toDouble)
-      if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
+      if(movieStr.equals(bugID)) (avg , Int.MinValue) else (avg, 1)
     }.groupBy(_._1)
       .map(pair => {
         var total = 0
