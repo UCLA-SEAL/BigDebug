@@ -24,6 +24,8 @@ import java.util.{Arrays, Locale, Properties, ServiceLoader, UUID}
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
+import org.apache.spark.lineage.LineageContext
+
 import scala.collection.JavaConverters._
 import scala.collection.Map
 import scala.collection.generic.Growable
@@ -85,6 +87,10 @@ class SparkContext(config: SparkConf) extends Logging {
   SparkContext.markPartiallyConstructed(this, allowMultipleContexts)
 
   val startTime = System.currentTimeMillis()
+
+  //Saving Lineage Context in SC -- Tag Bigdebug @Gulzar 06/20
+  var lc : LineageContext = null
+
 
   private[spark] val stopped: AtomicBoolean = new AtomicBoolean(false)
 

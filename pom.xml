@@ -112,7 +112,7 @@
     <module>external/kafka-0-10</module>
     <module>external/kafka-0-10-assembly</module>
     <module>external/kafka-0-10-sql</module>
-    <module>lineage</module>
+    <!--<module>lineage</module>-->
   </modules>
 
   <properties>
@@ -262,6 +262,12 @@
 
       For more details, see SPARK-3812 and MNG-2971.
     -->
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <version>1.4.8</version>
+    </dependency>
+
     <dependency>
       <groupId>org.spark-project.spark</groupId>
       <artifactId>unused</artifactId>

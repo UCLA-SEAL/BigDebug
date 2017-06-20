@@ -20,6 +20,7 @@ package org.apache.spark.scheduler.cluster
 import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
+import org.apache.spark.bdd.{CrashingRecord, CapturedRecord, BigDebugConfiguration}
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -28,7 +29,50 @@ private[spark] sealed trait CoarseGrainedClusterMessage extends Serializable
 
 private[spark] object CoarseGrainedClusterMessages {
 
-  case object RetrieveSparkAppConfig extends CoarseGrainedClusterMessage
+     /**
+      * Message Passing Classes for Bigebug --Tag Bigdebug @ Gulzar 6/16
+      * */
+
+     case class RegisterSocketInfo(port :Int, host:String, id:String)
+          extends CoarseGrainedClusterMessage
+
+     case class TupleNotificationForDriver(id: String, list: List[(Any, Any, Int, Int)], typ: Int)
+          extends CoarseGrainedClusterMessage
+
+     case class SendWatchpointDataToDriver(id: String, list: List[CapturedRecord], subtaskID: Int)
+          extends CoarseGrainedClusterMessage
+
+     case class SetExpressionExecutor(impl: List[Int], class_name: String,rddID:Int)
+          extends CoarseGrainedClusterMessage
+
+     case class SendACKCode(i: Int, str: String, execID: String)
+          extends CoarseGrainedClusterMessage
+
+     case class RequestIntermediateData() extends CoarseGrainedClusterMessage
+
+     case class ExceptionNotification(crashingRecord: CrashingRecord)
+          extends CoarseGrainedClusterMessage
+
+     case class NotifyCrashCulprit(crashingRecord: CrashingRecord)
+          extends CoarseGrainedClusterMessage
+
+     case class CrashRecordAction(action: Int /*1 for modify 0 for skip*/ , crashingRecord: CrashingRecord)
+          extends CoarseGrainedClusterMessage
+
+     case class ResolveAllCrashes(record: List[CrashingRecord], stageID: Int, taskID: Int, subtaskID: Int)
+          extends CoarseGrainedClusterMessage
+
+     case class NotifyActualTaskCompleted(stageID: Int, taskID: Int, subtaskID: Int, taskDone: Boolean)
+          extends CoarseGrainedClusterMessage
+
+     case class RegisteredExecutor(bdconf : BigDebugConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
+
+
+     /**
+      * Edits end here --Tag : Bigdebug @Gulzar 6/16
+      * */
+
+     case object RetrieveSparkAppConfig extends CoarseGrainedClusterMessage
 
   case class SparkAppConfig(
       sparkProperties: Seq[(String, String)],
@@ -45,7 +89,6 @@ private[spark] object CoarseGrainedClusterMessages {
 
   sealed trait RegisterExecutorResponse
 
-  case object RegisteredExecutor extends CoarseGrainedClusterMessage with RegisterExecutorResponse
 
   case class RegisterExecutorFailed(message: String) extends CoarseGrainedClusterMessage
     with RegisterExecutorResponse

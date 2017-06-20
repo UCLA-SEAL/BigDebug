@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.annotation.concurrent.GuardedBy
 
+import org.apache.spark.bdd.{BreakpointType, TaskExecutionManager}
+
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -145,6 +147,32 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
             // Ignoring the task kill since the executor is not registered.
             logWarning(s"Attempted to kill task $taskId for unknown executor $executorId.")
         }
+
+      /**
+       * Message recievers at the driver --Tag bigdebug @ Gulzar 06/20
+       */
+      case SendWatchpointDataToDriver(id, list, subtaskID) =>
+        logInfo("Recieved Watchpoint Data -> Size: " + list.length)
+        TaskExecutionManager.enrollWatchpointDataFromParition(list, subtaskID)
+
+      case SendACKCode(code, str, execID) =>
+        if (code == 1) {
+          logInfo("Expression received by: " + execID + "   " + str)
+        }
+
+      case ExceptionNotification(c_record) =>
+        TaskExecutionManager.catchException(c_record)
+
+
+      case NotifyCrashCulprit(crash) =>
+        TaskExecutionManager.enrollCrash(crash)
+      case NotifyActualTaskCompleted(stageID, taskID, subtaskID, taskDone) =>
+        TaskExecutionManager.setActualTaskCompleted(stageID, taskID, subtaskID, taskDone)
+
+      case RegisterSocketInfo(port, host, id) =>
+        TaskExecutionManager.enrollExecutorUI(id, host, port)
+      /** END **/
+
     }
 
     override def receiveAndReply(context: RpcCallContext): PartialFunction[Any, Unit] = {
@@ -179,7 +207,10 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
               logDebug(s"Decremented number of pending executors ($numPendingExecutors left)")
             }
           }
-          executorRef.send(RegisteredExecutor)
+          // Changed the API to pass bigdebug conf to workers and save executor ref on the driver -- Tag @ Gulzar 06/20
+          executorRef.send(RegisteredExecutor(scheduler.sc.lc.getBigDebugConfiguration()))
+          TaskExecutionManager.registerExecutor(executorId, executorRef)
+
           // Note: some tests expect the reply to come after we put the executor in the map
           context.reply(true)
           listenerBus.post(

@@ -21,6 +21,7 @@ import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, TimeZone}
 
+import scala.collection.mutable.Seq
 import scala.util.control.NonFatal
 import scala.xml._
 import scala.xml.transform.{RewriteRule, RuleTransformer}

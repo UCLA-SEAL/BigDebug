@@ -20,6 +20,8 @@ package org.apache.spark
 import java.util.{Properties, Queue}
 import java.util.concurrent.ThreadPoolExecutor
 
+import org.apache.spark.bdd.BigDebugConfiguration
+
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.executor.TaskMetrics
@@ -39,7 +41,9 @@ private[spark] class TaskContextImpl(
                                       localProperties: Properties,
                                       @transient private val metricsSystem: MetricsSystem,
                                       // The default value is only used in tests.
-                                      override val taskMetrics: TaskMetrics = TaskMetrics.empty)
+                                      override val taskMetrics: TaskMetrics = TaskMetrics.empty,
+                                      // Passing the configuration to taskContext --Tag BigDebug @ Gulzar 06/20
+                                      val config:BigDebugConfiguration = null )
   extends TaskContext
   with Logging {
 
@@ -63,6 +67,11 @@ private[spark] class TaskContextImpl(
    */
   // Used to pipeline records through taps inside the same stage
   @transient var currentInputId: Int = -1
+  @transient var crashCulpritId: Long = -1L
+
+  // Setting the bigdebug configuration
+  bdconfig = config
+
 
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null

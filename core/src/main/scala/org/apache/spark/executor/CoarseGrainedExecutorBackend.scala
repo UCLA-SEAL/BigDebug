@@ -21,6 +21,9 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
+import org.apache.spark.bdd._
+import org.apache.spark.executor.ui.ExecutorWebUI
+
 import scala.collection.mutable
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
@@ -76,15 +79,56 @@ private[spark] class CoarseGrainedExecutorBackend(
   }
 
   override def receive: PartialFunction[Any, Unit] = {
-    case RegisteredExecutor =>
+    case RegisteredExecutor(bdconf) =>
       logInfo("Successfully registered with driver")
       try {
         executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false)
+        // Setting the driver for message passing -- Tag Bigdebug @ Gulzar 06/20
+        ExecutorManager.setDriver(driver)
+        ExecutorManager.SetExecutorId(executorId)
+        CrashCulpritManager.setBigDebugConfiguration(bdconf)
+      /*  BDDMetricsSupport.setBigDebugConfiguration(bdconf)
+        if (bdconf.EXECUTOR_UI) {
+          sectMgr = new SecurityManager(conf)
+          logInfo("Starting webUID at " + webuiport)
+          webUi = new ExecutorWebUI(this, webuiport)
+          BDDMetricsSupport.setExecutorUI(webUi)
+          webUi.bind()
+        }
+
+
+      driver ! RegisterSocketInfo(webUi.boundPort, hostname, executorId)
+This part is for latency feature
+*/
       } catch {
         case NonFatal(e) =>
           exitExecutor(1, "Unable to create executor due to " + e.getMessage, e)
       }
 
+
+
+
+    // Message recieving end at the executors --Tag bigdebug @ Gulzar 06/20
+
+    // watchpoint handling starts here
+    case SetExpressionExecutor(impl, class_name, rddID) =>
+      logInfo("Got Predicate")
+      WatchpointManager.setExpression(impl, class_name, rddID)
+    case SendACKCode(code, str, execID) =>
+      logInfo("## From Driver : " + str)
+
+    case CrashRecordAction(action /*1 for modify 0 for skip*/ , crashingRecord) =>
+      println("Got Action")
+      CrashCulpritManager.resolveCrash(action, crashingRecord)
+
+    case ResolveAllCrashes(list, stageID, taskID, subtask) =>
+      if (list == null) {
+        CrashCulpritManager.skipThisTask(stageID, taskID, subtask)
+      } else {
+        CrashCulpritManager.resolvePendingCrashes(list, stageID, taskID, subtask)
+      }
+
+    /** BDD END **/
     case RegisterExecutorFailed(message) =>
       exitExecutor(1, "Slave registration failed: " + message)
 
