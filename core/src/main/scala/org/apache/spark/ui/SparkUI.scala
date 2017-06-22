@@ -79,10 +79,6 @@ private[spark] class SparkUI private(
 		// Initiating WebSockets and attaching Debugger tabs and handlers -- Tag bigdebug @ Gulzar 06/20
 		driverWebSocket = new SocketRunner(SparkUI.getWebSocketPort(conf), sc.get.lc.getBigDebugConfiguration())
 		driverWebSocket.run()
-		val debuggerTab = new DebuggerTab(this)
-		attachTab(debuggerTab)
-		attachHandler(createRedirectHandler("/debugger/do", "/debugger", debuggerTab.handleDebuggerCommand))
-
 
 		attachHandler(createStaticHandler(SparkUI.STATIC_RESOURCE_DIR, "/static"))
 		attachHandler(createRedirectHandler("/", "/jobs/", basePath = basePath))

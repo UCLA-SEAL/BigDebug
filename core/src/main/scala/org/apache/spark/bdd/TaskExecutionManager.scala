@@ -45,7 +45,9 @@ object TaskExecutionManager {
 				//  requestExecutorsLocalTime()
 				Thread.sleep(latency) // Find any alternative to thread.sleep like Wait-notify**
 				//printStragglers()
-				getUiProfileData()
+
+
+			// Fix this::	getUiProfileData()
 			}
 		}
 	})
@@ -476,7 +478,7 @@ object TaskExecutionManager {
 	var currentCrashSkip: Boolean = true
 	var unresolvedCrashes = mutable.HashMap[(Int, Int, Int), List[CrashingRecord]]().withDefaultValue(Nil)
 	// stage partition and rdd
-	var resolvedCrashes = mutable.HashMap[(Int, Int, Int), List[String]]().withDefaultValue(Nil)
+	var resolvedCrashes = mutable.HashMap[(Int, Int, Int), List[CrashingRecord]]().withDefaultValue(Nil)
 	var actualTaskDone = mutable.HashMap[(Int, Int, Int), Boolean]().withDefaultValue(false)
 
 
@@ -666,6 +668,17 @@ object TaskExecutionManager {
 		updateCrashUI(c.rddid)
 	}
 
+	/**
+	 * Retrieve Crashing record from the unresolved list
+	 * */
+	def fixUnresolvedCrashingRecord(crash: String, stage:Int, task:Int, rdd :Int , srnum : Int , action: Int): Unit ={
+		val list = unresolvedCrashes((stage, task, rdd)).filter( s => s.srnumn == srnum )
+		if(!list.isEmpty){
+			takeActionCrashCuplrit(list.head , action)
+		}else{
+			DebugHelper.log("INFO", "TaskExecutorManager", s"No corresponding unresolved crashing record found: ( $c")
+		}
+	}
 	def takeActionCrashCuplrit(c: CrashingRecord, action: Int /*0 for skip , 1 for modify*/): Unit = {
 		val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((c.stageID, c.taskID, c.rddid), (false, null, null))
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Action  Crash ( $c)")
@@ -891,12 +904,6 @@ object TaskExecutionManager {
 		}
 	}
 
-	/**
-	 * Assertion
-	 */
-	def assertionFailed(value: String, rddid: Int, partitionID: Int): Unit = {
-		DebugHelper.log("INFO", "TaskExecutorManager", s"All crashes not resolved ( $value on RDD: $rddid with partition id  $partitionID )  ")
-	}
 
 	/**
 	 * Backword and Farwords Tracing starts here

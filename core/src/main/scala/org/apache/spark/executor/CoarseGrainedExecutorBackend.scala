@@ -21,6 +21,7 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
+import _root_.akka.actor.ActorSelection
 import org.apache.spark.bdd._
 import org.apache.spark.executor.ui.ExecutorWebUI
 
@@ -48,6 +49,14 @@ private[spark] class CoarseGrainedExecutorBackend(
     userClassPath: Seq[URL],
     env: SparkEnv)
   extends ThreadSafeRpcEndpoint with ExecutorBackend with Logging {
+
+
+ // Ui support variables at the executor fro bigdebug debugging --Tag bigdebug @ Gulzar 06/22
+  var webuiport = ExecutorWebUI.EXECUTOR_UI_PORT
+  var executor: Executor = null
+  var webUi: ExecutorWebUI = null
+  var sectMgr: SecurityManager = null
+
 
   private[this] val stopping = new AtomicBoolean(false)
   var executor: Executor = null
@@ -87,19 +96,16 @@ private[spark] class CoarseGrainedExecutorBackend(
         ExecutorManager.setDriver(driver)
         ExecutorManager.SetExecutorId(executorId)
         CrashCulpritManager.setBigDebugConfiguration(bdconf)
-      /*  BDDMetricsSupport.setBigDebugConfiguration(bdconf)
+        BDDMetricsSupport.setBigDebugConfiguration(bdconf)
         if (bdconf.EXECUTOR_UI) {
-          sectMgr = new SecurityManager(conf)
+          sectMgr = new SecurityManager(env.conf)
           logInfo("Starting webUID at " + webuiport)
           webUi = new ExecutorWebUI(this, webuiport)
           BDDMetricsSupport.setExecutorUI(webUi)
           webUi.bind()
         }
+      ExecutorManager.sendMessage(RegisterSocketInfo(webUi.boundPort, hostname, executorId))
 
-
-      driver ! RegisterSocketInfo(webUi.boundPort, hostname, executorId)
-This part is for latency feature
-*/
       } catch {
         case NonFatal(e) =>
           exitExecutor(1, "Unable to create executor due to " + e.getMessage, e)

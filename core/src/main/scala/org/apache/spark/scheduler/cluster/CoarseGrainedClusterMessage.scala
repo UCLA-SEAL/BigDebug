@@ -29,129 +29,135 @@ private[spark] sealed trait CoarseGrainedClusterMessage extends Serializable
 
 private[spark] object CoarseGrainedClusterMessages {
 
-     /**
-      * Message Passing Classes for Bigebug --Tag Bigdebug @ Gulzar 6/16
-      * */
+	/**
+	 * Message Passing Classes for Bigebug --Tag Bigdebug @ Gulzar 6/16
+	 **/
 
-     case class RegisterSocketInfo(port :Int, host:String, id:String)
-          extends CoarseGrainedClusterMessage
+	case class RegisterSocketInfo(port: Int, host: String, id: String)
+		extends CoarseGrainedClusterMessage
 
-     case class TupleNotificationForDriver(id: String, list: List[(Any, Any, Int, Int)], typ: Int)
-          extends CoarseGrainedClusterMessage
+	case class TupleNotificationForDriver(id: String, list: List[(Any, Any, Int, Int)], typ: Int)
+		extends CoarseGrainedClusterMessage
 
-     case class SendWatchpointDataToDriver(id: String, list: List[CapturedRecord], subtaskID: Int)
-          extends CoarseGrainedClusterMessage
+	case class SendWatchpointDataToDriver(id: String, list: List[CapturedRecord], subtaskID: Int)
+		extends CoarseGrainedClusterMessage
 
-     case class SetExpressionExecutor(impl: List[Int], class_name: String,rddID:Int)
-          extends CoarseGrainedClusterMessage
+	case class SetExpressionExecutor(impl: List[Int], class_name: String, rddID: Int)
+		extends CoarseGrainedClusterMessage
 
-     case class SendACKCode(i: Int, str: String, execID: String)
-          extends CoarseGrainedClusterMessage
+	case class SendACKCode(i: Int, str: String, execID: String)
+		extends CoarseGrainedClusterMessage
 
-     case class RequestIntermediateData() extends CoarseGrainedClusterMessage
+	case class RequestIntermediateData() extends CoarseGrainedClusterMessage
 
-     case class ExceptionNotification(crashingRecord: CrashingRecord)
-          extends CoarseGrainedClusterMessage
+	case class ExceptionNotification(crashingRecord: CrashingRecord)
+		extends CoarseGrainedClusterMessage
 
-     case class NotifyCrashCulprit(crashingRecord: CrashingRecord)
-          extends CoarseGrainedClusterMessage
+	case class NotifyCrashCulprit(crashingRecord: CrashingRecord)
+		extends CoarseGrainedClusterMessage
 
-     case class CrashRecordAction(action: Int /*1 for modify 0 for skip*/ , crashingRecord: CrashingRecord)
-          extends CoarseGrainedClusterMessage
+	case class CrashRecordAction(action: Int /*1 for modify 0 for skip*/ , crashingRecord: CrashingRecord)
+		extends CoarseGrainedClusterMessage
 
-     case class ResolveAllCrashes(record: List[CrashingRecord], stageID: Int, taskID: Int, subtaskID: Int)
-          extends CoarseGrainedClusterMessage
+	case class ResolveAllCrashes(record: List[CrashingRecord], stageID: Int, taskID: Int, subtaskID: Int)
+		extends CoarseGrainedClusterMessage
 
-     case class NotifyActualTaskCompleted(stageID: Int, taskID: Int, subtaskID: Int, taskDone: Boolean)
-          extends CoarseGrainedClusterMessage
+	case class NotifyActualTaskCompleted(stageID: Int, taskID: Int, subtaskID: Int, taskDone: Boolean)
+		extends CoarseGrainedClusterMessage
 
-     case class RegisteredExecutor(bdconf : BigDebugConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
+	case class RegisteredExecutor(bdconf: BigDebugConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
 
+	case class BDDMetricTaskStart(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
 
-     /**
-      * Edits end here --Tag : Bigdebug @Gulzar 6/16
-      * */
-
-     case object RetrieveSparkAppConfig extends CoarseGrainedClusterMessage
-
-  case class SparkAppConfig(
-      sparkProperties: Seq[(String, String)],
-      ioEncryptionKey: Option[Array[Byte]])
-    extends CoarseGrainedClusterMessage
-
-  case object RetrieveLastAllocatedExecutorId extends CoarseGrainedClusterMessage
-
-  // Driver to executors
-  case class LaunchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
-
-  case class KillTask(taskId: Long, executor: String, interruptThread: Boolean)
-    extends CoarseGrainedClusterMessage
-
-  sealed trait RegisterExecutorResponse
+	case class BDDMetricTaskCurrentTime(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
 
 
-  case class RegisterExecutorFailed(message: String) extends CoarseGrainedClusterMessage
-    with RegisterExecutorResponse
+	case class BDDMetricTaskDone(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
 
-  // Executors to driver
-  case class RegisterExecutor(
-      executorId: String,
-      executorRef: RpcEndpointRef,
-      hostname: String,
-      cores: Int,
-      logUrls: Map[String, String])
-    extends CoarseGrainedClusterMessage
+	/**
+	 * Edits end here --Tag : Bigdebug @Gulzar 6/16
+	 **/
 
-  case class StatusUpdate(executorId: String, taskId: Long, state: TaskState,
-    data: SerializableBuffer) extends CoarseGrainedClusterMessage
+	case object RetrieveSparkAppConfig extends CoarseGrainedClusterMessage
 
-  object StatusUpdate {
-    /** Alternate factory method that takes a ByteBuffer directly for the data field */
-    def apply(executorId: String, taskId: Long, state: TaskState, data: ByteBuffer)
-      : StatusUpdate = {
-      StatusUpdate(executorId, taskId, state, new SerializableBuffer(data))
-    }
-  }
+	case class SparkAppConfig(
+		                         sparkProperties: Seq[(String, String)],
+		                         ioEncryptionKey: Option[Array[Byte]])
+		extends CoarseGrainedClusterMessage
 
-  // Internal messages in driver
-  case object ReviveOffers extends CoarseGrainedClusterMessage
+	case object RetrieveLastAllocatedExecutorId extends CoarseGrainedClusterMessage
 
-  case object StopDriver extends CoarseGrainedClusterMessage
+	// Driver to executors
+	case class LaunchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
-  case object StopExecutor extends CoarseGrainedClusterMessage
+	case class KillTask(taskId: Long, executor: String, interruptThread: Boolean)
+		extends CoarseGrainedClusterMessage
 
-  case object StopExecutors extends CoarseGrainedClusterMessage
+	sealed trait RegisterExecutorResponse
 
-  case class RemoveExecutor(executorId: String, reason: ExecutorLossReason)
-    extends CoarseGrainedClusterMessage
 
-  case class SetupDriver(driver: RpcEndpointRef) extends CoarseGrainedClusterMessage
+	case class RegisterExecutorFailed(message: String) extends CoarseGrainedClusterMessage
+	with RegisterExecutorResponse
 
-  // Exchanged between the driver and the AM in Yarn client mode
-  case class AddWebUIFilter(
-      filterName: String, filterParams: Map[String, String], proxyBase: String)
-    extends CoarseGrainedClusterMessage
+	// Executors to driver
+	case class RegisterExecutor(
+		                           executorId: String,
+		                           executorRef: RpcEndpointRef,
+		                           hostname: String,
+		                           cores: Int,
+		                           logUrls: Map[String, String])
+		extends CoarseGrainedClusterMessage
 
-  // Messages exchanged between the driver and the cluster manager for executor allocation
-  // In Yarn mode, these are exchanged between the driver and the AM
+	case class StatusUpdate(executorId: String, taskId: Long, state: TaskState,
+	                        data: SerializableBuffer) extends CoarseGrainedClusterMessage
 
-  case class RegisterClusterManager(am: RpcEndpointRef) extends CoarseGrainedClusterMessage
+	object StatusUpdate {
+		/** Alternate factory method that takes a ByteBuffer directly for the data field */
+		def apply(executorId: String, taskId: Long, state: TaskState, data: ByteBuffer)
+		: StatusUpdate = {
+			StatusUpdate(executorId, taskId, state, new SerializableBuffer(data))
+		}
+	}
 
-  // Request executors by specifying the new total number of executors desired
-  // This includes executors already pending or running
-  case class RequestExecutors(
-      requestedTotal: Int,
-      localityAwareTasks: Int,
-      hostToLocalTaskCount: Map[String, Int])
-    extends CoarseGrainedClusterMessage
+	// Internal messages in driver
+	case object ReviveOffers extends CoarseGrainedClusterMessage
 
-  // Check if an executor was force-killed but for a reason unrelated to the running tasks.
-  // This could be the case if the executor is preempted, for instance.
-  case class GetExecutorLossReason(executorId: String) extends CoarseGrainedClusterMessage
+	case object StopDriver extends CoarseGrainedClusterMessage
 
-  case class KillExecutors(executorIds: Seq[String]) extends CoarseGrainedClusterMessage
+	case object StopExecutor extends CoarseGrainedClusterMessage
 
-  // Used internally by executors to shut themselves down.
-  case object Shutdown extends CoarseGrainedClusterMessage
+	case object StopExecutors extends CoarseGrainedClusterMessage
+
+	case class RemoveExecutor(executorId: String, reason: ExecutorLossReason)
+		extends CoarseGrainedClusterMessage
+
+	case class SetupDriver(driver: RpcEndpointRef) extends CoarseGrainedClusterMessage
+
+	// Exchanged between the driver and the AM in Yarn client mode
+	case class AddWebUIFilter(
+		                         filterName: String, filterParams: Map[String, String], proxyBase: String)
+		extends CoarseGrainedClusterMessage
+
+	// Messages exchanged between the driver and the cluster manager for executor allocation
+	// In Yarn mode, these are exchanged between the driver and the AM
+
+	case class RegisterClusterManager(am: RpcEndpointRef) extends CoarseGrainedClusterMessage
+
+	// Request executors by specifying the new total number of executors desired
+	// This includes executors already pending or running
+	case class RequestExecutors(
+		                           requestedTotal: Int,
+		                           localityAwareTasks: Int,
+		                           hostToLocalTaskCount: Map[String, Int])
+		extends CoarseGrainedClusterMessage
+
+	// Check if an executor was force-killed but for a reason unrelated to the running tasks.
+	// This could be the case if the executor is preempted, for instance.
+	case class GetExecutorLossReason(executorId: String) extends CoarseGrainedClusterMessage
+
+	case class KillExecutors(executorIds: Seq[String]) extends CoarseGrainedClusterMessage
+
+	// Used internally by executors to shut themselves down.
+	case object Shutdown extends CoarseGrainedClusterMessage
 
 }

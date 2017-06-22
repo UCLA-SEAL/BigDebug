@@ -7,6 +7,9 @@ package org.apache.spark.ui.debugger
 import java.net.InetSocketAddress
 
 import org.apache.spark.bdd.{BDDMetricsSupport, BigDebugConfiguration}
+import org.java_websocket.WebSocket
+import org.java_websocket.handshake.ClientHandshake
+import org.java_websocket.server.WebSocketServer
 
 import scala.collection.mutable
 

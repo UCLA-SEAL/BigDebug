@@ -19,35 +19,27 @@ package org.apache.spark.ui.debugger
 
 import javax.servlet.http.HttpServletRequest
 
-import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.SparkContext
 import org.apache.spark.bdd._
-import org.apache.spark.scheduler._
 import org.apache.spark.ui._
-import org.apache.spark.{Partition, SparkContext}
 
-import scala.collection.immutable.HashMap
-import scala.xml.Node
-
-private[ui] class DebuggerTab(parent: SparkUI) extends SparkUITab(parent, "debugger") {
-  val objectManager = new DebuggerObjectManager()
-  //val listener = new DebuggerListener(objectManager, parent.sc.get)
+class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends SparkUITab(parent, "debugger") {
+  parent.attachTab(this)
+  TaskExecutionManager.setSparkUI(parent)
+  parent.attachHandler(JettyUtils.createRedirectHandler("/debugger/do", "/debugger", this.handleDebuggerCommand))
 
   /** For DAG Viz */
   val operationGraphListener = parent.operationGraphListener
 
   /** Ends here */
-  attachPage(new DebuggerPage(this, objectManager))
+  attachPage(new DebuggerPage(this))
   attachPage(new WatchpointPage(this))
-
   attachPage(new RDDPage(this))
   attachPage(new RDDStPage(this))
 
-  //  parent.registerListener(listener)
-  // ***************** Listener not available in 1.2.1 Fix it ***************
   def getSparkContext: SparkContext = {
     parent.sc.get
   }
-
 
   def getDriverWebSocketPort: String = {
     parent.driverWebSocket.getCurrentPort().toString
@@ -81,10 +73,11 @@ private[ui] class DebuggerTab(parent: SparkUI) extends SparkUITab(parent, "debug
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
         val task: Int = Option(request.getParameter("task")).getOrElse("").toInt
         val subtask: Int = Option(request.getParameter("subtask")).getOrElse("").toInt
+        val srnum: Int = Option(request.getParameter("srnum")).getOrElse("").toInt
         //   TaskExecutionManager.simulateCrashResolution(stage, task , subtask)
         println(s"Resolve Crash $crash \n $stage" +
           s" $task $subtask")
-        TaskExecutionManager.takeActionCrashCuplrit(crash, stage, task, subtask, 1)
+        TaskExecutionManager.fixUnresolvedCrashingRecord(crash, stage, task, subtask ,srnum, 1)
       case "trace" =>
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
         val task: Int = Option(request.getParameter("task")).getOrElse("").toInt
@@ -97,9 +90,11 @@ private[ui] class DebuggerTab(parent: SparkUI) extends SparkUITab(parent, "debug
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
         val task: Int = Option(request.getParameter("task")).getOrElse("").toInt
         val subtask: Int = Option(request.getParameter("subtask")).getOrElse("").toInt
+        val srnum: Int = Option(request.getParameter("srnum")).getOrElse("").toInt
+
         //   TaskExecutionManager.simulateCrashResolution(stage, task , subtask)
         println("Skipping Record")
-        TaskExecutionManager.takeActionCrashCuplrit("", stage, task, subtask, 0)
+        TaskExecutionManager.fixUnresolvedCrashingRecord("", stage, task, subtask , srnum, 0)
       case "test" =>
       // NOTE: If we need to run something simple, we can use this command.
       case "set_guard" => {
@@ -115,136 +110,4 @@ private[ui] class DebuggerTab(parent: SparkUI) extends SparkUITab(parent, "debug
   }
 }
 
-class DebuggerStageObject(val stageId: Int) {
-  def setRDDDetailedInfo(rddDetailedInfo: String) = {
-    this.rddDetailedInfo = rddDetailedInfo
-  }
 
-  private var rddDetailedInfo: String = "undefined"
-
-  def getRDDDetailedInfo = rddDetailedInfo
-
-  def setName(stageName: String) = {
-    this.stageName = stageName
-  }
-
-  private var stageName: String = "undefined"
-
-  def getName: String = stageName
-
-  def setRDDInfo(rddName: String) = {
-    this.rddInfo = rddName
-  }
-
-  def getRDDInfo: String = rddInfo
-
-  private var rddInfo: String = "undefined"
-  private var currentStatus: String = "undefined"
-  private var childTasks = List[DebuggerTaskObject]()
-
-  def setCurrentStatus(newStatus: String) = {
-    this.currentStatus = newStatus
-  }
-
-  def getCurrentStatus: String = currentStatus
-
-  def addOrGetChildTask(index: Long): DebuggerTaskObject = {
-    val obj = getChildTask(index)
-    if (obj == null) {
-      val newObj = new DebuggerTaskObject(index, this)
-      childTasks = childTasks ::: List(newObj)
-      newObj
-    }
-    else {
-      obj
-    }
-  }
-
-  def getChildTasks: List[DebuggerTaskObject] = childTasks
-
-  def getChildTask(index: Long): DebuggerTaskObject = {
-    childTasks.find((e => e.index == index)).getOrElse(null)
-  }
-}
-
-class DebuggerTaskObject(var index: Long, val parent: DebuggerStageObject) {
-  private var detailedInfo: String = ""
-
-  def setDetailedInfo(detailedInfo: String): Unit = {
-    this.detailedInfo = detailedInfo
-  }
-
-  def getDetailedInfo: String = detailedInfo
-
-  def setRDDName(rddName: String) = {
-    this.rddName = rddName
-  }
-
-  def getRDDName: String = rddName
-
-  private var rddName: String = "undefined"
-
-  private var taskType: String = "undefined"
-
-  def setTaskType(newTaskType: String) = {
-    this.taskType = newTaskType
-  }
-
-  /*
-  * possible task type: ShuffleMapTask, ResultTask
-  * */
-
-  def getTaskType: String = taskType
-
-  private var currentStatus: String = "undefined"
-
-  def setCurrentStatus(newStatus: String) = {
-    this.currentStatus = newStatus
-  }
-
-  def getCurrentStatus: String = currentStatus
-
-  private var subtaskInfo = new HashMap[Int, String]()
-
-  def setSubtaskInfo(subtaskIndex: Int, description: String) = {
-    subtaskInfo += (subtaskIndex -> description)
-  }
-
-  def getSubtaskInfo(): HashMap[Int, String] = this.subtaskInfo
-
-  private var executorId: String = ""
-
-  def setExecutorId(executorId: String) = {
-    this.executorId = executorId
-  }
-
-  def getExecutorId(): String = this.executorId
-}
-
-class DebuggerObjectManager {
-  def renderContentForStages(objectToNodes: (DebuggerStageObject) => Seq[Node]) = {
-    stageObjects.map(objectToNodes)
-  }
-
-  var stageObjects = List[DebuggerStageObject]()
-
-  def getStageObject(stageId: Int): DebuggerStageObject = {
-    synchronized {
-      stageObjects.find((e => e.stageId == stageId)).getOrElse(null)
-    }
-  }
-
-  def addOrGetStageObject(stageId: Int): DebuggerStageObject = {
-    synchronized {
-      val obj = getStageObject(stageId)
-      if (obj == null) {
-        val newObj = new DebuggerStageObject(stageId)
-        stageObjects = stageObjects ::: List(newObj)
-        newObj
-      }
-      else {
-        obj
-      }
-    }
-  }
-}

@@ -2,8 +2,9 @@ package org.apache.spark.bdd
 
 import org.apache.spark.rpc.RpcEndpointRef
 
-/** BDD START **/
-
+/** A worker side class to send messages to Driver node
+  * from bigDebug
+  */
 object ExecutorManager {
   private var driver: Option[RpcEndpointRef] = None
   private var myExecutorId: String = ""

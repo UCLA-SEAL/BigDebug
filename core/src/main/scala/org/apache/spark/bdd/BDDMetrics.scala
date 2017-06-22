@@ -1,5 +1,8 @@
 package org.apache.spark.bdd
 
+import org.apache.spark.executor.ui.ExecutorWebUI
+import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{BDDMetricTaskDone, BDDMetricTaskCurrentTime, BDDMetricTaskStart}
+
 import scala.collection.mutable.HashMap
 
 
@@ -112,27 +115,21 @@ object BDDMetricsSupport {
     }
   }
   def updateTaskInfo(tID: Long, sID: Int): Unit = {
-    val driver = ExecutorManager.GetDriver
-    val time = System.currentTimeMillis()
-    if (driver != null)
-      driver ! BDDMetricTaskStart(sID, tID, ExecutorManager.GetExecutorId, time)
+  val time = System.currentTimeMillis()
+	  ExecutorManager.sendMessage(BDDMetricTaskStart(sID, tID, ExecutorManager.GetExecutorId, time))
   }
 
   def reportTime(stageID: Long, tID: Int): Unit = {
-    val driver = ExecutorManager.GetDriver
-    val time = System.currentTimeMillis()
+   val time = System.currentTimeMillis()
     val (stime, record) = recordPendingStack.getOrElse((stageID.toInt, tID), (0L, null))
     val span = time - stime
-    if (record != null)
-      if (driver != null)
-        driver ! BDDMetricTaskCurrentTime(stageID.toInt, tID, ExecutorManager.GetExecutorId, time)
+	  ExecutorManager.sendMessage(BDDMetricTaskCurrentTime(stageID.toInt, tID, ExecutorManager.GetExecutorId, time))
   }
 
   def updateTaskDone(tID: Long, sID: Int): Unit = {
-    val driver = ExecutorManager.GetDriver
+
     val time = System.currentTimeMillis()
-    if (driver != null)
-      driver ! BDDMetricTaskDone(sID, tID, ExecutorManager.GetExecutorId, time)
+	  ExecutorManager.sendMessage( BDDMetricTaskDone(sID, tID, ExecutorManager.GetExecutorId, time))
   }
 
     /** *****

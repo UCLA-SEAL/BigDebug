@@ -2,10 +2,11 @@ package org.apache.spark.ui.debugger
 
 import javax.servlet.http.HttpServletRequest
 
-import org.apache.spark.bdd.{BigDebugConfiguration, PredicateClassVersion, TaskExecutionManager, UnresolvedCrashRecords}
+import org.apache.spark.bdd._
 import org.apache.spark.ui.{UIUtils, WebUIPage}
 
 import scala.xml.Node
+
 
 /**
  * Created by ali on 1/19/16.
@@ -35,7 +36,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
        //   , ("Actions", "")
         )
       val unzipped = wpHeadersAndCssClasses.unzip
-      UIUtils.listingTable[UnresolvedCrashRecords](
+      UIUtils.listingTable[CrashingRecord](
         unzipped._1,
         datarow,
         TaskExecutionManager.getCrashIterator(wpId).toIterable)
@@ -50,7 +51,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
           )
         val unzipped = wpHeadersAndCssClasses.unzip
         renderTableDiv(
-          UIUtils.listingTable[UnresolvedCrashRecords](
+          UIUtils.listingTable[CrashingRecord](
             unzipped._1,
             datarow, TaskExecutionManager.getCrashIterator(wpId).toIterable)) ++ RDDPage.getCodeBox(wpId) /**05/12*/
       }
@@ -63,19 +64,20 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
     }
   }
 
-  def datarow(r:UnresolvedCrashRecords): Seq[Node] = {
+  def datarow(r:CrashingRecord): Seq[Node] = {
 
       <tr class="error">
         <td>
           <form method="GET" action={doUrl}>
             <input type="hidden" name="stage" value={r.stageID.toString}></input>
             <input type="hidden" name="task" value={r.taskID.toString}></input>
-            <input type="hidden" name="subtask" value={r.rddID.toString}></input>
-            <input type="hidden" name="linid" value={r.linID.hashCode().toString}></input>
+            <input type="hidden" name="subtask" value={r.rddid.toString}></input>
+            <input type="hidden" name="srnum" value={r.srnumn.toString}></input>
+            <input type="hidden" name="linid" value={r.lineageID.hashCode().toString}></input>
           <textarea name="record">
             {r.record}
           </textarea>
-            {parent.getSparkContext.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
+            {parent.getSparkContext.lc.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
             case 0 => "Skipped"
             case _ =>
 
@@ -106,7 +108,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
       <p>
         <br/>
         Configurations for crashed set at
-        {parent.getSparkContext.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
+        {parent.getSparkContext.lc.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
         case 0 => "skipping"
         case 1 => "sequential resolution"
         case 2 => "lazy resolution"
@@ -121,7 +123,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
   def getRDDDetails(id: Int): String = {
     val rdd = TaskExecutionManager.getRDDFromId(id)
     if (rdd != null) {
-      return rdd.getLineNumberinfo()
+      return rdd.getCreationSite
     }
     ""
   }
@@ -130,11 +132,11 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
    * To extract watchpoint code from the file
    **/
   def getWatchPointCode(id: Int): String = {
-    val this_wp = TaskExecutionManager.extractWatchpointRDD(id).getLineNumberinfo()
+    val this_wp = TaskExecutionManager.extractWatchpointRDD(id).getCreationSite
     println(this_wp)
     val start = this_wp.substring(this_wp.indexOf(":") + 1).toInt
     println(start)
-    val next = TaskExecutionManager.extractWatchpointRDD(id + 1).getLineNumberinfo()
+    val next = TaskExecutionManager.extractWatchpointRDD(id + 1).getCreationSite
     println(next)
     val end = next.substring(next.indexOf(":") + 1).toInt
     println(end)
@@ -172,14 +174,15 @@ def renderContent(wpId: Int, conf : BigDebugConfiguration) :  Seq[Node]= {
       ("Crashed Data Records ", "")
     )
 
-  def datarow(r: UnresolvedCrashRecords): Seq[Node] = {
+  def datarow(r: CrashingRecord): Seq[Node] = {
     <tr class="error">
       <td>
         <form method="GET" action={URL}>
           <input type="hidden" name="stage" value={r.stageID.toString}></input>
           <input type="hidden" name="task" value={r.taskID.toString}></input>
-          <input type="hidden" name="subtask" value={r.rddID.toString}></input>
-          <input type="hidden" name="linid" value={r.linID.hashCode().toString}></input>
+          <input type="hidden" name="subtask" value={r.rddid.toString}></input>
+          <input type="hidden" name="srnum" value={r.srnumn.toString}></input>
+          <input type="hidden" name="linid" value={r.lineageID.hashCode().toString}></input>
 
           <textarea name="record">
             {r.record}
@@ -200,7 +203,7 @@ def renderContent(wpId: Int, conf : BigDebugConfiguration) :  Seq[Node]= {
 
 
   val unzipped = wpHeadersAndCssClasses.unzip
-  UIUtils.listingTable[UnresolvedCrashRecords](
+  UIUtils.listingTable[CrashingRecord](
     unzipped._1,
     datarow,
     TaskExecutionManager.getCrashIterator(wpId).toIterable)

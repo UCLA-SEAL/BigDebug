@@ -25,6 +25,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
+import org.apache.spark.ui.debugger.{DebuggerTab, DebuggerListener}
 import org.apache.spark.util.SerializableConfiguration
 
 import scala.collection.mutable
@@ -63,17 +64,36 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   // Saving lc in sc -- Tag Bigdebug @ Gulzar 06/20
   sparkContext.lc = this
+
   /**
    * Set BigDebug Configuration --Tag @Gulzar 06/20
    */
-  var bdconfig : BigDebugConfiguration = new BigDebugConfiguration
-  def setBigDebugConfiguration(b : BigDebugConfiguration): Unit ={
+  var bdconfig: BigDebugConfiguration = new BigDebugConfiguration
+
+  val debugging_listener: DebuggerListener = createListenerAndUI(sparkContext)
+
+
+  def setBigDebugConfiguration(b: BigDebugConfiguration): Unit = {
     bdconfig = b
   }
 
-  def getBigDebugConfiguration(): BigDebugConfiguration ={
+  def getBigDebugConfiguration(): BigDebugConfiguration = {
     bdconfig
   }
+
+
+  /**
+   * Create a DebuggingListener then add it into SparkContext, and create a DebuggingTab if there is SparkUI.
+   */
+  private def createListenerAndUI(sc: SparkContext): DebuggerListener = {
+    val listener = new DebuggerListener(sparkContext)
+    sc.addSparkListener(listener)
+    sc.ui.foreach(new DebuggerTab(listener, _))
+    listener
+}
+
+
+
 
   /**
    * Read a text file from HDFS, a local file system (available on all nodes), or any

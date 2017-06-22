@@ -4,21 +4,6 @@ package org.apache.spark.bdd
 
 // TODO: These things should be managed in a configuration file.
 
-object Configuration {
-  val WAITING_FOR_EXPLICIT_TERMINATION: Boolean = true
-  val ENABLE_INTERCEPT_MAPPED_RDD: Boolean = true    // currently used to disable the crash monitoring
-  val STRAGGLER_PERIODIC_REQUEST: Boolean = true
-  val CRASH_CULPRIT_RESOLUTION: Int /*0 for just skip, 1 for modify , 2 lazyModify*/ = 2
-  val CRASH_CUPLRIT_THRESHOLD:Int = 500
-  val MAP_ALL_CRASHES_ON_ONE: Int = 0
-  val K_WATCHPOINT_RECORDS: Int = 10
-  val KDEV:Int = 2; /**K deviation for latency*/
-  val STATUS_SERVER: String = "http://localhost:9988"
-  val EXECUTOR_UI: Boolean = true /**Enable Executor Ui for data profiling*/
-
-}
-
-
 class BigDebugConfiguration extends  Serializable{
   var WAITING_FOR_EXPLICIT_TERMINATION: Boolean = true
   var ENABLE_CRASH_LATENCY: Boolean = true

@@ -33,6 +33,19 @@
   <name>Spark Project Core</name>
   <url>http://spark.apache.org/</url>
   <dependencies>
+    <!-- BDD START -->
+    <!--
+      Just to establish a real-time communication channel with a UI
+
+      If you don't like to have another instance of 'socket.io' server,
+      you may include a 'socket.io' server library rather than this 'client' library.
+    -->
+    <dependency>
+      <groupId>com.github.nkzawa</groupId>
+      <artifactId>socket.io-client</artifactId>
+      <version>0.4.2</version>
+    </dependency>
+    <!-- BDD END -->
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro-mapred</artifactId>

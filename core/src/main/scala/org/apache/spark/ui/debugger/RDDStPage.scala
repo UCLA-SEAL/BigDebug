@@ -26,7 +26,7 @@ private[ui] class RDDStPage(parent: DebuggerTab) extends WebUIPage("rddst") {
 
 
       val customStyle = "{height: 300px; width: 600px;}"
-      val content =
+      val content : Seq[Node] =
         <div>
           <style type="text/css">
             .CodeMirror {customStyle}
@@ -55,7 +55,7 @@ private[ui] class RDDStPage(parent: DebuggerTab) extends WebUIPage("rddst") {
   def getRDDDetails(id: Int): String = {
     val rdd = TaskExecutionManager.getRDDFromId(id)
     if (rdd != null) {
-      return rdd.getLineNumberinfo()
+      return rdd.getCreationSite
     }
     ""
   }
