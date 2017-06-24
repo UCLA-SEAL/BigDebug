@@ -11,6 +11,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.Stage
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{CrashRecordAction, ResolveAllCrashes, RequestIntermediateData, SetExpressionExecutor}
+import org.apache.spark.ui.debugger.DebuggerPageUtils
 import org.apache.spark.ui.scope.RDDOperationGraph
 import org.apache.spark.ui.{SparkUI, UIUtils}
 
@@ -489,16 +490,17 @@ object TaskExecutionManager {
 
 		if (bigdebugConfiguration.MAP_ALL_CRASHES_ON_ONE == 1) {
 			if (taskID + 1 == taskSetSize && status && resolvedCrashes((stageID, taskID, subtaskID)).length == unresolvedCrashes((stageID, taskID, subtaskID)).length) {
-				val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), (false, null, null))
-				executorActor(sender).send(ResolveAllCrashes(resolvedCrashes((stageID, taskID, subtaskID)), stageID, taskID, subtaskID))
+				val c_record = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), null)
+
+				executorActor(c_record.senderId).send(ResolveAllCrashes(resolvedCrashes((stageID, taskID, subtaskID)), stageID, taskID, subtaskID))
 				resolvedCrashes.remove((stageID, taskID, subtaskID))
 				unresolvedCrashes.remove((stageID, taskID, subtaskID))
 				crash_cuplrit_lock.remove((stageID, taskID, subtaskID))
 			} else {
 
 				if (taskID + 1 != taskSetSize) {
-					val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), (false, null, null))
-					executorActor(sender).send(ResolveAllCrashes(null, stageID, taskID, subtaskID))
+					val c_record = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), null)
+					executorActor(c_record.senderId).send(ResolveAllCrashes(null, stageID, taskID, subtaskID))
 					resolvedCrashes.remove((stageID, taskID, subtaskID))
 					unresolvedCrashes.remove((stageID, taskID, subtaskID))
 					crash_cuplrit_lock.remove((stageID, taskID, subtaskID))
@@ -506,8 +508,8 @@ object TaskExecutionManager {
 			}
 
 		} else if (status && resolvedCrashes((stageID, taskID, subtaskID)).length == unresolvedCrashes((stageID, taskID, subtaskID)).length) {
-			val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), (false, null, null))
-			executorActor(sender).send(ResolveAllCrashes(resolvedCrashes((stageID, taskID, subtaskID)), stageID, taskID, subtaskID))
+			val c_record = crash_cuplrit_lock.getOrElse((stageID, taskID, subtaskID), null)
+			executorActor(c_record.senderId).send(ResolveAllCrashes(resolvedCrashes((stageID, taskID, subtaskID)), stageID, taskID, subtaskID))
 			resolvedCrashes.remove((stageID, taskID, subtaskID))
 			unresolvedCrashes.remove((stageID, taskID, subtaskID))
 			crash_cuplrit_lock.remove((stageID, taskID, subtaskID))
@@ -574,7 +576,7 @@ object TaskExecutionManager {
 	def updateCrashUI(rdd: Int): Unit = {
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Report to UI")
 		if (sparkUI != null) {
-			sparkUI.driverWebSocket.s.sendToAll(UIUtils.getDAGMetaData(sparkUI.operationGraphListener.getOperationGraphForJob(0)).toString())
+			sparkUI.driverWebSocket.s.sendToAll(DebuggerPageUtils.getDAGMetaData(sparkUI.operationGraphListener.getOperationGraphForJob(0)).toString())
 			sparkUI.driverWebSocket.s.updateCrashedRDDs(rdd)
 			sparkUI.driverWebSocket.s.sendToAll("Error " + parseLineNumber(getRDDDetails(rdd)))
 		}
@@ -676,15 +678,15 @@ object TaskExecutionManager {
 		if(!list.isEmpty){
 			takeActionCrashCuplrit(list.head , action)
 		}else{
-			DebugHelper.log("INFO", "TaskExecutorManager", s"No corresponding unresolved crashing record found: ( $c")
+			DebugHelper.log("INFO", "TaskExecutorManager", s"No corresponding unresolved crashing record found: ( $crash")
 		}
 	}
 	def takeActionCrashCuplrit(c: CrashingRecord, action: Int /*0 for skip , 1 for modify*/): Unit = {
-		val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((c.stageID, c.taskID, c.rddid), (false, null, null))
+		val c_record = crash_cuplrit_lock.getOrElse((c.stageID, c.taskID, c.rddid), null)
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Action  Crash ( $c)")
-		if (waiting) {
+		if (c_record.blocking) {
 			crash_cuplrit_lock.remove((c.stageID, c.taskID, c.rddid))
-			executorActor(sender).send(CrashRecordAction(action /*1 for modify 0 for skip*/ , c))
+			executorActor(c_record.senderId).send(CrashRecordAction(action /*1 for modify 0 for skip*/ , c))
 		} else {
 			if (action == 1) {
 				if (bigdebugConfiguration.MAP_ALL_CRASHES_ON_ONE == 1) {
@@ -707,9 +709,8 @@ object TaskExecutionManager {
 
 				if (resolvedCrashes((c.stageID, taskSetSize - 1, c.rddid)).length == unresolvedCrashes((c.stageID, taskSetSize - 1, c.rddid)).length &&
 					isLastTaskDone(c.stageID, c.rddid)) {
-
-					val (waiting, ex, sender) = crash_cuplrit_lock.getOrElse((c.stageID, taskSetSize - 1, c.rddid), (false, null, null))
-					executorActor(sender).send(ResolveAllCrashes(resolvedCrashes((c.stageID, taskSetSize - 1, c.rddid)), c.stageID, taskSetSize - 1, c.rddid))
+					val c_record = crash_cuplrit_lock.getOrElse((c.stageID, taskSetSize - 1, c.rddid), null)
+					executorActor(c_record.senderId).send(ResolveAllCrashes(resolvedCrashes((c.stageID, taskSetSize - 1, c.rddid)), c.stageID, taskSetSize - 1, c.rddid))
 					resolvedCrashes.remove((c.stageID, taskSetSize - 1, c.rddid))
 					unresolvedCrashes.remove((c.stageID, taskSetSize - 1, c.rddid))
 					crash_cuplrit_lock.remove((c.stageID, taskSetSize - 1, c.rddid))
@@ -720,9 +721,7 @@ object TaskExecutionManager {
 			} else if (resolvedCrashes((c.stageID, c.taskID, c.rddid)).length == unresolvedCrashes((c.stageID, c.taskID, c.rddid)).length && actualTaskDone((c.stageID, c.taskID, c.rddid))) {
 				// println("All crashes resolved ( " + stageID + "," + taskID + "," + subtaskID + ") ")
 				DebugHelper.log("INFO", "TaskExecutorManager", s"All crashes resolved ( $c ) ")
-
-
-				executorActor(sender).send(ResolveAllCrashes(resolvedCrashes((c.stageID, c.taskID, c.rddid)), c.stageID, c.taskID, c.rddid))
+				executorActor(c_record.senderId).send(ResolveAllCrashes(resolvedCrashes((c.stageID, c.taskID, c.rddid)), c.stageID, c.taskID, c.rddid))
 				resolvedCrashes.remove((c.stageID, c.taskID, c.rddid))
 				unresolvedCrashes.remove((c.stageID, c.taskID, c.rddid))
 				crash_cuplrit_lock.remove((c.stageID, c.taskID, c.rddid))
@@ -752,24 +751,24 @@ object TaskExecutionManager {
 	 */
 
 	private var breakpointStageMap = HashMap[Int, Int]()
-
-	def assignStagesToBreakpoints(finalStage: Stage): Unit = {
-		var currentStage = finalStage.id
-		var parent = finalStage.parents
-		var upper = finalStage.rdd.id
-		while (parent.size > 0) {
-			var lower = parent(0).rdd.id
-			for (a <- lower + 1 to upper) {
-				breakpointStageMap(a) = currentStage
-			}
-			currentStage = parent(0).id
-			parent = parent(0).parents
-			upper = lower
-		}
-		for (a <- 0 to upper) {
-			breakpointStageMap(a) = currentStage
-		}
-	}
+//
+//	def assignStagesToBreakpoints(finalStage: Stage): Unit = {
+//		var currentStage = finalStage.id
+//		var parent = finalStage.parents
+//		var upper = finalStage.rdd.id
+//		while (parent.size > 0) {
+//			var lower = parent(0).rdd.id
+//			for (a <- lower + 1 to upper) {
+//				breakpointStageMap(a) = currentStage
+//			}
+//			currentStage = parent(0).id
+//			parent = parent(0).parents
+//			upper = lower
+//		}
+//		for (a <- 0 to upper) {
+//			breakpointStageMap(a) = currentStage
+//		}
+//	}
 
 	var sparkContext: SparkContext = null
 	var lineageContext: LineageContext = null

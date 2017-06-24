@@ -15,6 +15,42 @@
  * limitations under the License.
  */
 
+/** For Two Column*/
+#container2 {
+  clear:left;
+  float:left;
+  width:100%;
+  overflow:hidden;
+}
+#container1 {
+  float:left;
+  width:100%;
+  position:relative;
+  right:50%;
+}
+#col1 {
+  float:left;
+  width:35%;
+  position:relative;
+  left:52%;
+  overflow:hidden;
+}
+#col2 {
+  float:left;
+  width:57%;
+  position:relative;
+  left:56%;
+  overflow:hidden;
+}
+span.tab{
+  padding: 0 80px;
+}
+/* For Breakpoint**/
+.breakpoints {width: .8em;}
+.breakpoint { color: #ff3333; }
+
+
+
 #dag-viz-graph a, #dag-viz-graph a:hover {
   text-decoration: none;
 }

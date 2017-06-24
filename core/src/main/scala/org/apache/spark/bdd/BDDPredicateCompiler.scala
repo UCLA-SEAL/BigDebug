@@ -6,6 +6,8 @@ import java.io.File
 import java.math.BigInteger
 import java.security.MessageDigest
 
+import org.apache.spark.internal.Logging
+
 import scala.collection.mutable
 import scala.tools.nsc.interpreter.AbstractFileClassLoader
 import scala.tools.nsc.io.AbstractFile

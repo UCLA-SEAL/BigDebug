@@ -1,5 +1,8 @@
 package org.apache.spark.bdd
 
+import java.util.concurrent.atomic.AtomicLong
+
+import com.thoughtworks.xstream.XStream
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{NotifyActualTaskCompleted, NotifyCrashCulprit, ExceptionNotification}
 import org.apache.spark.{TaskContext, TaskContextImpl}
 
@@ -21,13 +24,12 @@ object CrashCulpritManager {
 			crashID
 		}
 	}*/
-	var c_id = 0L;
+	var c_id: AtomicLong = new AtomicLong(0L);
 
 	def getcrashId(rddid: Int, taskId: Int): Int = {
-		c_id.synchronized {
-			c_id = c_id + 1
-			("" + rddid + taskId + c_id).hashCode()
-		}
+
+			("" + rddid + taskId + c_id.incrementAndGet()).hashCode()
+
 	}
 
 	def bdconfig: BigDebugConfiguration = if (bdconfig_ == null) {
@@ -41,7 +43,7 @@ object CrashCulpritManager {
 		ExecutorManager.sendMessage(ExceptionNotification(crashingRecord))
 	}
 
-	var currentCrash: CrashingRecord = null
+	var currentCrash: Any = null
 	var currentCrashSkip: Boolean = true
 	private val waitObjects = HashMap[(Int, Int, Int), Object]()
 	private val skippedCrashedRecords = mutable.HashMap[(Int, Int, Int), List[Any]]().withDefaultValue(Nil)
@@ -56,7 +58,7 @@ object CrashCulpritManager {
 		bdconfig
 	}
 
-	def getCurrentCrashCulprit: CrashingRecord = {
+	def getCurrentCrashCulprit: Any = {
 		currentCrash
 	}
 
@@ -90,17 +92,17 @@ object CrashCulpritManager {
 				val a = context.asInstanceOf[TaskContextImpl].crashCulpritId
 				(context.partitionId(), a)
 			case _ =>
-				(-1, -1)
+				(-1, -1L)
 		}
 		val xstream: XStream = new XStream()
 		val str = xstream.toXML(record)
 		println("Sending Record " + str)
 		currentCrash = str
 		if (bdconfig.CRASH_CULPRIT_RESOLUTION == 1 || (bdconfig.CRASH_CULPRIT_RESOLUTION == 2 && skippedCrashedRecords((stageID, taskID, rddid)).length >= bdconfig.CRASH_CUPLRIT_THRESHOLD)) {
-			val c_record = CrashingRecord(record, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, true, currentID)
+			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, true, currentID)
 			catchException(c_record)
 			ExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
-			TaskExecutionManager.enrollCrash(c_record)
+			//TaskExecutionManager.enrollCrash(c_record)
 			var waitObject: Object = null
 			waitObject = waitObjects.getOrElse((stageID, taskID, rddid), null)
 			if (waitObject == null) {
@@ -115,13 +117,13 @@ object CrashCulpritManager {
 		else {
 			currentCrashSkip = true
 			val driver = ExecutorManager.GetDriver
-			val c_record = CrashingRecord(record, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, false, currentID)
+			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, false, currentID)
 			ExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
-			TaskExecutionManager.enrollCrash(c_record)
+			//TaskExecutionManager.enrollCrash(c_record)
 			skippedCrashedRecords((stageID, taskID, rddid)) ::= record
 		}
 		println("Returning value: " + currentCrash)
-		if (currentCrashSkip) null else xstream.fromXML(currentCrash)
+		if (currentCrashSkip) null else xstream.fromXML(currentCrash.toString)
 	}
 
 
@@ -137,7 +139,7 @@ object CrashCulpritManager {
 			case 0 => // Skip record
 				currentCrashSkip = true
 			case 1 => // Modify Record
-				currentCrash = c
+				currentCrash = c.record
 			case _ =>
 		}
 		val waitObject = waitObjects.getOrElse((c.stageID, c.taskID,c.rddid), null)
@@ -169,13 +171,13 @@ object CrashCulpritManager {
 
 	def getResolvedRecord(stageID: Int, taskID: Int, subtaskID: Int): Any = {
 		val xstream: XStream = new XStream()
-		var str: CrashingRecord = null
+		var str: Any = null
 		if (resolvedCrashedRecords((stageID, taskID, subtaskID)).length > 0) {
-			str = resolvedCrashedRecords((stageID, taskID, subtaskID))(0)
+			str = resolvedCrashedRecords((stageID, taskID, subtaskID))(0).record
 			resolvedCrashedRecords((stageID, taskID, subtaskID)) = resolvedCrashedRecords((stageID, taskID, subtaskID)).drop(1)
 		}
 		println("Setting resolved record (" + stageID + "," + taskID + "," + subtaskID + ") " + str)
-		xstream.fromXML(str)
+		xstream.fromXML(str.toString)
 	}
 
 
@@ -237,4 +239,4 @@ object CrashCulpritManager {
 }
 
 
-case class CrashingRecord(record: Any, stageID: Int, taskID: Int, rddid: Int, exception: Exception, srnumn: Int, senderId: String = "", blocking: Boolean = false, lineageID: (Int, Long) = (-1, -1))
+case class CrashingRecord(record: String, stageID: Int, taskID: Int, rddid: Int, exception: Exception, srnumn: Int, senderId: String = "", blocking: Boolean = false, lineageID: (Int, Long) = (-1, -1L))

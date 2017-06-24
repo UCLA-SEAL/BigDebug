@@ -20,9 +20,10 @@ package org.apache.spark.executor.ui
 import javax.servlet.http.HttpServletRequest
 
 import org.apache.spark.executor.CoarseGrainedExecutorBackend
+import org.apache.spark.internal.Logging
 import org.apache.spark.ui.JettyUtils._
 import org.apache.spark.ui.debugger.SocketRunner
-import org.apache.spark.ui.{SparkUI, WebUI}
+import org.apache.spark.ui.{JettyUtils, SparkUI, WebUI}
 
 /**
  *
@@ -32,7 +33,7 @@ private[spark]
 class ExecutorWebUI(
     val executor: CoarseGrainedExecutorBackend,
     requestedPort: Int)
-  extends WebUI(executor.sectMgr, requestedPort, executor.getConf(), name = "ExecutorUI")
+  extends WebUI(executor.sectMgr,executor.sectMgr.getSSLOptions("ui") ,requestedPort, executor.getConf, name = "ExecutorUI")
   with Logging {
 
   def getExecutorWebSocketPort(): Int ={
@@ -40,7 +41,7 @@ class ExecutorWebUI(
   }
 
   var executorWebSocket: SocketRunner = null
-  val timeout = AkkaUtils.askTimeout(executor.getConf())
+//  val timeout = AkkaUtils.askTimeout(executor.getConf())
 
   initialize()
 
@@ -50,13 +51,13 @@ class ExecutorWebUI(
       *
       * BD starts
       * */
-    executorWebSocket = new SocketRunner(ExecutorWebUI.EXECUTOR_WEBSOCKET_PORT ,executor.getBigDebugConfiguration() )
+    executorWebSocket = new SocketRunner(ExecutorWebUI.EXECUTOR_WEBSOCKET_PORT ,executor.bconf)
     executorWebSocket.run()
     val profilePage = new RecordProfilingPage(this)
     attachPage(profilePage)
     attachHandler(createStaticHandler(ExecutorWebUI.STATIC_RESOURCE_BASE, "/static"))
-    attachHandler(createServletHandler("/profiledata",
-      (request: HttpServletRequest) => profilePage.renderData(request), executor.sectMgr))
+    attachHandler(JettyUtils.createServletHandler("/profiledata",
+      (request: HttpServletRequest) => profilePage.renderData(request), executor.sectMgr , executor.getConf))
 
 
   }

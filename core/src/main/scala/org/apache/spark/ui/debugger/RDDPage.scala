@@ -60,7 +60,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
       val str_code = getRDDDetails(wpId)
       val wsType = 1 //RDD   doPoll(4000,$tableRenderLink )
       UIUtils.headerSparkPage(
-        s"Details for $str_code ", content, parent, onload = s"initWebSocket($wsType, $wpId);createCode();") /***05/12 => createcode added**/
+        s"Details for $str_code ", content, parent,showVisualization = true, onload = s"initWebSocket($wsType, $wpId);createCode();") /***05/12 => createcode added**/
     }
   }
 

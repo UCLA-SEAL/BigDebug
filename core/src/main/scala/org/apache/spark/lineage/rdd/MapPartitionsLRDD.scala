@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import com.thoughtworks.xstream.XStream
-import org.apache.spark.bdd.{CrashingRecord, UnresolvedCrashRecords, BDDCodeFix, BDDCodeFixCompiler1}
+import org.apache.spark.bdd.{CrashingRecord, BDDCodeFix, BDDCodeFixCompiler1}
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd.MapPartitionsRDD
 
@@ -52,7 +52,7 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 			xstream.toXML(
 				pc.function(
 					xstream.fromXML(
-						s.record
+						s.record.toString
 					).asInstanceOf[T]
 				)
 			)

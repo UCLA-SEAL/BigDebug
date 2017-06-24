@@ -3,7 +3,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
-import org.apache.spark.bdd.{CrashingRecord, UnresolvedCrashRecords, TaskExecutionManager, BDDIterator}
+import org.apache.spark.bdd.{CrashingRecord, TaskExecutionManager, BDDIterator}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._

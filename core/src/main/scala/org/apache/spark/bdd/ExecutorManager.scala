@@ -28,6 +28,10 @@ object ExecutorManager {
       case None =>DebugHelper.log("INFO", "ExecutorManager", s"Drop $message because has not yet connected to driver")
     }
 
+    //Todo: implement the support for local mode debugging here.
+    // Use send message interface to call, directly, the corresponding functions in taskExecutionManager
+
+
   }
 }
 

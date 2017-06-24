@@ -44,7 +44,7 @@ private[ui] class RDDStPage(parent: DebuggerTab) extends WebUIPage("rddst") {
       val str_code = getRDDDetails(wpId)
       val wsType = 1 //RDD   doPoll(4000,$tableRenderLink )
       UIUtils.headerSparkPage(
-        s"Details for $str_code ", content, parent, onload = s"createCode();")
+        s"Details for $str_code ", content,  parent,showVisualization = true, onload = s"createCode();")
   }
 
   //  def renderResolutionOptions(r: (String, Int, Int, Int)): Seq[Node] = {

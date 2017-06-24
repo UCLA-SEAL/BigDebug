@@ -51,21 +51,21 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 			private var hd: T = _
 			private var hdDefined: Boolean = false
 			private var finalrecord : Boolean  = false
-			def applyUDF(record: T = null): Boolean = {
+			def applyUDF(record: Option[T] = None): Boolean = {
 				var r: T = new A[T].t
-				if (record == null){
+				if (!record.isDefined){
 					if (!self.hasNext){
 						finalrecord = true
 						return false
 					}
 					hd = self.next()
 				}
-				else hd = record
+				else hd = record.get
 				try {
 					return p(hd)
 				} catch {
 					case exception: Exception =>
-						val str = CrashCulpritManager.setCrash(record, rddid, exception, context).asInstanceOf[T]
+						val str = CrashCulpritManager.setCrash(r, rddid, exception, context).asInstanceOf[T]
 						if (str == null){
 							if(self.hasNext) {
 								return applyUDF()
@@ -75,7 +75,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 								return false
 							}
 						} else {
-							return applyUDF(str)
+							return applyUDF(Some(str))
 						}
 				}
 			}
@@ -106,19 +106,18 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 				self.hasNext
 			}
 
-			def applyUDF(record: T = null): U = {
+			def applyUDF(record: Option[T] = None): U = {
 				var r: T = new A[T].t
-				if (record == null) r = self.next() else r = record
+				if (!record.isDefined) r = self.next() else r = record.get
 				try {
 					f(r)
 				} catch {
 					case exception: Exception =>
-						CrashCulpritManager.catchException(record.toString, context.stageId, context.partitionId, rddid, exception)
-						val str = CrashCulpritManager.setCrash(record, rddid, exception, context).asInstanceOf[T]
+						val str = CrashCulpritManager.setCrash(r, rddid, exception, context).asInstanceOf[T]
 						if (str == null && self.hasNext) {
 							applyUDF()
 						} else {
-							applyUDF(str)
+							applyUDF(Some(str))
 						}
 				}
 			}
@@ -133,15 +132,14 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 		new BDDAbstractIterator[U] {
 			private var cur: Iterator[U] = empty
 
-			def applyUDF(record: T = null) : Unit= {
+			def applyUDF(record: Option[T] = None) : Unit= {
 				var r: T = new A[T].t
-				if (record == null) r = self.next() else r = record
+				if (!record.isDefined) r = self.next() else r = record.get
 				try {
 					cur = f(r).toIterator;
 				} catch {
 					case exception: Exception =>
-						CrashCulpritManager.catchException(record.toString, context.stageId, context.partitionId, rddid, exception)
-						val str = CrashCulpritManager.setCrash(record, rddid, exception, context).asInstanceOf[T]
+						val str = CrashCulpritManager.setCrash(r, rddid, exception, context).asInstanceOf[T]
 						if (str == null){
 							if(self.hasNext) {
 								applyUDF()
@@ -150,7 +148,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 								cur = empty
 							}
 						} else {
-							applyUDF(str)
+							applyUDF(Some(str))
 						}
 				}
 			}

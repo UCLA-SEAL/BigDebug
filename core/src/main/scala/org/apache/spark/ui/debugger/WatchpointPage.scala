@@ -67,7 +67,7 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 			val str_code = getWatchPointLineNumber(wpId)
 			val wsType = 1
 			UIUtils.headerSparkPage(
-				s"Details for Watchpoint at Line Number:$str_code ", content, parent, onload = s"createCode();initWebSocket($wsType, $wpId)")
+				s"Details for Watchpoint at Line Number:$str_code ", content, parent,showVisualization = true,  onload = s"createCode();initWebSocket($wsType, $wpId)")
 		}
 	}
 

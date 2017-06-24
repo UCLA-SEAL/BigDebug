@@ -23,6 +23,8 @@ import java.util
 import java.util.Properties
 import java.util.concurrent.ThreadPoolExecutor
 
+import org.apache.spark.bdd.BigDebugConfiguration
+
 import scala.collection.mutable
 import scala.collection.mutable.HashMap
 
@@ -86,7 +88,7 @@ private[spark] abstract class Task[T](
       taskMemoryManager,
       localProperties,
       metricsSystem,
-      metrics)
+      metrics , config = this.getBigDebugConfiguration())
     TaskContext.setTaskContext(context)
     context.setThreadPool(threadPool) // Matteo
     context.setBufferPool(bufferPool) // Matteo
@@ -175,6 +177,17 @@ private[spark] abstract class Task[T](
   def setBufferPool(pool: util.Queue[Array[Byte]]): Unit = this.bufferPool = pool
 
   def setBufferPoolLarge(pool: util.Queue[Array[Byte]]): Unit = this.bufferPoolLarge = pool
+
+  /**
+   *
+   * BigDebug Configuration  setting for task -- Tag Bigdebug @ Gulzar 06/23
+   */
+  @transient private var bdconfig: BigDebugConfiguration = null
+
+  def setBigDebugConfiguration(c : BigDebugConfiguration): Unit = bdconfig = c
+
+  def getBigDebugConfiguration(): BigDebugConfiguration = bdconfig
+
 
   /**
    * *************************************************************************************

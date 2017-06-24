@@ -3,9 +3,6 @@ package org.apache.spark.bdd
 /** BDD START **/
 object DebugHelper {
 
-  // TODO: A CULPRIT OF PERFORMANCE DEGRADATION
-  def deepCopy[A](a: A)(implicit m: reflect.Manifest[A]): A =
-    util.Marshal.load[A](util.Marshal.dump(a))
 
   val escapeCode = char2Character(27) + "["
 

@@ -3,6 +3,7 @@ package org.apache.spark.executor.ui
 import javax.servlet.http.HttpServletRequest
 
 import org.apache.spark.bdd.BDDMetricsSupport
+import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{UIUtils, WebUIPage}
 
 import scala.xml.Node
@@ -12,7 +13,7 @@ import scala.xml.Node
   */
 class RecordProfilingPage(parent: ExecutorWebUI) extends WebUIPage("") with Logging  {
 
-     val wid = parent.executor.getExecutorId()
+     val wid = parent.executor.getExecutorID
    val interval = 3000
    def render(request: HttpServletRequest): Seq[Node] = {
      val rddid = request.getParameter("rdd")

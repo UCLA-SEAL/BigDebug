@@ -24,18 +24,22 @@ import org.apache.spark.bdd._
 import org.apache.spark.ui._
 
 class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends SparkUITab(parent, "debugger") {
-  parent.attachTab(this)
-  TaskExecutionManager.setSparkUI(parent)
-  parent.attachHandler(JettyUtils.createRedirectHandler("/debugger/do", "/debugger", this.handleDebuggerCommand))
 
-  /** For DAG Viz */
+
   val operationGraphListener = parent.operationGraphListener
 
-  /** Ends here */
   attachPage(new DebuggerPage(this))
   attachPage(new WatchpointPage(this))
   attachPage(new RDDPage(this))
   attachPage(new RDDStPage(this))
+
+  def initiate(): Unit ={
+    TaskExecutionManager.setSparkUI(parent)
+    parent.attachHandler(JettyUtils.createRedirectHandler("/debugger/do", "/debugger", this.handleDebuggerCommand))
+    parent.attachTab(this)
+  }
+
+  initiate()
 
   def getSparkContext: SparkContext = {
     parent.sc.get

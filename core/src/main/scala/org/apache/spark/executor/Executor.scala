@@ -25,6 +25,8 @@ import java.util.Properties
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit}
 import javax.annotation.concurrent.GuardedBy
 
+import org.apache.spark.bdd.{BigDebugConfiguration, BDDMetricsSupport}
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.util.control.NonFatal
@@ -52,7 +54,7 @@ private[spark] class Executor(
     executorHostname: String,
     env: SparkEnv,
     userClassPath: Seq[URL] = Nil,
-    isLocal: Boolean = false)
+    isLocal: Boolean = false , bdconfig: BigDebugConfiguration = null)
   extends Logging {
 
   logInfo(s"Starting executor ID $executorId on host $executorHostname")
@@ -88,7 +90,7 @@ private[spark] class Executor(
   val bufferPool = new ConcurrentLinkedQueue[Array[Byte]]()
   val bufferPoolLarge = new ConcurrentLinkedQueue[Array[Byte]]()
   for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 * 128))
-  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1024))
+  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1))
 
   private val executorSource = new ExecutorSource(threadPool, executorId)
   // Pool used for threads that supervise task killing / cancellation
@@ -322,6 +324,14 @@ private[spark] class Executor(
         task.setThreadPool(threadPool) // Matteo
         task.setBufferPool(bufferPool) // Matteo
         task.setBufferPoolLarge(bufferPoolLarge) // Matteo
+        /** Passing debug configuration to tasks --tag Bigdebug  @ Gulzar 06/23 */
+        task.setBigDebugConfiguration(bdconfig)
+        BDDMetricsSupport.updateTaskInfo(taskId,task.stageId)
+
+        /** BDD Ends */
+
+
+
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()
         taskStartCpu = if (threadMXBean.isCurrentThreadCpuTimeSupported) {
@@ -360,6 +370,10 @@ private[spark] class Executor(
           }
         }
         val taskFinish = System.currentTimeMillis()
+        /** Latency alert task done notification -- Tag bigdebug @ Gulzar 06/23 */
+        BDDMetricsSupport.updateTaskDone(taskId,task.stageId)
+        /***/
+
         val taskFinishCpu = if (threadMXBean.isCurrentThreadCpuTimeSupported) {
           threadMXBean.getCurrentThreadCpuTime
         } else 0L

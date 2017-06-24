@@ -180,14 +180,12 @@ private[spark] object UIUtils extends Logging {
 				<script src={prependBaseUri("/static/canvasjs.min.js")}></script>
 			<script src={prependBaseUri("/static/log-view.js")}></script>
 			<script src={prependBaseUri("/static/webui.js")}></script>
-			<script>setUIRoot('
-				{UIUtils.uiRoot}
-				')</script>
+			<script>setUIRoot('{UIUtils.uiRoot}')</script>
 	}
 
 	def vizHeaderNodes: Seq[Node] = {
 			<link rel="stylesheet" href={prependBaseUri("/static/spark-dag-viz.css")} type="text/css"/>
-			<script src={prependBaseUri("/static/d3.min.js")}></script>
+			<script src={prependBaseUri("/static/d3.js")}></script>
 			<script src={prependBaseUri("/static/dagre-d3.min.js")}></script>
 			<script src={prependBaseUri("/static/graphlib-dot.min.js")}></script>
 			<script src={prependBaseUri("/static/spark-dag-viz.js")}></script>
@@ -207,7 +205,7 @@ private[spark] object UIUtils extends Logging {
 			<script src={prependBaseUri("/static/jquery.mustache.js")}></script>
 	}
 
-	/** Returns a spark page with correctly formatted headers */
+	/** Returns a spark page with correctly formatted headers. Onload added -- Tag Bigdebug @Gulzar 06/22*/
 	def headerSparkPage(
 		                   title: String,
 		                   content: => Seq[Node],
@@ -238,7 +236,7 @@ private[spark] object UIUtils extends Logging {
 				{title}
 			</title>
 			</head>
-			<body>
+			<body  onload={if (onload != null) onload else ""}>
 				<div class="navbar navbar-static-top">
 					<div class="navbar-inner">
 						<div class="brand">
@@ -273,18 +271,18 @@ private[spark] object UIUtils extends Logging {
 		</html>
 	}
 
-	/** Returns a page with the spark css/js and a simple format. Used for scheduler UI. */
+	/** Returns a page with the spark css/js and a simple format. Used for scheduler UI.  onload added-- Tag BigDebug @Gulzar 06/20 */
 	def basicSparkPage(
 		                  content: => Seq[Node],
 		                  title: String,
-		                  useDataTables: Boolean = false): Seq[Node] = {
+		                  useDataTables: Boolean = false, onLoad:String = ""): Seq[Node] = {
 		<html>
 			<head>
 				{commonHeaderNodes}{if (useDataTables) dataTablesHeaderNodes else Seq.empty}<title>
 				{title}
 			</title>
 			</head>
-			<body>
+			<body onload={onLoad}>
 				<div class="container-fluid">
 					<div class="row-fluid">
 						<div class="span12">

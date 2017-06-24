@@ -1375,7 +1375,7 @@ private[spark] object Utils extends Logging {
     // A regular expression to match classes of the internal Spark API's
     // that we want to skip when finding the call site of a method.
     val SPARK_CORE_CLASS_REGEX =
-      """^org\.apache\.spark(\.api\.java)?(\.util)?(\.rdd)?(\.broadcast)?\.[A-Z]""".r
+      """^org\.apache\.spark(\.api\.java)?(\.util)?(\.rdd)?(\.lineage)?(\.lineage\.rdd)?(\.broadcast)?\.[A-Z]""".r
     val SPARK_SQL_CLASS_REGEX = """^org\.apache\.spark\.sql.*""".r
     val SCALA_CORE_CLASS_PREFIX = "scala"
     val isSparkClass = SPARK_CORE_CLASS_REGEX.findFirstIn(className).isDefined ||

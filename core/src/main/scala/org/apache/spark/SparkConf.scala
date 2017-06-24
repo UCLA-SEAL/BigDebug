@@ -19,6 +19,8 @@ package org.apache.spark
 
 import java.util.concurrent.ConcurrentHashMap
 
+import org.apache.spark.bdd.BigDebugConfiguration
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.LinkedHashSet
 
@@ -55,6 +57,19 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
   def this() = this(true)
 
   private val settings = new ConcurrentHashMap[String, String]()
+
+  /**
+   * Set BigDebug Configuration --Tag @Gulzar 06/20
+   */
+  var bdconfig: BigDebugConfiguration = new BigDebugConfiguration
+  def setBigDebugConfiguration(b: BigDebugConfiguration): Unit = {
+    bdconfig = b
+  }
+
+  def getBigDebugConfiguration(): BigDebugConfiguration = {
+    bdconfig
+  }
+
 
   @transient private lazy val reader: ConfigReader = {
     val _reader = new ConfigReader(new SparkConfigProvider(settings))

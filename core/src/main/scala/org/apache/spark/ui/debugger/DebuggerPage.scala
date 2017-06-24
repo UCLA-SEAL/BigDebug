@@ -1,5 +1,6 @@
 package org.apache.spark.ui.debugger
 
+import java.io.File
 import javax.servlet.http.HttpServletRequest
 
 import org.apache.commons.lang3.StringEscapeUtils
@@ -9,11 +10,14 @@ import org.apache.spark.ui.scope.RDDOperationGraph._
 import org.apache.spark.ui.{ToolTips, UIUtils, WebUIPage}
 
 import scala.collection.mutable.StringBuilder
-import scala.xml.{NodeSeq, Node}
+import scala.xml.{Unparsed, NodeSeq, Node}
 
 
 private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 	private val listener = parent.listener
+
+
+	def bconf = parent.getSparkContext.lc.getBigDebugConfiguration()
 
 	def render(request: HttpServletRequest): Seq[Node] = {
 		val doUrl = "%s/debugger/do".format(UIUtils.prependBaseUri(parent.basePath))
@@ -31,9 +35,11 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 
 
 		val path_dag_viz = UIUtils.prependBaseUri("/static/spark-dag-viz.js")
-		val fileContent = scala.io.Source.fromFile(parent.getSparkContext.lc.getBigDebugConfiguration().SOURCECODE_PATH).mkString
+		val fileContent = if(new File(bconf.SOURCECODE_PATH).exists())
+			scala.io.Source.fromFile(parent.getSparkContext.lc.getBigDebugConfiguration().SOURCECODE_PATH).mkString
+		else
+			"Source file for the running spark application is not given"
 		val filename = parent.getSparkContext.lc.getBigDebugConfiguration().SOURCECODE_PATH.split("/").last
-
 
 		//  println(current_Crash)
 		val operationGraphListener = parent.operationGraphListener
@@ -65,7 +71,7 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 							<br/>
 							<br/>
 							<div>
-								{UIUtils.showDagVizForJob(
+								{DebuggerPageUtils.showDagVizForJob(
 								0, operationGraphListener.getOperationGraphForJob(0))}
 							</div>
 							<input type="hidden" id="websocketport" name="portws"
@@ -98,7 +104,7 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 		</div>
 
 		val wstype = 2
-		UIUtils.headerSparkPage("Debugger", content, parent, onload = s"createCode();initWebSocket($wstype);chartRender()")
+		UIUtils.headerSparkPage("Debugger", content, parent,showVisualization = true, onload = s"createCode();initWebSocket($wstype);chartRender()")
 	}
 
 	def renderedTaskProfiling(): Seq[Node] = {
@@ -203,22 +209,10 @@ object DebuggerPageUtils {
 				val stageId = g.rootCluster.id.replaceAll(RDDOperationGraph.STAGE_CLUSTER_PREFIX, "")
 				val skipped = g.rootCluster.name.contains("skipped").toString
 				<div class="stage-metadata" stage-id={stageId} skipped={skipped}>
-					<div class="dot-file">
-						{DebuggerPageUtils.makeDotFile(g)}
-					</div>{g.incomingEdges.map { e => <div class="incoming-edge">
-					{e.fromId}
-					,
-					{e.toId}
-				</div>
-				}}{g.outgoingEdges.map { e => <div class="outgoing-edge">
-					{e.fromId}
-					,
-					{e.toId}
-				</div>
+					<div class="dot-file">{DebuggerPageUtils.makeDotFile(g)}</div>{g.incomingEdges.map { e => <div class="incoming-edge">{e.fromId},{e.toId}</div>
+				}}{g.outgoingEdges.map { e => <div class="outgoing-edge">{e.fromId},{e.toId}</div>
 				}}{g.rootCluster.getCachedNodes.map { n =>
-					<div class="cached-rdd">
-						{n.id}
-					</div>
+					<div class="cached-rdd">{n.id}</div>
 				}}
 				</div>
 			}}
@@ -263,6 +257,31 @@ object DebuggerPageUtils {
 			makeDotSubgraph(subgraph, cscope, indent + "  ")
 		}
 		subgraph.append(indent).append("}\n")
+	}
+
+	def getDAGMetaData(graphs: Seq[RDDOperationGraph]): Seq[Node] = {
+		<div id="dag-viz-metadata" style="display:none">
+			{graphs.map { g =>
+			val stageId = g.rootCluster.id.replaceAll(RDDOperationGraph.STAGE_CLUSTER_PREFIX, "")
+			val skipped = g.rootCluster.name.contains("skipped").toString
+			<div class="stage-metadata" stage-id={stageId} skipped={skipped}>
+				<div class="dot-file">
+					{RDDOperationGraph.makeDotFile(g)}
+				</div>{g.incomingEdges.map { e => <div class="incoming-edge">{e.fromId},{e.toId}</div>
+			}}{g.outgoingEdges.map { e => <div class="outgoing-edge">{e.fromId},{e.toId}</div>}}{g.rootCluster.getCachedNodes.map { n => <div class="cached-rdd">{n.id}</div>}}
+			</div>
+		}}
+		</div>
+	}
+
+
+
+
+	/** Return a script element that automatically expands the DAG visualization on page load. */
+	def expandDagVizOnLoad(forJob: Boolean): Seq[Node] = {
+		<script type="text/javascript">
+			{Unparsed("$(document).ready(function() { toggleDagViz(" + forJob + ") });")}
+		</script>
 	}
 
 }

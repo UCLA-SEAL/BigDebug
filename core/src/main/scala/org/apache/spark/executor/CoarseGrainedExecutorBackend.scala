@@ -21,7 +21,6 @@ import java.net.URL
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
-import _root_.akka.actor.ActorSelection
 import org.apache.spark.bdd._
 import org.apache.spark.executor.ui.ExecutorWebUI
 
@@ -53,10 +52,11 @@ private[spark] class CoarseGrainedExecutorBackend(
 
  // Ui support variables at the executor fro bigdebug debugging --Tag bigdebug @ Gulzar 06/22
   var webuiport = ExecutorWebUI.EXECUTOR_UI_PORT
-  var executor: Executor = null
   var webUi: ExecutorWebUI = null
   var sectMgr: SecurityManager = null
-
+  var bconf : BigDebugConfiguration  = null
+  def getConf:SparkConf = env.conf
+  def getExecutorID:String = env.executorId
 
   private[this] val stopping = new AtomicBoolean(false)
   var executor: Executor = null
@@ -91,8 +91,9 @@ private[spark] class CoarseGrainedExecutorBackend(
     case RegisteredExecutor(bdconf) =>
       logInfo("Successfully registered with driver")
       try {
-        executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false)
-        // Setting the driver for message passing -- Tag Bigdebug @ Gulzar 06/20
+        executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false , bdconfig = bdconf)
+        // Setting the driver for message passing -- Tag Bigdebug @ Gulzar 06/20\
+        bconf = bdconf
         ExecutorManager.setDriver(driver)
         ExecutorManager.SetExecutorId(executorId)
         CrashCulpritManager.setBigDebugConfiguration(bdconf)
