@@ -332,7 +332,6 @@ object TaskExecutionManager {
 	/* Alternate Implementation: Notify Driver of start time and let it check time span. and alert it on task finish */
 
 
-	/* We'll do it later ..
 	private var taskMetricInfo = HashMap[(Long /*tID*/ , Int /*SID*/ , String /*Executor ID*/ ), BDDMetric]().withDefaultValue(null)
 	var currentStage = -1;
 
@@ -394,19 +393,6 @@ object TaskExecutionManager {
 		}
 	}
 
-	// Requester Disabled => SetTaskUpdateMetricInfo disabled
-	def SetTaskUpdateMetricInfo(sID: Int, tID: Long, execID: String, time: Long): Unit = {
-		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Profiler  $sID, $tID, $execID, $time")
-		val time1 = System.currentTimeMillis()
-		val bddmetric = taskMetricInfo.getOrElse((tID, sID, execID), null)
-		if (bddmetric != null) {
-			if (bddmetric.finished == false) {
-				bddmetric.executionSpan = time1;
-				taskMetricInfo((tID, sID, execID)) = bddmetric
-			}
-		}
-	}
-
 	def SetTaskDoneMetric(sID: Int, tID: Long, execID: String, time: Long): Unit = {
 		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Done  $sID, $tID, $execID, $time")
 		val time1 = System.currentTimeMillis()
@@ -418,53 +404,6 @@ object TaskExecutionManager {
 		}
 		taskMetricInfo((tID, sID, execID)) = bddmetric
 	}
-
-	// Used in Requestor Thread :  Disabled.
-	def requestExecutorsLocalTime(): Unit = {
-		for (((tID, sID, execID), value) <- taskMetricInfo) executorActor(execID).send(RequestLocalTime(sID, tID))
-	}
-
-	def printStragglers(): Unit = {
-		val time1 = System.currentTimeMillis()
-		var sum = 0L
-		var sumSQ = 0L
-		var count = 0
-		var span = 0L
-		for (((tID, sID, execID), value) <- taskMetricInfo) {
-			if (!value.finished) {
-				span = (time1 - value.executionstarttime)
-				sum = sum + span
-				sumSQ = sumSQ + (span * span)
-				count += 1
-			} else {
-				span = (value.executionDonetime - value.executionstarttime)s.record, s.stageID, s.taskID, s.rddID
-				sum = sum + span
-				sumSQ = sumSQ + (span * span)
-				count += 1
-			}
-		}
-
-		val avg = sum.asInstanceOf[Float] / count.asInstanceOf[Float]
-		val std = Math.sqrt(((sumSQ.asInstanceOf[Float] / count.asInstanceOf[Float]) - (avg * avg)))
-		DebugHelper.log("INFO", "TaskExecutionManager", "Finding Stragglers... (Current Avg: " + avg + " Current Stdev:" + std + " )")
-		for (((tID, sID, execID), value) <- taskMetricInfo) {
-			if (!value.finished) {
-				span = (time1 - value.executionstarttime)
-				if (span > ((2 * std) + avg)) {
-					DebugHelper.log("INFO", "TaskExecutionManager", "Stragglers : (SubtaskID:" + sID + ", TaskID:" + tID + ", Worker:" + execID + ") Time Span => " + (span))
-				}
-			} else {
-				span = (value.executionDonetime - value.executionstarttime)
-				if (span > ((2 * std) + avg)) {
-					DebugHelper.log("INFO", "TaskExecutionManager", "Stragglers :(SubtaskID:" + sID + ", TaskID:" + tID + ", Worker:" + execID + ") Finished in => " + span)
-				}
-			}
-			DebugHelper.log("INFO", "TaskExecutionManager", "    (SubtaskID:" + sID + ", TaskID:" + tID + ", Worker:" + execID + ") => " + span)
-		}
-	}
-
-*/
-
 
 	/**
 	 * Crash Culprit Handling at Driver
@@ -631,10 +570,10 @@ object TaskExecutionManager {
 	}
 
 	def getLineage[T, V](prev: Lineage[(T, V)], next: T) = {
-		prev.filter {
+		prev.filter({
 			current =>
 				current._1 == next
-		}
+		})
 	}
 
 	def startLineageQuery(h_code: Int, stage: Int, task: Int, subtask: Int): Unit = {

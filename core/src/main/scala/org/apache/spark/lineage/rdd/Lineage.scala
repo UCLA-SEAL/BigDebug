@@ -26,15 +26,6 @@ trait Lineage[T] extends RDD[T] {
   // None = no cache, true = pre, false = post
   private[spark] var isPreShuffleCache: Option[Boolean] = None
 
-  /***Bigdebug @ Gulzar 6/16**/
-  var isLatencyEnabled = false;
-  def isRecordLevelLatencyEnabled: Boolean ={
-    isLatencyEnabled
-  }
-  def enableRecordLevelLatency(set : Boolean): Unit ={
-    this.prev.enableRecordLevelLatency(set)
-    //TODO: Check if this configuration is serialized into the closure
-  }
 
   def tapRight(): TapLRDD[T] = {
     val tap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
@@ -243,14 +234,18 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage containing only the elements that satisfy a predicate.
    */
-  override def filter(f: T => Boolean): Lineage[T] =  withScope {
+    override def filter(f: T => Boolean ): Lineage[T] =  withScope {
+      filterWithProfiling(f, false)
+    }
+     def filterWithProfiling(f: T => Boolean , enableProfiling: Boolean = false ): Lineage[T] =  withScope {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
       (context, pid, iter) =>{
         // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
         if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-          val debugIterator = new BDDIterator[T](context, iter, id+1, this.asInstanceOf[Lineage[T]])
+          val debugIterator = new BDDIterator[T](context, iter, id+1)
+          debugIterator.setRecordLevelLatency(enableProfiling)
           //TODO: Check if the id is needed to be incremented or not.
           debugIterator.filter(cleanF)
         } else
@@ -285,12 +280,15 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage by first applying a function to all elements of this
    * Lineage, and then flattening the results.
    */
-  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] = withScope {
+
+  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] = withScope {flatMapWithProfiling(f, false)}
+  def flatMapWithProfiling[U: ClassTag](f: T => TraversableOnce[U] , enableProfiling:Boolean = false): Lineage[U] = withScope {
     val cleanF = lineageContext.sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
       if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-        val debugIterator = new BDDIterator[T](context, iter, id+1, this.asInstanceOf[Lineage[T]])
+        val debugIterator = new BDDIterator[T](context, iter, id+1)
+        debugIterator.setRecordLevelLatency(enableProfiling)
         //TODO: Check if the id is needed to be incremented or not.
         debugIterator.flatMap[U](cleanF)
       } else
@@ -336,12 +334,14 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
-  override def map[U: ClassTag](f: T => U): Lineage[U] = withScope {
+  override def map[U: ClassTag](f: T => U): Lineage[U] = withScope {mapWithProfiling(f, false)}
+  def mapWithProfiling[U: ClassTag](f: T => U, enableProfiling:Boolean = false): Lineage[U] = withScope {
     val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
       if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-        val debugIterator = new BDDIterator[T](context, iter, id+1, this.asInstanceOf[Lineage[T]])
+        val debugIterator = new BDDIterator[T](context, iter, id+1)
+        debugIterator.setRecordLevelLatency(enableProfiling)
         //TODO: Check if the id is needed to be incremented or not.
         debugIterator.map[U](cleanF)
       } else

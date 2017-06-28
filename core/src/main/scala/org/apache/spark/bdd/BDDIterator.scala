@@ -9,9 +9,17 @@ import scala.collection.Iterator._
 /**
  * Created by ali on 7/15/15.
  */
-class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rddid: Int, rdd: Lineage[T])
+class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rddid: Int)
 	extends Iterator[T] {
 	self =>
+	/***Bigdebug @ Gulzar 6/16**/
+	var isLatencyEnabled = false;
+	def isRecordLevelLatencyEnabled: Boolean ={
+		isLatencyEnabled
+	}
+	def setRecordLevelLatency(set : Boolean): Unit ={
+		isLatencyEnabled = set
+	}
 
 	class A[Z] {
 		var t: Z = _
@@ -32,17 +40,23 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 	}
 
 	override def filter(p: T => Boolean): Iterator[T] = {
-		val latestFunction = loadFunc[Boolean](p)
+		var latestFunction = loadFunc[Boolean](p)
+		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingFilter(latestFunction)
 	}
 
 	override def flatMap[U](p: T => scala.collection.GenTraversableOnce[U]): Iterator[U] = {
-		val latestFunction = loadFunc[scala.collection.GenTraversableOnce[U]](p)
+		var latestFunction = loadFunc[scala.collection.GenTraversableOnce[U]](p)
+		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingFlatMap[U](latestFunction)
 	}
 
 	override def map[U](p: T => U): Iterator[U] = {
-		val latestFunction = loadFunc[U](p)
+		var latestFunction = loadFunc[U](p)
+		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingMap[U](latestFunction)
 	}
 
@@ -180,7 +194,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 				go = CrashCulpritManager.lazyCrashCulpritResolution(context.stageId(), context.partitionId(), rddid)
 			}
 			if (!go) {
-				WatchpointManager.setTaskDone(context.partitionId, self.rdd.id, context)
+				WatchpointManager.setTaskDone(context.partitionId,rddid, context)
 			}
 			go
 		}

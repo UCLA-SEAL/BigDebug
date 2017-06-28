@@ -21,6 +21,8 @@ import java.lang.management.ManagementFactory
 import java.nio.ByteBuffer
 import java.util.Properties
 
+import org.apache.spark.bdd.TaskExecutionManager
+
 import scala.language.existentials
 
 import org.apache.spark._
@@ -119,6 +121,20 @@ private[spark] class ShuffleMapTask(
       // Added by Matteo
     }
   }
+  /**** Support for runtime backward tracing of Crashing records -- Tag Bigdebug @ Gulzar 27/06 **/
+  var record : Any =null
+  var subtaskID = -1
+  var exception:Exception =null
+  var lineageID = -1
+  def finalizeTask(r: Any, s: Int, e: Exception, l : Int): Unit ={
+    TaskExecutionManager.foundCrash(true)
+    record = r;
+    subtaskID = s;
+    exception = e
+    lineageID = l;
+    //    SparkEnv.get.cacheManager.finalizeTaskCache(rdd_, partition.index, context)
+  }
+  /****/
 
   override def preferredLocations: Seq[TaskLocation] = preferredLocs
 

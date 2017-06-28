@@ -170,6 +170,21 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
       case RegisterSocketInfo(port, host, id) =>
         TaskExecutionManager.enrollExecutorUI(id, host, port)
+
+
+      case BDDMetricTaskStart(sID, tID, execID, time) =>
+        TaskExecutionManager.SetTaskMetricInfo(sID, tID, execID, time)
+        logInfo("Time logging started: " + execID + "  " + time)
+
+      case BDDMetricTaskDone(sID, tID, execID, time) =>
+        TaskExecutionManager.SetTaskDoneMetric(sID, tID, execID, time)
+        logInfo("Time logging Done: " + execID + "  " + time)
+
+
+
+
+
+
       /** END **/
 
     }

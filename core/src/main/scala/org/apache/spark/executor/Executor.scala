@@ -327,10 +327,7 @@ private[spark] class Executor(
         /** Passing debug configuration to tasks --tag Bigdebug  @ Gulzar 06/23 */
         task.setBigDebugConfiguration(bdconfig)
         BDDMetricsSupport.updateTaskInfo(taskId,task.stageId)
-
         /** BDD Ends */
-
-
 
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()
