@@ -266,7 +266,7 @@ object DebuggerPageUtils {
 			val skipped = g.rootCluster.name.contains("skipped").toString
 			<div class="stage-metadata" stage-id={stageId} skipped={skipped}>
 				<div class="dot-file">
-					{RDDOperationGraph.makeDotFile(g)}
+					{DebuggerPageUtils.makeDotFile(g)}
 				</div>{g.incomingEdges.map { e => <div class="incoming-edge">{e.fromId},{e.toId}</div>
 			}}{g.outgoingEdges.map { e => <div class="outgoing-edge">{e.fromId},{e.toId}</div>}}{g.rootCluster.getCachedNodes.map { n => <div class="cached-rdd">{n.id}</div>}}
 			</div>

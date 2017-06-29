@@ -23,13 +23,10 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
   def render(request: HttpServletRequest): Seq[Node] = {
     val wpId = request.getParameter("id").toInt
     val cnt = request.getParameter("cnt") // See if this call is only for content
-
-   // println("ID :" + wpId)
-
     /**
     Use RDD object here to extract runtime Type of f , if Possible
       */
-    if (cnt != null) {
+    if (cnt != null) { // Call for only the content of the page
       val wpHeadersAndCssClasses: Seq[(String, String)] =
         Seq(
           ("Crashed Data Records ", "")

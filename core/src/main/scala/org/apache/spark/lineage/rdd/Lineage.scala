@@ -237,7 +237,7 @@ trait Lineage[T] extends RDD[T] {
     override def filter(f: T => Boolean ): Lineage[T] =  withScope {
       filterWithProfiling(f, false)
     }
-     def filterWithProfiling(f: T => Boolean , enableProfiling: Boolean = false ): Lineage[T] =  withScope {
+     def filterWithProfiling(f: T => Boolean , enableProfiling: Boolean = true ): Lineage[T] =  withScope {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
@@ -282,7 +282,7 @@ trait Lineage[T] extends RDD[T] {
    */
 
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] = withScope {flatMapWithProfiling(f, false)}
-  def flatMapWithProfiling[U: ClassTag](f: T => TraversableOnce[U] , enableProfiling:Boolean = false): Lineage[U] = withScope {
+  def flatMapWithProfiling[U: ClassTag](f: T => TraversableOnce[U] , enableProfiling:Boolean = true): Lineage[U] = withScope {
     val cleanF = lineageContext.sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
@@ -335,7 +335,7 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = withScope {mapWithProfiling(f, false)}
-  def mapWithProfiling[U: ClassTag](f: T => U, enableProfiling:Boolean = false): Lineage[U] = withScope {
+  def mapWithProfiling[U: ClassTag](f: T => U, enableProfiling:Boolean = true): Lineage[U] = withScope {
     val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16

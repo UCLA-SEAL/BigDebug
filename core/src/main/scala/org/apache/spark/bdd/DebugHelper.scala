@@ -30,9 +30,9 @@ object DebugHelper {
       case "VERBOSE" => COLOR_DARK_WHITE
       case _ => escapeCode + "0;37m"
     }
-   // scala.Console.print(colorCode + "[" + msgType + "][" + msgTopic + "] " + darkerColorCode)
-    //scala.Console.println(x)
-    //scala.Console.print(escapeCode + "0m")
+    scala.Console.print(colorCode + "[" + msgType + "][" + msgTopic + "] " + darkerColorCode)
+    scala.Console.println(x)
+    scala.Console.print(escapeCode + "0m")
   }
   def logoutput(msgType: String, msgTopic: String, x: Any) = {
 

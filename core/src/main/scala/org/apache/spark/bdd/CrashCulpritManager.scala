@@ -40,7 +40,7 @@ object CrashCulpritManager {
 
 	def catchException(crashingRecord: CrashingRecord): Unit = {
 		println("(" + crashingRecord.stageID + "," + crashingRecord.taskID + "," + crashingRecord.rddid + ") " + crashingRecord.record + "    Error: " + crashingRecord.exception)
-		ExecutorManager.sendMessage(ExceptionNotification(crashingRecord))
+		//ExecutorManager.sendMessage(ExceptionNotification(crashingRecord))
 	}
 
 	var currentCrash: Any = null
@@ -102,7 +102,6 @@ object CrashCulpritManager {
 			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, true, currentID)
 			catchException(c_record)
 			ExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
-			//TaskExecutionManager.enrollCrash(c_record)
 			var waitObject: Object = null
 			waitObject = waitObjects.getOrElse((stageID, taskID, rddid), null)
 			if (waitObject == null) {

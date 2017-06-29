@@ -180,6 +180,7 @@ private[spark] object UIUtils extends Logging {
 				<script src={prependBaseUri("/static/canvasjs.min.js")}></script>
 			<script src={prependBaseUri("/static/log-view.js")}></script>
 			<script src={prependBaseUri("/static/webui.js")}></script>
+				<script src={prependBaseUri("/static/bootstrap.min.js")}></script>
 			<script>setUIRoot('{UIUtils.uiRoot}')</script>
 	}
 
@@ -278,7 +279,7 @@ private[spark] object UIUtils extends Logging {
 		                  useDataTables: Boolean = false, onLoad:String = ""): Seq[Node] = {
 		<html>
 			<head>
-				{commonHeaderNodes}{if (useDataTables) dataTablesHeaderNodes else Seq.empty}<title>
+				{commonHeaderNodes}{vizHeaderNodes}{if (useDataTables) dataTablesHeaderNodes else Seq.empty}<title>
 				{title}
 			</title>
 			</head>

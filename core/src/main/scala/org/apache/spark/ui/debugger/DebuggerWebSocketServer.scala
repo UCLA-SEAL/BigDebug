@@ -62,12 +62,15 @@ class DebuggerWebSocketServer(port: Int, runner: SocketRunner, conf:BigDebugConf
     }
     for (s <- set) {
       if (websocketsToRDDs.getOrElse(s.hashCode(), -1) == rdd) {
-        println(WatchpointPage.renderContent(rdd).toString)
-        s.send(WatchpointPage.renderContent(rdd).toString)
+       s.send(WatchpointPage.renderContent(rdd).toString)
       }
     }
   }
 
+  /**
+   * This function can also be used to update the watchpoint
+   * @param rdd
+   */
   def updateCrashedRDDs(rdd: Int): Unit = {
     //println("Updating Crash")
     var set: Set[WebSocket] = Set()

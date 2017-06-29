@@ -46,9 +46,7 @@ object TaskExecutionManager {
 				//  requestExecutorsLocalTime()
 				Thread.sleep(latency) // Find any alternative to thread.sleep like Wait-notify**
 				//printStragglers()
-
-
-			// Fix this::	getUiProfileData()
+			getUiProfileData()
 			}
 		}
 	})
@@ -369,7 +367,7 @@ object TaskExecutionManager {
 		str = "[" + {
 			if (str.endsWith(",")) str.substring(0, str.length - 1) else str
 		} + "]"
-		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor UI data /n $str /n")
+		//DebugHelper.log("INFO", "TaskExecutionManager", s" Executor UI data /n $str /n")
 		sparkUI.driverWebSocket.s.updateDebuggerTaskProfiling(str)
 		str
 	}
@@ -378,10 +376,6 @@ object TaskExecutionManager {
 	def SetTaskMetricInfo(sID: Int, tID: Long, execID: String, time: Long): Unit = {
 		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Profiler  $sID, $tID, $execID, $time")
 
-		if (currentStage != sID) {
-			currentStage = sID
-			// taskMetricInfo = taskMetricInfo.drop(taskMetricInfo.size)
-		}
 		val time1 = System.currentTimeMillis()
 		val bddmetric = new BDDMetric
 		bddmetric.executionstarttime = time1

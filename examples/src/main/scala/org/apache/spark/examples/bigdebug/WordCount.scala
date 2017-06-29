@@ -28,13 +28,13 @@ object WordCount {
 		val sc = new SparkContext(conf)
 		val lc = new LineageContext(sc)
 		val lines = lc.textFile(file)
-		lines.flatMap{ s =>
+		lines.flatMapWithProfiling{ s =>
+			if(s.contains("x")){
+					Thread.sleep(2000)
+			}
 			s.split(" ")}
 			.watchpoint( s => s.contains(","))
 			.map{ p =>
-				if(p.contains("MASTER")){
-					throw new NullPointerException()
-				}
 				(p,1)}
 			.reduceByKey(_+_)
 			.collect().foreach(println)

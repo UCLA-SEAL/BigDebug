@@ -81,7 +81,7 @@ function initWebSocket(type, rdd){
 var ws = new WebSocket("ws://" + host + ":" + port)
 switch(type){
     case 1:
-         ws.onopen = function(){ ws.send("Init "+rdd);
+         ws.onopen = function(){ws.send("Init "+rdd);
                };
         ws.onmessage = function(e){
            var server_message = e.data;
@@ -111,6 +111,7 @@ switch(type){
         case 3 :
          ws.onopen = function(){ ws.send("Init "+rdd);
                };
+            console.log("Lodging profile port");
         ws.onmessage = function(e){
            var server_message = e.data;
            console.log(server_message);
@@ -218,6 +219,12 @@ function chartRender(rdd,wid) {
         }]
     });
     chart.render();
+    var port = window.location.port
+    var host = window.location.hostname;
+    $.get("http://" + host + ":"+ port + "/profiledata/?rdd=" + rdd).success(function(data){
+        console.log(data);
+        updateChart(data);
+    });
 }
 
 function onClickData(e){
@@ -305,12 +312,14 @@ function unhighligth(e){
             var info = cm.lineInfo(n);
             cm.setGutterMarker(n, "breakpoints", info.gutterMarkers ? null : makeMarker());
         });
-            
-        highlightLine(parseInt(document.getElementById("breaklineinfo").value))
-        var crashes = document.getElementById("crashlineinfo").value.split(" ")
-        for(var i =0 ; i< crashes.length ; i++){
-            var val  = parseInt(crashes[i])
-            if(!isNaN(val)) highlightLine_error(val) 
+
+        if(document.getElementById("breaklineinfo") !== null){
+            highlightLine(parseInt(document.getElementById("breaklineinfo").value))
+            var crashes = document.getElementById("crashlineinfo").value.split(" ")
+            for(var i =0 ; i< crashes.length ; i++){
+                var val  = parseInt(crashes[i])
+                if(!isNaN(val)) highlightLine_error(val)
+            }
         }
     };
 

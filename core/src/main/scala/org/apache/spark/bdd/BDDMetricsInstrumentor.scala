@@ -48,6 +48,7 @@ object BDDMetricsSupport {
 
 
 	def recordDoneNotification(delta: Long, sID: Int, pid: Int, rdd: Int, record: String) {
+		//println("reporting delayed record")
 		recordAvgStd.synchronized {
 			var (sumSQ, sum, n, prevRecord) = recordAvgStd.getOrElse((sID, pid, rdd), (0L, 0L, 0, null))
 			sumSQ = sumSQ + (delta * delta)
@@ -105,7 +106,7 @@ object BDDMetricsSupport {
 				""
 			} else {
 				val r = a._1
-				val t = a._2
+				val t = a._2/1000000
 				s"""{"label": "$r" , "y" : $t }"""
 			}
 		}
@@ -128,7 +129,8 @@ object BDDMetricsSupport {
 			str = content.toList.reduce(_ + "," + _)
 		}
 		str = str.replaceAll(",+", ",")
-		val avg = sum.asInstanceOf[Float] / n.asInstanceOf[Float]
+		var avg = sum.asInstanceOf[Float] / n.asInstanceOf[Float]
+		avg = avg/1000000
 		val std = Math.sqrt(((sumSQ.asInstanceOf[Float] / n.asInstanceOf[Float]) - (avg * avg)))
 		str = "[" + {
 			if (str.endsWith(",")) str else str + ","
@@ -170,11 +172,11 @@ class BDDMetricsInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDD
 				val stime = System.nanoTime()
 				val retval = f(x)
 				val etime = System.nanoTime()
-				new Runnable {
+				new Thread {
 					override def run(): Unit = {
 						BDDMetricsSupport.recordDoneNotification(etime - stime, sid, pid, rddid, x.toString)
 					}
-				}.run
+				}.start()
 				retval
 			}
 			newf
