@@ -63,8 +63,8 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 								<br/>
 								<div>
 									<input type="hidden" id="crashlineinfo" value={getCrashLineNumber()}></input>
-									<input type="hidden" id="breaklineinfo" value={getLineNumber(TaskExecutionManager.getCurrentBreakpointRDDDetails())}></input> <h4>Current Breakpoint location is after the
-									{TaskExecutionManager.getCurrentBreakpointRDDDetails()}
+									<input type="hidden" id="breaklineinfo" value={getLineNumber(BDHandlerDriverSide.getCurrentBreakpointRDDDetails())}></input> <h4>Current Breakpoint location is after the
+									{BDHandlerDriverSide.getCurrentBreakpointRDDDetails()}
 								</h4>
 								</div>
 							</div>
@@ -121,7 +121,7 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 	}
 
 	def renderWatchpointObject(): Seq[Node] = {
-		val watchpoitnKeys = TaskExecutionManager.getWPKeys
+		val watchpoitnKeys = BDHandlerDriverSide.getWPKeys
 		def dropRow(wp: (Int, Int)) = Seq[Node] {
 			val dumpWP = "%s/debugger/".format(UIUtils.prependBaseUri(parent.basePath)) + "watchpoint?id=" + wp._2.toString + "&tid=" +
 				wp._1.toString
@@ -158,10 +158,10 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 	}
 
 	def getCrashLineNumber(): String = {
-		val seq = TaskExecutionManager.crashedRDDList()
+		val seq = BDHandlerDriverSide.crashedRDDList()
 		var str = ""
 		for (rdd <- seq) {
-			val rdd_str = TaskExecutionManager.getRDDDetails(rdd)
+			val rdd_str = BDHandlerDriverSide.getRDDDetails(rdd)
 			val start = rdd_str.indexOf("scala:")
 			val v = rdd_str.substring(start + 6, rdd_str.length)
 			str = str + v.trim() + " "
@@ -240,7 +240,7 @@ object DebuggerPageUtils {
 		if(cluster.name.contains("Stage"))
 		subgraph.append(indent).append( s"""  label="${StringEscapeUtils.escapeJava(cluster.name)}";\n""")
 		else{
-			val crashRdds = TaskExecutionManager.crashedRDDList();
+			val crashRdds = BDHandlerDriverSide.crashedRDDList();
 			if(!crashRdds.contains(cluster.childNodes(0).id)) nextLink = "rddst"
 			if( cluster.name.equalsIgnoreCase("watchpoint")) nextLink=  "watchpoint"
 			if( cluster.name.equalsIgnoreCase("simultedBreakpoint")) nextLink=  ""

@@ -5,7 +5,7 @@ import org.apache.spark.rpc.RpcEndpointRef
 /** A worker side class to send messages to Driver node
   * from bigDebug
   */
-object ExecutorManager {
+object BDExecutorManager {
   private var driver: Option[RpcEndpointRef] = None
   private var myExecutorId: String = ""
 

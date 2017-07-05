@@ -21,7 +21,7 @@ import java.io.Serializable
 import java.util.Properties
 
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.bdd.BigDebugConfiguration
+import org.apache.spark.bdd.BDConfiguration
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.memory.TaskMemoryManager
 import org.apache.spark.metrics.source.Source
@@ -91,7 +91,7 @@ abstract class TaskContext extends Serializable {
    * bigDebug Support @Gulzar
    *
    */
-  var bdconfig : BigDebugConfiguration = new BigDebugConfiguration;
+  var bdconfig : BDConfiguration = new BDConfiguration;
 
   /**
    * Returns true if the task has completed.

@@ -3,7 +3,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
-import org.apache.spark.bdd.{CrashingRecord, TaskExecutionManager, BDDIterator}
+import org.apache.spark.bdd.{CrashingRecord, BDHandlerDriverSide, BDDIterator}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
@@ -271,7 +271,7 @@ trait Lineage[T] extends RDD[T] {
           iter.filter(cleanF)
       },
       preservesPartitioning = true)
-    TaskExecutionManager.enrollWatchpointRDD(watch_rdd.id,watch_rdd)
+    BDHandlerDriverSide.enrollWatchpointRDD(watch_rdd.id,watch_rdd)
     watch_rdd
 
   }
@@ -295,6 +295,18 @@ trait Lineage[T] extends RDD[T] {
       iter.flatMap(cleanF)
     })
   }
+
+  /**
+   * use this API to place a breakpoint in the dataworkflow of spark --Tag Bigdebug @ Gulzar 07/05
+   * @return A breakpoint Lineage object
+   */
+  def simultedBreakpoint(): Lineage[T] = withScope{
+    val bp = new BreakPointRDD(this)
+    BDHandlerDriverSide.enrollBreakpoint[T](bp)
+    bp
+  }
+
+
 
   /**
    * Return an RDD of grouped items. Each group consists of a key and a sequence of elements

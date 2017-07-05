@@ -20,7 +20,7 @@ package org.apache.spark.scheduler.cluster
 import java.nio.ByteBuffer
 
 import org.apache.spark.TaskState.TaskState
-import org.apache.spark.bdd.{CrashingRecord, CapturedRecord, BigDebugConfiguration}
+import org.apache.spark.bdd.{CrashingRecord, CapturedRecord, BDConfiguration}
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
@@ -65,7 +65,7 @@ private[spark] object CoarseGrainedClusterMessages {
 	case class NotifyActualTaskCompleted(stageID: Int, taskID: Int, subtaskID: Int, taskDone: Boolean)
 		extends CoarseGrainedClusterMessage
 
-	case class RegisteredExecutor(bdconf: BigDebugConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
+	case class RegisteredExecutor(bdconf: BDConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
 
 	case class BDDMetricTaskStart(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
 

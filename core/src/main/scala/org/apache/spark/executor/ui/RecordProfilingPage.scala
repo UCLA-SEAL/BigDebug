@@ -2,7 +2,7 @@ package org.apache.spark.executor.ui
 
 import javax.servlet.http.HttpServletRequest
 
-import org.apache.spark.bdd.BDDMetricsSupport
+import org.apache.spark.bdd.BDRecordProfiler
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.{UIUtils, WebUIPage}
 
@@ -44,7 +44,7 @@ class RecordProfilingPage(parent: ExecutorWebUI) extends WebUIPage("") with Logg
 
 	def renderWithOutRDD(): Seq[Node] = {
 		val title = "Record Level Profiling on Executor : " + wid
-		if (BDDMetricsSupport.getRDDs().isEmpty) {
+		if (BDRecordProfiler.getRDDs().isEmpty) {
 			val content = <div>
 				<br/>
 				<br/>
@@ -65,7 +65,7 @@ class RecordProfilingPage(parent: ExecutorWebUI) extends WebUIPage("") with Logg
 						<span class="caret"></span>
 					</button>
 					<ul class="dropdown-menu">
-						{BDDMetricsSupport.getRDDs().toIterable.map(r => dropRow(r))}
+						{BDRecordProfiler.getRDDs().toIterable.map(r => dropRow(r))}
 					</ul>
 				</div>
 			</div>
@@ -85,6 +85,6 @@ class RecordProfilingPage(parent: ExecutorWebUI) extends WebUIPage("") with Logg
 	def renderData(request: HttpServletRequest): String = {
 		val rddid = request.getParameter("rdd").toInt
 		val title = "Record Level Profiling"
-		BDDMetricsSupport.getUiProfileData(rddid)
+		BDRecordProfiler.getUiProfileData(rddid)
 	}
 }

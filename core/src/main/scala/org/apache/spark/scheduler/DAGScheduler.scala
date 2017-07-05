@@ -22,6 +22,8 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.apache.spark.bdd.{BDHandlerDriverSide}
+
 import scala.annotation.tailrec
 import scala.collection.Map
 import scala.collection.mutable.{HashMap, HashSet, Stack}
@@ -619,11 +621,15 @@ class DAGScheduler(
     waiter.completionFuture.ready(Duration.Inf)(awaitPermission)
     waiter.completionFuture.value.get match {
       case scala.util.Success(_) =>
+        // Wait for use to take action in case of a breakpoint --Tag Bigdebug @ Gulzar 07/05
+        BDHandlerDriverSide.getBreakPointWaitingThread
         logInfo("Job %d finished: %s, took %f s".format
           (waiter.jobId, callSite.shortForm, (System.nanoTime - start) / 1e9))
       case scala.util.Failure(exception) =>
         logInfo("Job %d failed: %s, took %f s".format
           (waiter.jobId, callSite.shortForm, (System.nanoTime - start) / 1e9))
+        // Wait for use to take action in case of a breakpoint --Tag Bigdebug @ Gulzar 07/05
+        BDHandlerDriverSide.getBreakPointWaitingThread
         // SPARK-8644: Include user stack trace in exceptions coming from DAGScheduler.
         val callerStackTrace = Thread.currentThread().getStackTrace.tail
         exception.setStackTrace(exception.getStackTrace ++ callerStackTrace)
@@ -836,7 +842,9 @@ class DAGScheduler(
       // New stage creation may throw an exception if, for example, jobs are run on a
       // HadoopRDD whose underlying HDFS files have been deleted.
       finalStage = createResultStage(finalRDD, func, partitions, jobId, callSite)
-    } catch {
+      // Creating a map of all the stages in the debugger --Tag BigDebug @ Gulzar 07/5
+      BDHandlerDriverSide.assignStagesToBreakpoints(finalStage)
+ } catch {
       case e: Exception =>
         logWarning("Creating new stage failed due to exception - job: " + jobId, e)
         listener.jobFailed(e)
@@ -1038,6 +1046,9 @@ class DAGScheduler(
 
     if (tasks.size > 0) {
       logInfo("Submitting " + tasks.size + " missing tasks from " + stage + " (" + stage.rdd + ")")
+
+      // Enrolling number of tasks scheduled to use for crash resolution on one node --Tag Bigdebug @ Gulzar 07/5
+      BDHandlerDriverSide.setTaskSetSize(tasks.size)
       stage.pendingPartitions ++= tasks.map(_.partitionId)
       logDebug("New pending partitions: " + stage.pendingPartitions)
       taskScheduler.submitTasks(new TaskSet(

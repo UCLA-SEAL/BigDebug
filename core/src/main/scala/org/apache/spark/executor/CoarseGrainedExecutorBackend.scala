@@ -54,7 +54,7 @@ private[spark] class CoarseGrainedExecutorBackend(
   var webuiport = ExecutorWebUI.EXECUTOR_UI_PORT
   var webUi: ExecutorWebUI = null
   var sectMgr: SecurityManager = null
-  var bconf : BigDebugConfiguration  = null
+  var bconf : BDConfiguration  = null
   def getConf:SparkConf = env.conf
   def getExecutorID:String = env.executorId
 
@@ -94,18 +94,18 @@ private[spark] class CoarseGrainedExecutorBackend(
         executor = new Executor(executorId, hostname, env, userClassPath, isLocal = false , bdconfig = bdconf)
         // Setting the driver for message passing -- Tag Bigdebug @ Gulzar 06/20\
         bconf = bdconf
-        ExecutorManager.setDriver(driver)
-        ExecutorManager.SetExecutorId(executorId)
+        BDExecutorManager.setDriver(driver)
+        BDExecutorManager.SetExecutorId(executorId)
         CrashCulpritManager.setBigDebugConfiguration(bdconf)
-        BDDMetricsSupport.setBigDebugConfiguration(bdconf)
+        BDRecordProfiler.setBigDebugConfiguration(bdconf)
         if (bdconf.EXECUTOR_UI) {
           sectMgr = new SecurityManager(env.conf)
           logInfo("Starting webUID at " + webuiport)
           webUi = new ExecutorWebUI(this, webuiport)
-          BDDMetricsSupport.setExecutorUI(webUi)
+          BDRecordProfiler.setExecutorUI(webUi)
           webUi.bind()
         }
-      ExecutorManager.sendMessage(RegisterSocketInfo(webUi.boundPort, hostname, executorId))
+      BDExecutorManager.sendMessage(RegisterSocketInfo(webUi.boundPort, hostname, executorId))
 
       } catch {
         case NonFatal(e) =>

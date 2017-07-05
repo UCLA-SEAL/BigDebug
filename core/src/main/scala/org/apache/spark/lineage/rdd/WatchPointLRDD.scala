@@ -25,8 +25,8 @@ import scala.reflect._
    * Call only at Driver
    * */
   override def reCompileFilter(code:String): String  ={
-    val compiler = new BDDPredicateCompiler1(None)
-    val  pc:BDDFilter[T] = compiler.eval[BDDFilter[T]](code)
+    val compiler = new BDPredicateCompiler(None)
+    val  pc:BDFilter[T] = compiler.eval[BDFilter[T]](code)
     pc.getClass.getName
   }
 }
@@ -37,7 +37,7 @@ class WatchpointInterruptableIterator[T](val context: TaskContext, val delegate:
   self =>
 
 
-  override def filter(p: T => Boolean): Iterator[T] = new BDDAbstractIterator[T] {
+  override def filter(p: T => Boolean): Iterator[T] = new BDAbstractIterator[T] {
 
     var func: T => Boolean = null
 
@@ -48,7 +48,7 @@ class WatchpointInterruptableIterator[T](val context: TaskContext, val delegate:
       val cls = WatchpointManager.getFilterClass(self.rddid, filterflip)
       if (cls != null) {
         filterflip = filterflip + 1
-        val filterclass: BDDFilter[T] = cls.getConstructor().newInstance().asInstanceOf[BDDFilter[T]]
+        val filterclass: BDFilter[T] = cls.getConstructor().newInstance().asInstanceOf[BDFilter[T]]
         func = filterclass.function
       } else {}
     }

@@ -23,7 +23,7 @@ import java.util
 import java.util.Properties
 import java.util.concurrent.ThreadPoolExecutor
 
-import org.apache.spark.bdd.BigDebugConfiguration
+import org.apache.spark.bdd.BDConfiguration
 
 import scala.collection.mutable
 import scala.collection.mutable.HashMap
@@ -182,11 +182,11 @@ private[spark] abstract class Task[T](
    *
    * BigDebug Configuration  setting for task -- Tag Bigdebug @ Gulzar 06/23
    */
-  @transient private var bdconfig: BigDebugConfiguration = null
+  @transient private var bdconfig: BDConfiguration = null
 
-  def setBigDebugConfiguration(c : BigDebugConfiguration): Unit = bdconfig = c
+  def setBigDebugConfiguration(c : BDConfiguration): Unit = bdconfig = c
 
-  def getBigDebugConfiguration(): BigDebugConfiguration = bdconfig
+  def getBigDebugConfiguration(): BDConfiguration = bdconfig
 
 
   /**

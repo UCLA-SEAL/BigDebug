@@ -6,7 +6,7 @@ package org.apache.spark.ui.debugger
 
 import javax.servlet.http.HttpServletRequest
 
-import org.apache.spark.bdd.{CapturedRecord, PredicateClassVersion, TaskExecutionManager}
+import org.apache.spark.bdd.{CapturedRecord, PredicateClassVersion, BDHandlerDriverSide}
 import org.apache.spark.ui.{UIUtils, WebUIPage}
 
 import scala.xml.Node
@@ -30,7 +30,7 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 			UIUtils.listingTable[CapturedRecord](
 				unzipped._1,
 				datarow,
-				TaskExecutionManager.getWatchpointIterator(wpId).toIterable)
+				BDHandlerDriverSide.getWatchpointIterator(wpId).toIterable)
 
 		} else {
 			var content = {
@@ -41,7 +41,7 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 				renderTableDiv(
 					UIUtils.listingTable[CapturedRecord](
 						unzipped._1,
-						datarow, TaskExecutionManager.getWatchpointIterator(wpId).toIterable))
+						datarow, BDHandlerDriverSide.getWatchpointIterator(wpId).toIterable))
 			}
 
 			val customStyle = "{height: 300px; width: 600px;}"
@@ -94,7 +94,7 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 
 
 	def getWatchPointLineNumber(id: Int): String = {
-		val this_wp = TaskExecutionManager.extractWatchpointRDD(id).getCreationSite
+		val this_wp = BDHandlerDriverSide.extractWatchpointRDD(id).getCreationSite
 		this_wp.substring(this_wp.indexOf(":") + 1)
 	}
 
@@ -102,11 +102,11 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 	 * To extract watchpoint code from the file
 	 **/
 	def getWatchPointCode(id: Int): String = {
-		val this_wp = TaskExecutionManager.extractWatchpointRDD(id).getCreationSite
+		val this_wp = BDHandlerDriverSide.extractWatchpointRDD(id).getCreationSite
 		println(this_wp)
 		val start = this_wp.substring(this_wp.indexOf(":") + 1).toInt
 		println(start)
-		val next = TaskExecutionManager.extractWatchpointRDD(id + 1).getCreationSite
+		val next = BDHandlerDriverSide.extractWatchpointRDD(id + 1).getCreationSite
 		println(next)
 		val end = next.substring(next.indexOf(":") + 1).toInt
 		println(end)
@@ -143,7 +143,7 @@ object WatchpointPage {
 		UIUtils.listingTable[CapturedRecord](
 			unzipped._1,
 			datarow,
-			TaskExecutionManager.getWatchpointIterator(wpId).toIterable)
+			BDHandlerDriverSide.getWatchpointIterator(wpId).toIterable)
 
 	}
 

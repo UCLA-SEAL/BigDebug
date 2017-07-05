@@ -32,7 +32,7 @@ val code_template_st = "def function(value:\n"+
 "}\n"
 }
 
-class BDDPredicateCompiler1(targetDir: Option[File]) extends Logging {
+class BDPredicateCompiler(targetDir: Option[File]) extends Logging {
 
   val file = new File("/tmp")
   if (!file.exists()) {
@@ -100,7 +100,7 @@ class BDDPredicateCompiler1(targetDir: Option[File]) extends Logging {
 
 
 
-class BDDCodeFixCompiler1(targetDir: Option[File]) extends Logging {
+class BDCodeFixCompiler(targetDir: Option[File]) extends Logging {
 
   val file = new File("/tmp")
   if (!file.exists()) {

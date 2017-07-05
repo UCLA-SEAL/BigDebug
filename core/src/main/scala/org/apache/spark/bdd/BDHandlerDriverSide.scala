@@ -9,7 +9,7 @@ import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rpc.RpcEndpointRef
-import org.apache.spark.scheduler.Stage
+import org.apache.spark.scheduler.{ResultStage, Stage}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{CrashRecordAction, ResolveAllCrashes, RequestIntermediateData, SetExpressionExecutor}
 import org.apache.spark.ui.debugger.DebuggerPageUtils
 import org.apache.spark.ui.scope.RDDOperationGraph
@@ -24,7 +24,7 @@ import scala.xml.Node
  */
 
 
-object TaskExecutionManager {
+object BDHandlerDriverSide {
 
 	private val executorActor = new HashMap[String, RpcEndpointRef]
 	private val executorUI = HashMap[(String), (String, Int)]()
@@ -330,7 +330,7 @@ object TaskExecutionManager {
 	/* Alternate Implementation: Notify Driver of start time and let it check time span. and alert it on task finish */
 
 
-	private var taskMetricInfo = HashMap[(Long /*tID*/ , Int /*SID*/ , String /*Executor ID*/ ), BDDMetric]().withDefaultValue(null)
+	private var taskMetricInfo = HashMap[(Long /*tID*/ , Int /*SID*/ , String /*Executor ID*/ ), BDMetric]().withDefaultValue(null)
 	var currentStage = -1;
 
 
@@ -377,7 +377,7 @@ object TaskExecutionManager {
 		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Profiler  $sID, $tID, $execID, $time")
 
 		val time1 = System.currentTimeMillis()
-		val bddmetric = new BDDMetric
+		val bddmetric = new BDMetric
 		bddmetric.executionstarttime = time1
 		bddmetric.executionSpan = time1
 		taskMetricInfo((tID, sID, execID)) = bddmetric
@@ -683,26 +683,25 @@ object TaskExecutionManager {
 	 *
 	 */
 
-	private var breakpointStageMap = HashMap[Int, Int]()
-//
-//	def assignStagesToBreakpoints(finalStage: Stage): Unit = {
-//		var currentStage = finalStage.id
-//		var parent = finalStage.parents
-//		var upper = finalStage.rdd.id
-//		while (parent.size > 0) {
-//			var lower = parent(0).rdd.id
-//			for (a <- lower + 1 to upper) {
-//				breakpointStageMap(a) = currentStage
-//			}
-//			currentStage = parent(0).id
-//			parent = parent(0).parents
-//			upper = lower
-//		}
-//		for (a <- 0 to upper) {
-//			breakpointStageMap(a) = currentStage
-//		}
-//	}
+	def assignStagesToBreakpoints(finalStage: ResultStage): Unit = {
+		var currentStage = finalStage.id
+		var parent = finalStage.parents
+		var upper = finalStage.rdd.id
+		while (parent.size > 0) {
+			var lower = parent(0).rdd.id
+			for (a <- lower + 1 to upper) {
+				breakpointStageMap(a) = currentStage
+			}
+			currentStage = parent(0).id
+			parent = parent(0).parents
+			upper = lower
+		}
+		for (a <- 0 to upper) {
+			breakpointStageMap(a) = currentStage
+		}
+	}
 
+	private var breakpointStageMap = HashMap[Int, Int]()
 	var sparkContext: SparkContext = null
 	var lineageContext: LineageContext = null
 	var patched: Boolean = false

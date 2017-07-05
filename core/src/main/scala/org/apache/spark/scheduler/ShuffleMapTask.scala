@@ -21,7 +21,7 @@ import java.lang.management.ManagementFactory
 import java.nio.ByteBuffer
 import java.util.Properties
 
-import org.apache.spark.bdd.TaskExecutionManager
+import org.apache.spark.bdd.BDHandlerDriverSide
 
 import scala.language.existentials
 
@@ -127,7 +127,7 @@ private[spark] class ShuffleMapTask(
   var exception:Exception =null
   var lineageID = -1
   def finalizeTask(r: Any, s: Int, e: Exception, l : Int): Unit ={
-    TaskExecutionManager.foundCrash(true)
+    BDHandlerDriverSide.foundCrash(true)
     record = r;
     subtaskID = s;
     exception = e

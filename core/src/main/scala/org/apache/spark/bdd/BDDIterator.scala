@@ -32,7 +32,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 	def loadFunc[U](f: T => U): (T => U) = {
 		val cls = WatchpointManager.getCodeFixClass(rddid)
 		if (cls != null) {
-			val pc: BDDCodeFix[T, U] = cls.getConstructor().newInstance().asInstanceOf[BDDCodeFix[T, U]]
+			val pc: BDCodeFix[T, U] = cls.getConstructor().newInstance().asInstanceOf[BDCodeFix[T, U]]
 			return pc.function
 		} else {
 			f
@@ -41,27 +41,27 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 
 	override def filter(p: T => Boolean): Iterator[T] = {
 		var latestFunction = loadFunc[Boolean](p)
-		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		val bdmetric = new BDRecordProfilerInstrumentor(context.stageId(), context.partitionId(), rddid , this)
 		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingFilter(latestFunction)
 	}
 
 	override def flatMap[U](p: T => scala.collection.GenTraversableOnce[U]): Iterator[U] = {
 		var latestFunction = loadFunc[scala.collection.GenTraversableOnce[U]](p)
-		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		val bdmetric = new BDRecordProfilerInstrumentor(context.stageId(), context.partitionId(), rddid , this)
 		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingFlatMap[U](latestFunction)
 	}
 
 	override def map[U](p: T => U): Iterator[U] = {
 		var latestFunction = loadFunc[U](p)
-		val bdmetric = new BDDMetricsInstrumentor(context.stageId(), context.partitionId(), rddid , this)
+		val bdmetric = new BDRecordProfilerInstrumentor(context.stageId(), context.partitionId(), rddid , this)
 		latestFunction = bdmetric.wrapClosureForProfiling(latestFunction)
 		debuggingMap[U](latestFunction)
 	}
 
 	def debuggingFilter(p: T => Boolean): Iterator[T] = {
-		new BDDAbstractIterator[T] {
+		new BDAbstractIterator[T] {
 			private var hd: T = _
 			private var hdDefined: Boolean = false
 			private var finalrecord : Boolean  = false
@@ -115,7 +115,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 	}
 
 	def debuggingMap[U](f: T => U): Iterator[U] = {
-		new BDDAbstractIterator[U] {
+		new BDAbstractIterator[U] {
 			def hasNext = {
 				self.hasNext
 			}
@@ -143,7 +143,7 @@ class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rd
 	}
 
 	def debuggingFlatMap[U](f: T => scala.collection.GenTraversableOnce[U]): Iterator[U] = {
-		new BDDAbstractIterator[U] {
+		new BDAbstractIterator[U] {
 			private var cur: Iterator[U] = empty
 
 			def applyUDF(record: Option[T] = None) : Unit= {

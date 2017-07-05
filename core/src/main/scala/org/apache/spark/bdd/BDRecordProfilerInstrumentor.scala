@@ -7,11 +7,11 @@ import scala.collection.mutable.HashMap
 
 
 /** *Redesign to avoid singleton instance over all the workers **/
-object BDDMetricsSupport {
+object BDRecordProfiler {
 
 	/** Fix it by adding it as a parent to this BDDMETric classs. **/
 	var executorUI: ExecutorWebUI = null;
-	var bdconfig: BigDebugConfiguration = null
+	var bdconfig: BDConfiguration = null
 
 
 	var rddID: Int = -1
@@ -20,11 +20,11 @@ object BDDMetricsSupport {
 
 	var currentRDDConfiguration = HashMap[(Int, Int), (Boolean /*watchpoint*/ , Boolean /*latency*/ , Int /*RDD ID*/ )]()
 
-	def setBigDebugConfiguration(c: BigDebugConfiguration): Unit = {
+	def setBigDebugConfiguration(c: BDConfiguration): Unit = {
 		bdconfig = c
 	}
 
-	def getBigDebugConfiguration(): BigDebugConfiguration = {
+	def getBigDebugConfiguration(): BDConfiguration = {
 		bdconfig
 	}
 
@@ -83,14 +83,14 @@ object BDDMetricsSupport {
 
 	def updateTaskInfo(tID: Long, sID: Int): Unit = {
 		val time = System.currentTimeMillis()
-		ExecutorManager.sendMessage(BDDMetricTaskStart(sID, tID, ExecutorManager.GetExecutorId, time))
+		BDExecutorManager.sendMessage(BDDMetricTaskStart(sID, tID, BDExecutorManager.GetExecutorId, time))
 	}
 
 
 	def updateTaskDone(tID: Long, sID: Int): Unit = {
 
 		val time = System.currentTimeMillis()
-		ExecutorManager.sendMessage(BDDMetricTaskDone(sID, tID, ExecutorManager.GetExecutorId, time))
+		BDExecutorManager.sendMessage(BDDMetricTaskDone(sID, tID, BDExecutorManager.GetExecutorId, time))
 	}
 
 	/** *****
@@ -164,7 +164,7 @@ object BDDMetricsSupport {
 
 }
 
-class BDDMetricsInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDDIterator[T]) {
+class BDRecordProfilerInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDDIterator[T]) {
 
 	def wrapClosureForProfiling[U, T](f: T => U): T => U = {
 		if (bDDIterator.isRecordLevelLatencyEnabled) {
@@ -174,7 +174,7 @@ class BDDMetricsInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDD
 				val etime = System.nanoTime()
 				new Thread {
 					override def run(): Unit = {
-						BDDMetricsSupport.recordDoneNotification(etime - stime, sid, pid, rddid, x.toString)
+						BDRecordProfiler.recordDoneNotification(etime - stime, sid, pid, rddid, x.toString)
 					}
 				}.start()
 				retval
@@ -186,7 +186,7 @@ class BDDMetricsInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDD
 	}
 }
 
-class BDDMetric {
+class BDMetric {
 	var executionstarttime = 0L
 	var executionDonetime = 0L
 	var executionSpan = 0L

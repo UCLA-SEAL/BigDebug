@@ -19,7 +19,7 @@ package org.apache.spark
 
 import java.util.concurrent.ConcurrentHashMap
 
-import org.apache.spark.bdd.BigDebugConfiguration
+import org.apache.spark.bdd.BDConfiguration
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.LinkedHashSet
@@ -61,12 +61,12 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
   /**
    * Set BigDebug Configuration --Tag @Gulzar 06/20
    */
-  var bdconfig: BigDebugConfiguration = new BigDebugConfiguration
-  def setBigDebugConfiguration(b: BigDebugConfiguration): Unit = {
+  var bdconfig: BDConfiguration = new BDConfiguration
+  def setBigDebugConfiguration(b: BDConfiguration): Unit = {
     bdconfig = b
   }
 
-  def getBigDebugConfiguration(): BigDebugConfiguration = {
+  def getBigDebugConfiguration(): BDConfiguration = {
     bdconfig
   }
 

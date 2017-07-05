@@ -2,7 +2,7 @@ package org.apache.spark.ui.debugger
 
 import javax.servlet.http.HttpServletRequest
 
-import org.apache.spark.bdd.{PredicateClassVersion, TaskExecutionManager}
+import org.apache.spark.bdd.{PredicateClassVersion, BDHandlerDriverSide}
 import org.apache.spark.ui.{UIUtils, WebUIPage}
 
 import scala.xml.Node
@@ -53,7 +53,7 @@ private[ui] class RDDStPage(parent: DebuggerTab) extends WebUIPage("rddst") {
   //  }
 
   def getRDDDetails(id: Int): String = {
-    val rdd = TaskExecutionManager.getRDDFromId(id)
+    val rdd = BDHandlerDriverSide.getRDDFromId(id)
     if (rdd != null) {
       return rdd.getCreationSite
     }

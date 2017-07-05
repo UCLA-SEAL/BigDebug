@@ -25,7 +25,7 @@ import java.util.Properties
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit}
 import javax.annotation.concurrent.GuardedBy
 
-import org.apache.spark.bdd.{BigDebugConfiguration, BDDMetricsSupport}
+import org.apache.spark.bdd.{BDConfiguration, BDRecordProfiler}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{ArrayBuffer, HashMap}
@@ -54,7 +54,7 @@ private[spark] class Executor(
     executorHostname: String,
     env: SparkEnv,
     userClassPath: Seq[URL] = Nil,
-    isLocal: Boolean = false , bdconfig: BigDebugConfiguration = null)
+    isLocal: Boolean = false , bdconfig: BDConfiguration = null)
   extends Logging {
 
   logInfo(s"Starting executor ID $executorId on host $executorHostname")
@@ -326,7 +326,7 @@ private[spark] class Executor(
         task.setBufferPoolLarge(bufferPoolLarge) // Matteo
         /** Passing debug configuration to tasks --tag Bigdebug  @ Gulzar 06/23 */
         task.setBigDebugConfiguration(bdconfig)
-        BDDMetricsSupport.updateTaskInfo(taskId,task.stageId)
+        BDRecordProfiler.updateTaskInfo(taskId,task.stageId)
         /** BDD Ends */
 
         // Run the actual task and measure its runtime.
@@ -368,7 +368,7 @@ private[spark] class Executor(
         }
         val taskFinish = System.currentTimeMillis()
         /** Latency alert task done notification -- Tag bigdebug @ Gulzar 06/23 */
-        BDDMetricsSupport.updateTaskDone(taskId,task.stageId)
+        BDRecordProfiler.updateTaskDone(taskId,task.stageId)
         /***/
 
         val taskFinishCpu = if (threadMXBean.isCurrentThreadCpuTimeSupported) {

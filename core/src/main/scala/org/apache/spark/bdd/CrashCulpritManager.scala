@@ -14,8 +14,8 @@ import scala.collection.mutable.HashMap
  * This is worker side class
  */
 object CrashCulpritManager {
-	var bdconfig_ : BigDebugConfiguration = null
-	var tempconfig = new BigDebugConfiguration()
+	var bdconfig_ : BDConfiguration = null
+	var tempconfig = new BDConfiguration()
 	var crashID: Long = 0L;
 
 	/*def newCrashID(): Long = {
@@ -32,7 +32,7 @@ object CrashCulpritManager {
 
 	}
 
-	def bdconfig: BigDebugConfiguration = if (bdconfig_ == null) {
+	def bdconfig: BDConfiguration = if (bdconfig_ == null) {
 		tempconfig
 	} else {
 		bdconfig_
@@ -50,11 +50,11 @@ object CrashCulpritManager {
 	private val resolvedCrashedRecords = mutable.HashMap[(Int, Int, Int), List[CrashingRecord]]().withDefaultValue(Nil)
 
 
-	def setBigDebugConfiguration(c: BigDebugConfiguration): Unit = {
+	def setBigDebugConfiguration(c: BDConfiguration): Unit = {
 		bdconfig_ = c
 	}
 
-	def getBigDebugConfiguration(): BigDebugConfiguration = {
+	def getBigDebugConfiguration(): BDConfiguration = {
 		bdconfig
 	}
 
@@ -99,9 +99,9 @@ object CrashCulpritManager {
 		println("Sending Record " + str)
 		currentCrash = str
 		if (bdconfig.CRASH_CULPRIT_RESOLUTION == 1 || (bdconfig.CRASH_CULPRIT_RESOLUTION == 2 && skippedCrashedRecords((stageID, taskID, rddid)).length >= bdconfig.CRASH_CUPLRIT_THRESHOLD)) {
-			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, true, currentID)
+			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, BDExecutorManager.GetExecutorId, true, currentID)
 			catchException(c_record)
-			ExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
+			BDExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
 			var waitObject: Object = null
 			waitObject = waitObjects.getOrElse((stageID, taskID, rddid), null)
 			if (waitObject == null) {
@@ -115,9 +115,9 @@ object CrashCulpritManager {
 		}
 		else {
 			currentCrashSkip = true
-			val driver = ExecutorManager.GetDriver
-			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, ExecutorManager.GetExecutorId, false, currentID)
-			ExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
+			val driver = BDExecutorManager.GetDriver
+			val c_record = CrashingRecord(str, context.stageId(), context.partitionId(), rddid, exception, crashingRecorId, BDExecutorManager.GetExecutorId, false, currentID)
+			BDExecutorManager.sendMessage(NotifyCrashCulprit(c_record))
 			//TaskExecutionManager.enrollCrash(c_record)
 			skippedCrashedRecords((stageID, taskID, rddid)) ::= record
 		}
@@ -226,8 +226,8 @@ object CrashCulpritManager {
 					waitObjects += (((stageID, taskID, subtaskID), waitObject))
 				}
 			}
-			val driver = ExecutorManager.GetDriver
-			ExecutorManager.sendMessage(NotifyActualTaskCompleted(stageID, taskID, subtaskID, true))
+			val driver = BDExecutorManager.GetDriver
+			BDExecutorManager.sendMessage(NotifyActualTaskCompleted(stageID, taskID, subtaskID, true))
 			waitObject.synchronized {
 				println("Sending Crash resolution request (" + stageID + "," + taskID + "," + subtaskID + ") ")
 				waitObject.wait()

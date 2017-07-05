@@ -32,37 +32,37 @@ object WatchpointManager extends Logging {
   private val watchPoint_Data = HashMap[(Int, Int)/*TaskID and RDD ID*/, List[CapturedRecord]]().withDefaultValue(Nil)
 
 
-  private var predicateClass = new SparkPredicate {
+  private var predicateClass = new BDWatchpointPredicate {
    def check(key: String, value: String): Boolean = {
       return true
     }
   }
 
-  def getExpression: SparkPredicate = {
+  def getExpression: BDWatchpointPredicate = {
     predicateClass
   }
 
   def setExpression(list: List[Int], class_name: String): Unit = {
-    val myExecutorId = ExecutorManager.GetExecutorId
-      ExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
+    val myExecutorId = BDExecutorManager.GetExecutorId
+      BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
     writePredicateClass(class_name, list)
   }
 
   def setExpression(list: List[Int], class_name: String, rddID: Int): Unit = {
     println("Expression Received")
-    val myExecutorId = ExecutorManager.GetExecutorId
-      ExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
+    val myExecutorId = BDExecutorManager.GetExecutorId
+      BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
     writePredicateClass(class_name, list, rddID)
   }
 
   def setCodeFix(codeStore: mutable.HashMap[Int, (String , List[Int])]): Unit = {
     println("Expression Received")
-    val myExecutorId = ExecutorManager.GetExecutorId
+    val myExecutorId = BDExecutorManager.GetExecutorId
     for(k <- codeStore.keySet){
       var va = codeStore(k)
       writePredicateClass(va._1 , va._2 , k)
     }
-      ExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " , codeStore.keySet.size.toString))
+      BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " , codeStore.keySet.size.toString))
   }
 
   def writePredicateClass(class_name: String, list: List[Int]): Unit = {
@@ -89,7 +89,7 @@ object WatchpointManager extends Logging {
       val target = AbstractFile.getDirectory(file)
       val classLoader = new AbstractFileClassLoader(target, this.getClass.getClassLoader)
       val cls = classLoader.loadClass(class_name)
-      predicateClass = cls.getConstructor().newInstance().asInstanceOf[SparkPredicate]
+      predicateClass = cls.getConstructor().newInstance().asInstanceOf[BDWatchpointPredicate]
     } catch {
       case ex: Exception => logInfo(ex.getCause.getMessage)
     }
@@ -165,11 +165,11 @@ object WatchpointManager extends Logging {
   }
 
   def setTaskDone(taskID: Int, rddID: Int, context:TaskContext): Unit = {
-    val myExecutorId = ExecutorManager.GetExecutorId
+    val myExecutorId = BDExecutorManager.GetExecutorId
     watchPoint_Data.synchronized {
       if (context.bdconfig.WATCHPOINT_DATA_SEND_TO_DRIVER
            && watchPoint_Data((taskID, rddID)).length > 0) {
-        ExecutorManager.sendMessage(SendWatchpointDataToDriver(myExecutorId, watchPoint_Data((taskID, rddID)), rddID))
+        BDExecutorManager.sendMessage(SendWatchpointDataToDriver(myExecutorId, watchPoint_Data((taskID, rddID)), rddID))
       }
       watchPoint_Data((taskID, rddID)) = List[CapturedRecord]()
     }

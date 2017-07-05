@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import javax.annotation.concurrent.GuardedBy
 
-import org.apache.spark.bdd.TaskExecutionManager
+import org.apache.spark.bdd.BDHandlerDriverSide
 
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet}
 import scala.concurrent.Future
@@ -152,7 +152,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
        */
       case SendWatchpointDataToDriver(id, list, subtaskID) =>
         logInfo("Recieved Watchpoint Data -> Size: " + list.length)
-        TaskExecutionManager.enrollWatchpointDataFromParition(list, subtaskID)
+        BDHandlerDriverSide.enrollWatchpointDataFromParition(list, subtaskID)
 
       case SendACKCode(code, str, execID) =>
         if (code == 1) {
@@ -160,24 +160,24 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
         }
 
       case ExceptionNotification(c_record) =>
-        TaskExecutionManager.catchException(c_record)
+        BDHandlerDriverSide.catchException(c_record)
 
 
       case NotifyCrashCulprit(crash) =>
-        TaskExecutionManager.enrollCrash(crash)
+        BDHandlerDriverSide.enrollCrash(crash)
       case NotifyActualTaskCompleted(stageID, taskID, subtaskID, taskDone) =>
-        TaskExecutionManager.setActualTaskCompleted(stageID, taskID, subtaskID, taskDone)
+        BDHandlerDriverSide.setActualTaskCompleted(stageID, taskID, subtaskID, taskDone)
 
       case RegisterSocketInfo(port, host, id) =>
-        TaskExecutionManager.enrollExecutorUI(id, host, port)
+        BDHandlerDriverSide.enrollExecutorUI(id, host, port)
 
 
       case BDDMetricTaskStart(sID, tID, execID, time) =>
-        TaskExecutionManager.SetTaskMetricInfo(sID, tID, execID, time)
+        BDHandlerDriverSide.SetTaskMetricInfo(sID, tID, execID, time)
         logInfo("Time logging started: " + execID + "  " + time)
 
       case BDDMetricTaskDone(sID, tID, execID, time) =>
-        TaskExecutionManager.SetTaskDoneMetric(sID, tID, execID, time)
+        BDHandlerDriverSide.SetTaskDoneMetric(sID, tID, execID, time)
         logInfo("Time logging Done: " + execID + "  " + time)
 
 
@@ -223,7 +223,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
           }
           // Changed the API to pass bigdebug conf to workers and save executor ref on the driver -- Tag @ Gulzar 06/20
           executorRef.send(RegisteredExecutor(scheduler.sc.lc.getBigDebugConfiguration()))
-          TaskExecutionManager.registerExecutor(executorId, executorRef)
+          BDHandlerDriverSide.registerExecutor(executorId, executorRef)
 
           // Note: some tests expect the reply to come after we put the executor in the map
           context.reply(true)

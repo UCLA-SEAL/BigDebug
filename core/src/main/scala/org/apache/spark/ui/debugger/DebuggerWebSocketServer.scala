@@ -6,7 +6,7 @@ package org.apache.spark.ui.debugger
 
 import java.net.InetSocketAddress
 
-import org.apache.spark.bdd.{BDDMetricsSupport, BigDebugConfiguration}
+import org.apache.spark.bdd.{BDRecordProfiler, BDConfiguration}
 import org.java_websocket.WebSocket
 import org.java_websocket.handshake.ClientHandshake
 import org.java_websocket.server.WebSocketServer
@@ -14,7 +14,7 @@ import org.java_websocket.server.WebSocketServer
 import scala.collection.mutable
 
 
-class DebuggerWebSocketServer(port: Int, runner: SocketRunner, conf:BigDebugConfiguration) extends WebSocketServer(new InetSocketAddress(port)) {
+class DebuggerWebSocketServer(port: Int, runner: SocketRunner, conf:BDConfiguration) extends WebSocketServer(new InetSocketAddress(port)) {
 
   var websocketsToRDDs = mutable.HashMap[Int, Int]()
 
@@ -48,7 +48,7 @@ class DebuggerWebSocketServer(port: Int, runner: SocketRunner, conf:BigDebugConf
     }
     for (s <- set) {
       if (websocketsToRDDs.getOrElse(s.hashCode(), -1) == rdd) {
-        s.send(BDDMetricsSupport.getUiProfileData(rdd))
+        s.send(BDRecordProfiler.getUiProfileData(rdd))
       }
     }
   }
@@ -131,7 +131,7 @@ class DebuggerWebSocketServer(port: Int, runner: SocketRunner, conf:BigDebugConf
   override def onClose(webSocket: WebSocket, i: Int, s: String, b: Boolean): Unit = {}
 }
 
-class SocketRunner(port: Int, conf:BigDebugConfiguration) {
+class SocketRunner(port: Int, conf:BDConfiguration) {
   var s: DebuggerWebSocketServer = null
   var p = port
 

@@ -34,7 +34,7 @@ class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends Spa
   attachPage(new RDDStPage(this))
 
   def initiate(): Unit ={
-    TaskExecutionManager.setSparkUI(parent)
+    BDHandlerDriverSide.setSparkUI(parent)
     parent.attachHandler(JettyUtils.createRedirectHandler("/debugger/do", "/debugger", this.handleDebuggerCommand))
     parent.attachTab(this)
   }
@@ -56,22 +56,22 @@ class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends Spa
         parent.shouldBeTerminated = true
       case "killandrun" =>
         println(" In Kill and RUn")
-        TaskExecutionManager.startNewjob()
+        BDHandlerDriverSide.startNewjob()
       case "resume" =>
-        TaskExecutionManager.resume()
+        BDHandlerDriverSide.resume()
       case "stepover" =>
-        TaskExecutionManager.stepOver()
+        BDHandlerDriverSide.stepOver()
       case "setnewrddfunc" =>
         val code = Option(request.getParameter("code")).getOrElse("")
         val rddid = Option(request.getParameter("rddid")).getOrElse("").toInt
-        TaskExecutionManager.resetCode(rddid,code )
+        BDHandlerDriverSide.resetCode(rddid,code )
       case "batchmodifyfunction" => /***05/12*/
         val code = Option(request.getParameter("code")).getOrElse("")
         val rddid = Option(request.getParameter("rddid")).getOrElse("").toInt
         ///println(s" Batch Code \n\n $code \n\n\n  $rddid")
-        TaskExecutionManager.batchModifyCrashRecords(rddid,code)
+        BDHandlerDriverSide.batchModifyCrashRecords(rddid,code)
       case "dump_intratask" =>
-        TaskExecutionManager.dumpWatchpointData()
+        BDHandlerDriverSide.dumpWatchpointData()
       case "resolve" =>
         val crash: String = Option(request.getParameter("record")).getOrElse("")
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
@@ -81,14 +81,14 @@ class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends Spa
         //   TaskExecutionManager.simulateCrashResolution(stage, task , subtask)
         println(s"Resolve Crash $crash \n $stage" +
           s" $task $subtask")
-        TaskExecutionManager.fixUnresolvedCrashingRecord(crash, stage, task, subtask ,srnum, 1)
+        BDHandlerDriverSide.fixUnresolvedCrashingRecord(crash, stage, task, subtask ,srnum, 1)
       case "trace" =>
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
         val task: Int = Option(request.getParameter("task")).getOrElse("").toInt
         val subtask: Int = Option(request.getParameter("subtask")).getOrElse("").toInt
         val h_code: Int = Option(request.getParameter("linid")).getOrElse("").toInt
         println("Invoking Lineage Query")
-        TaskExecutionManager.startLineageQuery(h_code , stage, task, subtask)
+        BDHandlerDriverSide.startLineageQuery(h_code , stage, task, subtask)
       case "skip" =>
        // val crash: String = Option(request.getParameter("record")).getOrElse("")
         val stage: Int = Option(request.getParameter("stage")).getOrElse("").toInt
@@ -98,13 +98,13 @@ class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends Spa
 
         //   TaskExecutionManager.simulateCrashResolution(stage, task , subtask)
         println("Skipping Record")
-        TaskExecutionManager.fixUnresolvedCrashingRecord("", stage, task, subtask , srnum, 0)
+        BDHandlerDriverSide.fixUnresolvedCrashingRecord("", stage, task, subtask , srnum, 0)
       case "test" =>
       // NOTE: If we need to run something simple, we can use this command.
       case "set_guard" => {
         val regex = Option(request.getParameter("code")).getOrElse("")
         val rddid = Option(request.getParameter("rddid")).getOrElse("").toInt
-        TaskExecutionManager.setExpression(regex, rddid)
+        BDHandlerDriverSide.setExpression(regex, rddid)
       }
       case _ => {
         // do nothing

@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import com.thoughtworks.xstream.XStream
-import org.apache.spark.bdd.{CrashingRecord, BDDCodeFix, BDDCodeFixCompiler1}
+import org.apache.spark.bdd.{CrashingRecord, BDCodeFix, BDCodeFixCompiler}
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd.MapPartitionsRDD
 
@@ -35,8 +35,8 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 	override def ttag = classTag[U]
 
 	def reCompileFilter(code: String): String = {
-		val compiler = new BDDCodeFixCompiler1(None)
-		val pc: BDDCodeFix[T, U] = compiler.eval[BDDCodeFix[T, U]](code)
+		val compiler = new BDCodeFixCompiler(None)
+		val pc: BDCodeFix[T, U] = compiler.eval[BDCodeFix[T, U]](code)
 		pc.getClass.getName
 	}
 
@@ -45,8 +45,8 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 	 **/
 	def batchRemediation(code: String, crashedRecords: Iterator[CrashingRecord]): Iterator[CrashingRecord] = {
 		val xstream: XStream = new XStream()
-		val compiler = new BDDCodeFixCompiler1(None)
-		val pc: BDDCodeFix[T, T] = compiler.eval[BDDCodeFix[T, T]](code)
+		val compiler = new BDCodeFixCompiler(None)
+		val pc: BDCodeFix[T, T] = compiler.eval[BDCodeFix[T, T]](code)
 		crashedRecords
 			.map(s => CrashingRecord(
 			xstream.toXML(

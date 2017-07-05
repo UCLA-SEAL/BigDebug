@@ -20,7 +20,7 @@ package org.apache.spark.lineage
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
-import org.apache.spark.bdd.{TaskExecutionManager, BigDebugConfiguration}
+import org.apache.spark.bdd.{BDHandlerDriverSide, BDConfiguration}
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
@@ -192,13 +192,12 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 		if (sparkContext.jobProgressListener.completedJobs.length > 0) {
 			jobid = sparkContext.jobProgressListener.completedJobs.maxBy(_.jobId).jobId
 		}
-		TaskExecutionManager.setTopRDD(rdd, jobid)
-		TaskExecutionManager.setSparkContext(sparkContext)
+		BDHandlerDriverSide.setTopRDD(rdd, jobid)
+		BDHandlerDriverSide.setSparkContext(sparkContext)
 		rdd match {
-			case lrdd: Lineage[T] => TaskExecutionManager.setLineageContext(lrdd.lineageContext)
+			case lrdd: Lineage[T] => BDHandlerDriverSide. setLineageContext(lrdd.lineageContext)
 			case _ =>
 		}
-
 		/** */
 		sparkContext.runJob(rdd, func, 0 until rdd.partitions.size)
 

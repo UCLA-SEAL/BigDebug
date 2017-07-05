@@ -20,7 +20,7 @@ package org.apache.spark
 import java.util.{Properties, Queue}
 import java.util.concurrent.ThreadPoolExecutor
 
-import org.apache.spark.bdd.BigDebugConfiguration
+import org.apache.spark.bdd.BDConfiguration
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -43,7 +43,7 @@ private[spark] class TaskContextImpl(
                                       // The default value is only used in tests.
                                       override val taskMetrics: TaskMetrics = TaskMetrics.empty,
                                       // Passing the configuration to taskContext --Tag BigDebug @ Gulzar 06/20
-                                      val config:BigDebugConfiguration = null )
+                                      val config:BDConfiguration = null )
   extends TaskContext
   with Logging {
 

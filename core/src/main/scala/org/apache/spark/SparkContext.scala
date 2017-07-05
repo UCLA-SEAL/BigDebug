@@ -24,7 +24,7 @@ import java.util.{Arrays, Locale, Properties, ServiceLoader, UUID}
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
-import org.apache.spark.bdd.BigDebugConfiguration
+import org.apache.spark.bdd.BDConfiguration
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.ui.debugger.DebuggerListener
 

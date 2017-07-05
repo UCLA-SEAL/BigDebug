@@ -36,7 +36,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
       UIUtils.listingTable[CrashingRecord](
         unzipped._1,
         datarow,
-        TaskExecutionManager.getCrashIterator(wpId).toIterable)
+        BDHandlerDriverSide.getCrashIterator(wpId).toIterable)
 
     } else {
       // retrieve only content not webapge.
@@ -50,7 +50,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
         renderTableDiv(
           UIUtils.listingTable[CrashingRecord](
             unzipped._1,
-            datarow, TaskExecutionManager.getCrashIterator(wpId).toIterable)) ++ RDDPage.getCodeBox(wpId) /**05/12*/
+            datarow, BDHandlerDriverSide.getCrashIterator(wpId).toIterable)) ++ RDDPage.getCodeBox(wpId) /**05/12*/
       }
 
       val tableRenderLink = s""" "/debugger/rdd/?cnt=true&id=$wpId"  """
@@ -118,7 +118,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
   }
 
   def getRDDDetails(id: Int): String = {
-    val rdd = TaskExecutionManager.getRDDFromId(id)
+    val rdd = BDHandlerDriverSide.getRDDFromId(id)
     if (rdd != null) {
       return rdd.getCreationSite
     }
@@ -129,11 +129,11 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
    * To extract watchpoint code from the file
    **/
   def getWatchPointCode(id: Int): String = {
-    val this_wp = TaskExecutionManager.extractWatchpointRDD(id).getCreationSite
+    val this_wp = BDHandlerDriverSide.extractWatchpointRDD(id).getCreationSite
     println(this_wp)
     val start = this_wp.substring(this_wp.indexOf(":") + 1).toInt
     println(start)
-    val next = TaskExecutionManager.extractWatchpointRDD(id + 1).getCreationSite
+    val next = BDHandlerDriverSide.extractWatchpointRDD(id + 1).getCreationSite
     println(next)
     val end = next.substring(next.indexOf(":") + 1).toInt
     println(end)
@@ -165,7 +165,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
 
 object RDDPage{
   var URL = "";
-def renderContent(wpId: Int, conf : BigDebugConfiguration) :  Seq[Node]= {
+def renderContent(wpId: Int, conf : BDConfiguration) :  Seq[Node]= {
   val wpHeadersAndCssClasses: Seq[(String, String)] =
     Seq(
       ("Crashed Data Records ", "")
@@ -203,7 +203,7 @@ def renderContent(wpId: Int, conf : BigDebugConfiguration) :  Seq[Node]= {
   UIUtils.listingTable[CrashingRecord](
     unzipped._1,
     datarow,
-    TaskExecutionManager.getCrashIterator(wpId).toIterable)
+    BDHandlerDriverSide.getCrashIterator(wpId).toIterable)
 }
 
 def getCodeBox(rddID: Int) : Seq[Node]= { /**05/12**/
