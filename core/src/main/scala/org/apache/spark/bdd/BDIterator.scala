@@ -9,7 +9,7 @@ import scala.collection.Iterator._
 /**
  * Created by ali on 7/15/15.
  */
-class BDDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rddid: Int)
+class BDIterator[T](val context: TaskContext, val delegate: Iterator[T], val rddid: Int)
 	extends Iterator[T] {
 	self =>
 	/***Bigdebug @ Gulzar 6/16**/

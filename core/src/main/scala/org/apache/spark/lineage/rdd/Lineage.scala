@@ -3,7 +3,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.{NullWritable, Text}
 import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
-import org.apache.spark.bdd.{CrashingRecord, BDHandlerDriverSide, BDDIterator}
+import org.apache.spark.bdd.{CrashingRecord, BDHandlerDriverSide, BDIterator}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.rdd._
@@ -244,7 +244,7 @@ trait Lineage[T] extends RDD[T] {
       (context, pid, iter) =>{
         // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
         if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-          val debugIterator = new BDDIterator[T](context, iter, id+1)
+          val debugIterator = new BDIterator[T](context, iter, id+1)
           debugIterator.setRecordLevelLatency(enableProfiling)
           //TODO: Check if the id is needed to be incremented or not.
           debugIterator.filter(cleanF)
@@ -287,7 +287,7 @@ trait Lineage[T] extends RDD[T] {
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
       if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-        val debugIterator = new BDDIterator[T](context, iter, id+1)
+        val debugIterator = new BDIterator[T](context, iter, id+1)
         debugIterator.setRecordLevelLatency(enableProfiling)
         //TODO: Check if the id is needed to be incremented or not.
         debugIterator.flatMap[U](cleanF)
@@ -352,7 +352,7 @@ trait Lineage[T] extends RDD[T] {
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => {
       // instrumenting iterators for debugging purposes -- Tag: Bigdebug @ Gulzar 6/16
       if (context.bdconfig.ENABLE_CRASH_LATENCY) {
-        val debugIterator = new BDDIterator[T](context, iter, id+1)
+        val debugIterator = new BDIterator[T](context, iter, id+1)
         debugIterator.setRecordLevelLatency(enableProfiling)
         //TODO: Check if the id is needed to be incremented or not.
         debugIterator.map[U](cleanF)

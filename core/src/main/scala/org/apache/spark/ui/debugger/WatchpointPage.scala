@@ -55,13 +55,15 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 					<form method="GET" action={doUrl}>
 						<input type="hidden" name="command" value="set_guard"></input>
 						<input type="hidden" name="rddid" value={wpId.toString}></input>
-						<textarea id="code" name="code" style="display: none;">
-							{PredicateClassVersion.code_template}
+						<textarea id="code" name="code" style="display: none;">{PredicateClassVersion.code_template}
 						</textarea>
 						<br/>
 						<button type="submit" class="btn btn-lg btn-success">Submit New Guard</button>
 					</form>
 				</div>
+					<div>
+						{getDisabledLines()}
+					</div>
 			}
 			val tableRenderLink = s""" "/debugger/watchpoint/?cnt=true&id=$wpId"  """
 			val str_code = getWatchPointLineNumber(wpId)
@@ -78,6 +80,10 @@ private[ui] class WatchpointPage(parent: DebuggerTab) extends WebUIPage("watchpo
 			</td>
 		</tr>
 
+	}
+
+	def getDisabledLines(): Seq[Node] = {
+		<input type="hidden" id="disablelines" value={PredicateClassVersion.codelines.map(_.toString).reduce(_ + "," + _)}></input>
 	}
 
 	def renderTableDiv(s: Seq[Node]): Seq[Node] = {

@@ -24,15 +24,19 @@ import org.apache.spark.rdd.MapPartitionsRDD
 
 import scala.collection.Iterator
 import scala.reflect._
+import scala.reflect.runtime._
+import scala.reflect.runtime.{universe => ru}
 
 class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
                                                   f: (TaskContext, Int, Iterator[T]) => Iterator[U], // (TaskContext, partition index, iterator)
                                                   preservesPartitioning: Boolean = false)
 	extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning) with Lineage[U] {
 
+	def retrieveTypes: (String,String)= {(ttag.toString(), utag.toString())}
 	override def lineageContext = prev.lineageContext
 
 	override def ttag = classTag[U]
+	def utag =  classTag[U]
 
 	def reCompileFilter(code: String): String = {
 		val compiler = new BDCodeFixCompiler(None)

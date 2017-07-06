@@ -165,6 +165,9 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
 
 object RDDPage{
   var URL = "";
+  def getDisabledLines(): Seq[Node] = {
+    <input type="hidden" id="disablelines" value={PredicateClassVersion.codelinesst.map(_.toString).reduce(_ + "," + _)}></input>
+  }
 def renderContent(wpId: Int, conf : BDConfiguration) :  Seq[Node]= {
   val wpHeadersAndCssClasses: Seq[(String, String)] =
     Seq(
@@ -222,7 +225,7 @@ def getCodeBox(rddID: Int) : Seq[Node]= { /**05/12**/
         <br/>
         <button type="submit" class="btn btn-lg btn-success" >Batch Modification</button>
       </form>
-    </div>
+    </div><div>{getDisabledLines()}</div>
   content
 }
 

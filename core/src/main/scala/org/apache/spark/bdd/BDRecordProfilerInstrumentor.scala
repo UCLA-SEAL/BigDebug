@@ -164,7 +164,7 @@ object BDRecordProfiler {
 
 }
 
-class BDRecordProfilerInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDDIterator[T]) {
+class BDRecordProfilerInstrumentor[T](sid: Int, pid: Int, rddid: Int, bDDIterator: BDIterator[T]) {
 
 	def wrapClosureForProfiling[U, T](f: T => U): T => U = {
 		if (bDDIterator.isRecordLevelLatencyEnabled) {
