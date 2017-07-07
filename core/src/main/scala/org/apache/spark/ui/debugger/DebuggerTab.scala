@@ -23,7 +23,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.bdd._
 import org.apache.spark.ui._
 
-class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends SparkUITab(parent, "debugger") {
+class DebuggerTab( val listener: BDSparkListener , parent: SparkUI) extends SparkUITab(parent, "debugger") {
 
 
   val operationGraphListener = parent.operationGraphListener
@@ -46,7 +46,7 @@ class DebuggerTab( val listener: DebuggerListener , parent: SparkUI) extends Spa
   }
 
   def getDriverWebSocketPort: String = {
-    parent.driverWebSocket.getCurrentPort().toString
+    BDHandlerDriverSide.getWebSocket.getCurrentPort().toString
   }
 
   def handleDebuggerCommand(request: HttpServletRequest): Unit = {

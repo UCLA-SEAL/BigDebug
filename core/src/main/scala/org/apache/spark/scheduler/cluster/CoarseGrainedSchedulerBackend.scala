@@ -314,8 +314,8 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
           logDebug(s"Launching task ${task.taskId} on executor id: ${task.executorId} hostname: " +
             s"${executorData.executorHost}.")
-
-          executorData.executorEndpoint.send(LaunchTask(new SerializableBuffer(serializedTask)))
+          //Breakpoint Code Fix being sent at the launch of the task --Tag BigDebug 2 Gulzar 07/07
+          executorData.executorEndpoint.send(LaunchTask(new SerializableBuffer(serializedTask) , BDHandlerDriverSide.retrieveCodeFix()))
         }
       }
     }

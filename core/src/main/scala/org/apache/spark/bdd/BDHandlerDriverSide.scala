@@ -3,7 +3,8 @@ package org.apache.spark.bdd
 import java.io._
 
 import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.SparkContext
+import org.apache.spark.internal.Logging
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.rdd._
@@ -11,7 +12,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.{ResultStage, Stage}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{CrashRecordAction, ResolveAllCrashes, RequestIntermediateData, SetExpressionExecutor}
-import org.apache.spark.ui.debugger.DebuggerPageUtils
+import org.apache.spark.ui.debugger.{SocketRunner, DebuggerPageUtils}
 import org.apache.spark.ui.scope.RDDOperationGraph
 import org.apache.spark.ui.{SparkUI, UIUtils}
 
@@ -24,7 +25,7 @@ import scala.xml.Node
  */
 
 
-object BDHandlerDriverSide {
+object BDHandlerDriverSide extends Object with Logging{
 
 	private val executorActor = new HashMap[String, RpcEndpointRef]
 	private val executorUI = HashMap[(String), (String, Int)]()
@@ -34,6 +35,7 @@ object BDHandlerDriverSide {
 	var latency: Int = 3000
 
 	var sparkUI: SparkUI = null;
+	var sparkConf : SparkConf = null;
 	@transient
 	@volatile var requestThreadEnabled: Boolean = true
 	var requestThreadstatus = false
@@ -46,11 +48,32 @@ object BDHandlerDriverSide {
 				//  requestExecutorsLocalTime()
 				Thread.sleep(latency) // Find any alternative to thread.sleep like Wait-notify**
 				//printStragglers()
-			getUiProfileData()
+				getUiProfileData()
 			}
 		}
 	})
 
+	/**
+	 * Maintaining the websocket here for the UI --Tag BigDebug @ Gulzar 07/07
+	 */
+	var driverWebSocket: SocketRunner = null
+
+	/**
+	 * Set the websocket from the application start listener and start it  --Tag Bigdebug @ Gulzar 07/07
+	 */
+	def setAndInitiateWebSocket(sr : SocketRunner){
+		driverWebSocket = sr
+		driverWebSocket.run()
+	}
+	def getWebSocket : SocketRunner = driverWebSocket
+
+	/**
+	 * WebSocket Port assigner --Tag Bigdebug @ Gulzar 06/20
+	 **/
+
+	def getWebSocketPort(): Int = {
+		sparkConf.getInt("spark.ws.port", sparkConf.getBigDebugConfiguration().DEFAULT_WEBSOCKET_PORT)
+	}
 
 	/**
 	 * BigDebugConfiguration
@@ -153,7 +176,7 @@ object BDHandlerDriverSide {
 			topRDD = rdd
 			currenJobID = id
 		}
-		// println("Job ID:" + id)
+		 logInfo("Job ID:" + id)
 	}
 
 	def init(): Unit = {
@@ -198,7 +221,7 @@ object BDHandlerDriverSide {
 
 	}
 
-	def readPredicateClass(class_name: String): List[Int] = {
+	def readPredicateClass(class_name: String): Array[Int] = {
 		var in = None: Option[FileInputStream]
 		var filedata = List[Int]()
 		try {
@@ -220,7 +243,7 @@ object BDHandlerDriverSide {
 			//  println("entered finally ...")
 			if (in.isDefined) in.get.close
 		}
-		return filedata
+		return filedata.toArray
 	}
 
 	def removeExecutor(execID: String): Unit = {
@@ -304,8 +327,8 @@ object BDHandlerDriverSide {
 
 	def updateWatchpointUI(rdd: Int): Unit = {
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Report Watchpoint to UI")
-		if (sparkUI != null) {
-			sparkUI.driverWebSocket.s.updateWatchPointRDDs(rdd)
+		if (driverWebSocket != null) {
+			driverWebSocket.s.updateWatchPointRDDs(rdd)
 		}
 	}
 
@@ -368,7 +391,8 @@ object BDHandlerDriverSide {
 			if (str.endsWith(",")) str.substring(0, str.length - 1) else str
 		} + "]"
 		//DebugHelper.log("INFO", "TaskExecutionManager", s" Executor UI data /n $str /n")
-		sparkUI.driverWebSocket.s.updateDebuggerTaskProfiling(str)
+		if(driverWebSocket !=null)
+		driverWebSocket.s.updateDebuggerTaskProfiling(str)
 		str
 	}
 
@@ -452,10 +476,10 @@ object BDHandlerDriverSide {
 	}
 
 
-	def getCurrentCrashCulprit: CrashingRecord= {
+	def getCurrentCrashCulprit: CrashingRecord = {
 		if (currentCrash == null) {
 			CrashingRecord("", 0, 0, 0, new NullPointerException(), 0, "")
-		}else
+		} else
 			currentCrash
 
 	}
@@ -508,10 +532,10 @@ object BDHandlerDriverSide {
 
 	def updateCrashUI(rdd: Int): Unit = {
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Report to UI")
-		if (sparkUI != null) {
-			sparkUI.driverWebSocket.s.sendToAll(DebuggerPageUtils.getDAGMetaData(sparkUI.operationGraphListener.getOperationGraphForJob(0)).toString())
-			sparkUI.driverWebSocket.s.updateCrashedRDDs(rdd)
-			sparkUI.driverWebSocket.s.sendToAll("Error " + parseLineNumber(getRDDDetails(rdd)))
+		if (driverWebSocket != null) {
+			driverWebSocket.s.sendToAll(DebuggerPageUtils.getDAGMetaData(sparkUI.operationGraphListener.getOperationGraphForJob(0)).toString())
+			driverWebSocket.s.updateCrashedRDDs(rdd)
+			driverWebSocket.s.sendToAll("Error " + parseLineNumber(getRDDDetails(rdd)))
 		}
 	}
 
@@ -605,15 +629,16 @@ object BDHandlerDriverSide {
 
 	/**
 	 * Retrieve Crashing record from the unresolved list
-	 * */
-	def fixUnresolvedCrashingRecord(crash: String, stage:Int, task:Int, rdd :Int , srnum : Int , action: Int): Unit ={
-		val list = unresolvedCrashes((stage, task, rdd)).filter( s => s.srnumn == srnum )
-		if(!list.isEmpty){
-			takeActionCrashCuplrit(list.head , action)
-		}else{
+	 **/
+	def fixUnresolvedCrashingRecord(crash: String, stage: Int, task: Int, rdd: Int, srnum: Int, action: Int): Unit = {
+		val list = unresolvedCrashes((stage, task, rdd)).filter(s => s.srnumn == srnum)
+		if (!list.isEmpty) {
+			takeActionCrashCuplrit(list.head, action)
+		} else {
 			DebugHelper.log("INFO", "TaskExecutorManager", s"No corresponding unresolved crashing record found: ( $crash")
 		}
 	}
+
 	def takeActionCrashCuplrit(c: CrashingRecord, action: Int /*0 for skip , 1 for modify*/): Unit = {
 		val c_record = crash_cuplrit_lock.getOrElse((c.stageID, c.taskID, c.rddid), null)
 		DebugHelper.log("INFO", "TaskExecutorManager", s"Action  Crash ( $c)")
@@ -798,7 +823,8 @@ object BDHandlerDriverSide {
 	}
 
 	def kill(): Unit = {
-		sparkContext.cancelJob(currenJobID + 1)
+		logInfo("JobID : " + currenJobID)
+		sparkContext.cancelJob(currenJobID)
 	}
 
 
@@ -847,7 +873,7 @@ object BDHandlerDriverSide {
 
 	/** *Runtime Code fix */
 
-	private var codeFixToRDDid = HashMap[Int, String]()
+	private val codeFixToRDDid = HashMap[Int, String]()
 
 	def resetCode(rddid: Int, code: String): Unit = {
 		//  println(" Code Fix")
@@ -882,8 +908,8 @@ object BDHandlerDriverSide {
 		f
 	}
 
-	def retrieveCodeFix(): HashMap[Int, (String, List[Int])] = {
-		var h = HashMap[Int, (String, List[Int])]()
+	def retrieveCodeFix(): HashMap[Int, (String, Array[Int])] = {
+		val h = HashMap[Int, (String, Array[Int])]()
 		for (k <- codeFixToRDDid.keySet) {
 			val name = codeFixToRDDid(k)
 			//    println("***" + name + " , " + k + "***")

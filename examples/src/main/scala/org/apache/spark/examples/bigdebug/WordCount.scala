@@ -1,6 +1,6 @@
 package org.apache.spark.examples.bigdebug
 
-import org.apache.spark.bdd.BDConfiguration
+import org.apache.spark.bdd.{BigDebugContext, BDConfiguration}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.{SparkContext, SparkConf}
@@ -25,8 +25,7 @@ object WordCount {
 		bconf.setFilePath("/home/ali/work/temp/git/bigdebug2.0/bigdebug/examples/src/main/scala/org/apache/spark/examples/bigdebug/WordCount.scala")
 		bconf.setCrashResolution("lm")
 		conf.setBigDebugConfiguration(bconf)
-		val sc = new SparkContext(conf)
-		val lc = new LineageContext(sc)
+		val lc = new BigDebugContext(conf, bconf).lc
 		val lines = lc.textFile(file)
 		lines.flatMapWithProfiling{ s =>
 			if(s.contains("x")){
@@ -37,6 +36,7 @@ object WordCount {
 			.simultedBreakpoint().map{ p =>
 				(p,1)}
 			.reduceByKey(_+_)
+			.map(s => s)
 			.collect().foreach(println)
 	}
 }

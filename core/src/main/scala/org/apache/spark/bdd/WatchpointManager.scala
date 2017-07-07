@@ -42,20 +42,20 @@ object WatchpointManager extends Logging {
     predicateClass
   }
 
-  def setExpression(list: List[Int], class_name: String): Unit = {
+  def setExpression(list: Array[Int], class_name: String): Unit = {
     val myExecutorId = BDExecutorManager.GetExecutorId
       BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
     writePredicateClass(class_name, list)
   }
 
-  def setExpression(list: List[Int], class_name: String, rddID: Int): Unit = {
+  def setExpression(list: Array[Int], class_name: String, rddID: Int): Unit = {
     println("Expression Received")
     val myExecutorId = BDExecutorManager.GetExecutorId
       BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " + class_name + " of size : " + list.length, myExecutorId))
     writePredicateClass(class_name, list, rddID)
   }
 
-  def setCodeFix(codeStore: mutable.HashMap[Int, (String , List[Int])]): Unit = {
+  def setCodeFix(codeStore: mutable.HashMap[Int, (String , Array[Int])]): Unit = {
     println("Expression Received")
     val myExecutorId = BDExecutorManager.GetExecutorId
     for(k <- codeStore.keySet){
@@ -65,7 +65,7 @@ object WatchpointManager extends Logging {
       BDExecutorManager.sendMessage(SendACKCode(1, "Expression Received : " , codeStore.keySet.size.toString))
   }
 
-  def writePredicateClass(class_name: String, list: List[Int]): Unit = {
+  def writePredicateClass(class_name: String, list: Array[Int]): Unit = {
     var out = None: Option[FileOutputStream]
     var file = new File("/tmp")
     if (!file.exists()) {
@@ -123,7 +123,7 @@ object WatchpointManager extends Logging {
       null
   }
 
-  def writePredicateClass(class_name: String, list: List[Int], rddID: Int): Unit = {
+  def writePredicateClass(class_name: String, list: Array[Int], rddID: Int): Unit = {
     var out = None: Option[FileOutputStream]
     var file = new File("/tmp/worker")
     if (!file.exists()) {

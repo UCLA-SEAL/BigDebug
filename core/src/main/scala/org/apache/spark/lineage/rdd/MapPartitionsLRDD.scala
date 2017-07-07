@@ -43,7 +43,6 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 		val pc: BDCodeFix[T, U] = compiler.eval[BDCodeFix[T, U]](code)
 		pc.getClass.getName
 	}
-
 	/**
 	 * Batch Remediation of crashing records --Tag Bigdebug @Gulzar 06/20
 	 **/

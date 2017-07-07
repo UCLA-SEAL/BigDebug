@@ -20,7 +20,7 @@ package org.apache.spark.lineage
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
-import org.apache.spark.bdd.{BDHandlerDriverSide, BDConfiguration}
+import org.apache.spark.bdd.{BDSparkListener, BDHandlerDriverSide, BDConfiguration}
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
@@ -63,7 +63,8 @@ import org.apache.spark.lineage.LineageContext._
 
 class LineageContext(@transient val sparkContext: SparkContext) extends Logging {
 
-	val debugging_listener: DebuggerListener = createListenerAndUI(sparkContext)
+
+	val debugging_listener: BDSparkListener = createListenerAndUI(sparkContext)
 
 	private var culprit = false
 
@@ -76,8 +77,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 	/**
 	 * Create a DebuggingListener then add it into SparkContext, and create a DebuggingTab if there is SparkUI.
 	 */
-	private def createListenerAndUI(sc: SparkContext): DebuggerListener = {
-		val listener = new DebuggerListener(sparkContext)
+	private def createListenerAndUI(sc: SparkContext): BDSparkListener = {
+		val listener = new BDSparkListener()
 		sc.addSparkListener(listener)
 		sc.ui.foreach(new DebuggerTab(listener, _))
 		listener

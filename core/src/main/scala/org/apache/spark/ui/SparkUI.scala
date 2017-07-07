@@ -58,8 +58,6 @@ private[spark] class SparkUI private(
 	with Logging
 	with UIRoot {
 
-	// Maintaining instances of sockets for push the data on the UI -- Tag Bigdebug @ Gulzar 06/20
-	var driverWebSocket: SocketRunner = null
 	var shouldBeTerminated: Boolean = false
 
 	val killEnabled = sc.map(_.conf.getBoolean("spark.ui.killEnabled", true)).getOrElse(false)
@@ -75,10 +73,6 @@ private[spark] class SparkUI private(
 		attachTab(new StorageTab(this))
 		attachTab(new EnvironmentTab(this))
 		attachTab(new ExecutorsTab(this))
-
-		// Initiating WebSockets and attaching Debugger tabs and handlers -- Tag bigdebug @ Gulzar 06/20
-		driverWebSocket = new SocketRunner(SparkUI.getWebSocketPort(conf), sc.get.lc.getBigDebugConfiguration())
-		driverWebSocket.run()
 
 		attachHandler(createStaticHandler(SparkUI.STATIC_RESOURCE_DIR, "/static"))
 		attachHandler(createRedirectHandler("/", "/jobs/", basePath = basePath))
@@ -161,14 +155,6 @@ private[spark] object SparkUI {
 
 	def getUIPort(conf: SparkConf): Int = {
 		conf.getInt("spark.ui.port", SparkUI.DEFAULT_PORT)
-	}
-
-	/**
-	 * WebSocket Port assigner --Tag Bigdebug @ Gulzar 06/20
-	 **/
-	val DEFAULT_WEBSOCKET_PORT = 9099
-	def getWebSocketPort(conf: SparkConf): Int = {
-		conf.getInt("spark.ws.port", SparkUI.DEFAULT_WEBSOCKET_PORT)
 	}
 
 

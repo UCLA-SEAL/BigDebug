@@ -18,7 +18,7 @@ class BDConfiguration extends  Serializable{
 	var STRAGGLER_REQUEST_PERIOD :Int= 3000
 	var SOURCECODE_PATH : String = ""
 	var WATCHPOINT_DATA_SEND_TO_DRIVER : Boolean = true
-
+	val DEFAULT_WEBSOCKET_PORT = 9099
 
 
 	def setTerminationOnFinished(term : Boolean): Unit =  {

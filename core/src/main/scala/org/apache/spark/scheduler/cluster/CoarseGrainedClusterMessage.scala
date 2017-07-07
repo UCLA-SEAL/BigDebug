@@ -25,6 +25,8 @@ import org.apache.spark.rpc.RpcEndpointRef
 import org.apache.spark.scheduler.ExecutorLossReason
 import org.apache.spark.util.SerializableBuffer
 
+import scala.collection.mutable
+
 private[spark] sealed trait CoarseGrainedClusterMessage extends Serializable
 
 private[spark] object CoarseGrainedClusterMessages {
@@ -42,7 +44,7 @@ private[spark] object CoarseGrainedClusterMessages {
 	case class SendWatchpointDataToDriver(id: String, list: List[CapturedRecord], subtaskID: Int)
 		extends CoarseGrainedClusterMessage
 
-	case class SetExpressionExecutor(impl: List[Int], class_name: String, rddID: Int)
+	case class SetExpressionExecutor(impl: Array[Int], class_name: String, rddID: Int)
 		extends CoarseGrainedClusterMessage
 
 	case class SendACKCode(i: Int, str: String, execID: String)
@@ -88,7 +90,8 @@ private[spark] object CoarseGrainedClusterMessages {
 	case object RetrieveLastAllocatedExecutorId extends CoarseGrainedClusterMessage
 
 	// Driver to executors
-	case class LaunchTask(data: SerializableBuffer) extends CoarseGrainedClusterMessage
+	// For breakpoint code, the new code needs to be shipped. --Tag Bigdebug @ Gulzar 07/07
+	case class LaunchTask(data: SerializableBuffer , 	codeFixStore: mutable.HashMap[Int,(String , Array[Int])]) extends CoarseGrainedClusterMessage
 
 	case class KillTask(taskId: Long, executor: String, interruptThread: Boolean)
 		extends CoarseGrainedClusterMessage
