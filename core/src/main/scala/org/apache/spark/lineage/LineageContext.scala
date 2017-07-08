@@ -20,13 +20,12 @@ package org.apache.spark.lineage
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
-import org.apache.spark.bdd.{BDSparkListener, BDHandlerDriverSide, BDConfiguration}
+import org.apache.spark.bdd.{BDConfiguration, BDSparkListener, BDHandlerDriverSide}
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
-import org.apache.spark.scheduler.SparkListenerJobStart
-import org.apache.spark.ui.debugger.{DebuggerTab, DebuggerListener}
+import org.apache.spark.ui.debugger.{DebuggerTab}
 import org.apache.spark.util.SerializableConfiguration
 
 import scala.collection.mutable
@@ -61,8 +60,12 @@ object LineageContext {
 
 import org.apache.spark.lineage.LineageContext._
 
-class LineageContext(@transient val sparkContext: SparkContext) extends Logging {
+class LineageContext(@transient val sparkConf: SparkConf, bdConf: BDConfiguration = new BDConfiguration()) extends Logging {
 
+	sparkConf.set("spark.extraListeners", "org.apache.spark.bdd.BDSparkListener").setBigDebugConfiguration(bdConf)
+	BDHandlerDriverSide.setSparkConf(sparkConf)
+	val sparkContext = new SparkContext(sparkConf.clone)
+	BDHandlerDriverSide.setSparkContext(sparkContext)
 
 	val debugging_listener: BDSparkListener = createListenerAndUI(sparkContext)
 
@@ -73,6 +76,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 		captureLineage = false
 	}
 
+	def this(sc: SparkContext) = this(sc.conf)
 
 	/**
 	 * Create a DebuggingListener then add it into SparkContext, and create a DebuggingTab if there is SparkUI.
@@ -82,6 +86,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 		sc.addSparkListener(listener)
 		sc.ui.foreach(new DebuggerTab(listener, _))
 		listener
+
 	}
 
 
@@ -115,7 +120,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 		                    keyClass: Class[K],
 		                    valueClass: Class[V],
 		                    minPartitions: Int = sparkContext.defaultMinPartitions
-		                    ): Lineage[(K, V)] =  sparkContext.withScope{
+		                    ): Lineage[(K, V)] = sparkContext.withScope {
 		// A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
 		val confBroadcast = sparkContext.broadcast(
 			new SerializableConfiguration(sparkContext.hadoopConfiguration))
@@ -193,12 +198,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 		if (sparkContext.jobProgressListener.completedJobs.length > 0) {
 			jobid = sparkContext.jobProgressListener.completedJobs.maxBy(_.jobId).jobId
 		}
+		logInfo("Issuing Job where top RDD is : " + rdd.toDebugString)
 		BDHandlerDriverSide.setTopRDD(rdd, jobid)
 		BDHandlerDriverSide.setSparkContext(sparkContext)
 		rdd match {
-			case lrdd: Lineage[T] => BDHandlerDriverSide. setLineageContext(lrdd.lineageContext)
+			case lrdd: Lineage[T] => BDHandlerDriverSide.setLineageContext(lrdd.lineageContext)
 			case _ =>
 		}
+
 		/** */
 		sparkContext.runJob(rdd, func, 0 until rdd.partitions.size)
 

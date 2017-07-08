@@ -74,7 +74,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
           <textarea name="record">
             {r.record}
           </textarea>
-            {parent.getSparkContext.lc.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
+            {parent.getSparkContext.conf.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
             case 0 => "Skipped"
             case _ =>
 
@@ -105,7 +105,7 @@ private[ui] class RDDPage(parent: DebuggerTab) extends WebUIPage("rdd") {
       <p>
         <br/>
         Configurations for crashed set at
-        {parent.getSparkContext.lc.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
+        {parent.getSparkContext.conf.getBigDebugConfiguration().CRASH_CULPRIT_RESOLUTION match {
         case 0 => "skipping"
         case 1 => "sequential resolution"
         case 2 => "lazy resolution"

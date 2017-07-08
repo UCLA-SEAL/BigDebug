@@ -326,8 +326,7 @@ private[spark] class Executor(
         task.setBufferPoolLarge(bufferPoolLarge) // Matteo
         /** Passing debug configuration to tasks --tag Bigdebug  @ Gulzar 06/23 */
         task.setBigDebugConfiguration(bdconfig)
-        BDRecordProfiler.updateTaskInfo(taskId,task.stageId)
-        /** BDD Ends */
+       /** BDD Ends */
 
         // Run the actual task and measure its runtime.
         taskStart = System.currentTimeMillis()
@@ -367,9 +366,6 @@ private[spark] class Executor(
           }
         }
         val taskFinish = System.currentTimeMillis()
-        /** Latency alert task done notification -- Tag bigdebug @ Gulzar 06/23 */
-        BDRecordProfiler.updateTaskDone(taskId,task.stageId)
-        /***/
 
         val taskFinishCpu = if (threadMXBean.isCurrentThreadCpuTimeSupported) {
           threadMXBean.getCurrentThreadCpuTime

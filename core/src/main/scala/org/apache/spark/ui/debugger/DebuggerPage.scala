@@ -17,7 +17,7 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 	private val listener = parent.listener
 
 
-	def bconf = parent.getSparkContext.lc.getBigDebugConfiguration()
+	def bconf = parent.getSparkContext.conf.getBigDebugConfiguration()
 
 	def render(request: HttpServletRequest): Seq[Node] = {
 		val doUrl = "%s/debugger/do".format(UIUtils.prependBaseUri(parent.basePath))
@@ -36,10 +36,10 @@ private[ui] class DebuggerPage(parent: DebuggerTab) extends WebUIPage("") {
 
 		val path_dag_viz = UIUtils.prependBaseUri("/static/spark-dag-viz.js")
 		val fileContent = if(new File(bconf.SOURCECODE_PATH).exists())
-			scala.io.Source.fromFile(parent.getSparkContext.lc.getBigDebugConfiguration().SOURCECODE_PATH).mkString
+			scala.io.Source.fromFile(parent.getSparkContext.conf.getBigDebugConfiguration().SOURCECODE_PATH).mkString
 		else
 			"Source file for the running spark application is not given"
-		val filename = parent.getSparkContext.lc.getBigDebugConfiguration().SOURCECODE_PATH.split("/").last
+		val filename = parent.getSparkContext.conf.getBigDebugConfiguration().SOURCECODE_PATH.split("/").last
 
 		//  println(current_Crash)
 		val operationGraphListener = parent.operationGraphListener

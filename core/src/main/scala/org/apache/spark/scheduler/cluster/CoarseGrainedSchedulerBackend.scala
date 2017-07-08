@@ -170,21 +170,6 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
 
       case RegisterSocketInfo(port, host, id) =>
         BDHandlerDriverSide.enrollExecutorUI(id, host, port)
-
-
-      case BDDMetricTaskStart(sID, tID, execID, time) =>
-        BDHandlerDriverSide.SetTaskMetricInfo(sID, tID, execID, time)
-        logInfo("Time logging started: " + execID + "  " + time)
-
-      case BDDMetricTaskDone(sID, tID, execID, time) =>
-        BDHandlerDriverSide.SetTaskDoneMetric(sID, tID, execID, time)
-        logInfo("Time logging Done: " + execID + "  " + time)
-
-
-
-
-
-
       /** END **/
 
     }
@@ -222,7 +207,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
             }
           }
           // Changed the API to pass bigdebug conf to workers and save executor ref on the driver -- Tag @ Gulzar 06/20
-          executorRef.send(RegisteredExecutor(scheduler.sc.lc.getBigDebugConfiguration()))
+          executorRef.send(RegisteredExecutor(scheduler.sc.conf.getBigDebugConfiguration()))
           BDHandlerDriverSide.registerExecutor(executorId, executorRef)
 
           // Note: some tests expect the reply to come after we put the executor in the map

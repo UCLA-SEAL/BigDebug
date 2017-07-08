@@ -69,13 +69,6 @@ private[spark] object CoarseGrainedClusterMessages {
 
 	case class RegisteredExecutor(bdconf: BDConfiguration) extends CoarseGrainedClusterMessage with RegisterExecutorResponse
 
-	case class BDDMetricTaskStart(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
-
-	case class BDDMetricTaskCurrentTime(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
-
-
-	case class BDDMetricTaskDone(sID: Int, tID: Long, execID: String, time: Long) extends CoarseGrainedClusterMessage
-
 	/**
 	 * Edits end here --Tag : Bigdebug @Gulzar 6/16
 	 **/

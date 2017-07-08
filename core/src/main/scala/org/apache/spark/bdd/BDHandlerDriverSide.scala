@@ -36,12 +36,16 @@ object BDHandlerDriverSide extends Object with Logging{
 
 	var sparkUI: SparkUI = null;
 	var sparkConf : SparkConf = null;
+	def setSparkConf(conf: SparkConf): Unit ={
+		sparkConf = conf
+	}
+
 	@transient
 	@volatile var requestThreadEnabled: Boolean = true
 	var requestThreadstatus = false
 	private val requestThread = new Thread(new Runnable {
 		def run() {
-			if (sparkContext.lc.getBigDebugConfiguration().STRAGGLER_PERIODIC_REQUEST == false)
+			if (sparkConf.getBigDebugConfiguration().STRAGGLER_PERIODIC_REQUEST == false)
 				return
 			while (requestThreadEnabled) {
 				/// requestData()
@@ -78,7 +82,7 @@ object BDHandlerDriverSide extends Object with Logging{
 	/**
 	 * BigDebugConfiguration
 	 **/
-	def bigdebugConfiguration = sparkContext.lc.getBigDebugConfiguration()
+	def bigdebugConfiguration = sparkConf.getBigDebugConfiguration()
 
 
 	/** *Get the executor UI store */
@@ -175,6 +179,7 @@ object BDHandlerDriverSide extends Object with Logging{
 		if (!disableTopRDDset) {
 			topRDD = rdd
 			currenJobID = id
+			logInfo("Top RDD is set : RDD" + topRDD.id)
 		}
 		 logInfo("Job ID:" + id)
 	}
@@ -353,12 +358,12 @@ object BDHandlerDriverSide extends Object with Logging{
 	/* Alternate Implementation: Notify Driver of start time and let it check time span. and alert it on task finish */
 
 
-	private var taskMetricInfo = HashMap[(Long /*tID*/ , Int /*SID*/ , String /*Executor ID*/ ), BDMetric]().withDefaultValue(null)
+	private var taskMetricInfo = HashMap[(String /*tID*/ , Int /*SID*/ , String /*Executor ID*/ ), BDMetric]().withDefaultValue(null)
 	var currentStage = -1;
 
 
 	def getUiProfileData(): String = {
-		var list = List[(Long, Long, String)]()
+		var list = List[(String, Long, String)]()
 		val currentTime = System.currentTimeMillis()
 		for ((t, s, e) <- taskMetricInfo.keySet) {
 			val link = "http://" + executorUI(e)._1 + ":" + executorUI(e)._2
@@ -370,7 +375,7 @@ object BDHandlerDriverSide extends Object with Logging{
 				time = (currentTime - taskMetricInfo(t, s, e).executionstarttime)
 
 			}
-			list ::=(t, time, link)
+			list ::=(s+"."+t, time, link)
 		}
 		var content = list.map { a =>
 			if (a == null) {
@@ -397,7 +402,7 @@ object BDHandlerDriverSide extends Object with Logging{
 	}
 
 
-	def SetTaskMetricInfo(sID: Int, tID: Long, execID: String, time: Long): Unit = {
+	def SetTaskMetricInfo(sID: Int, tID: String, execID: String, time: Long): Unit = {
 		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Profiler  $sID, $tID, $execID, $time")
 
 		val time1 = System.currentTimeMillis()
@@ -411,7 +416,7 @@ object BDHandlerDriverSide extends Object with Logging{
 		}
 	}
 
-	def SetTaskDoneMetric(sID: Int, tID: Long, execID: String, time: Long): Unit = {
+	def SetTaskDoneMetric(sID: Int, tID: String, execID: String, time: Long): Unit = {
 		DebugHelper.log("INFO", "TaskExecutionManager", s" Executor Done  $sID, $tID, $execID, $time")
 		val time1 = System.currentTimeMillis()
 		val bddmetric = taskMetricInfo.getOrElse((tID, sID, execID), null)

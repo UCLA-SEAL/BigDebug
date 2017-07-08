@@ -447,6 +447,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
     settings.entrySet().asScala.foreach { e =>
       cloned.set(e.getKey(), e.getValue(), true)
     }
+    cloned.setBigDebugConfiguration(this.getBigDebugConfiguration())
     cloned
   }
 

@@ -1,7 +1,6 @@
 package org.apache.spark.bdd
 
 import org.apache.spark.executor.ui.ExecutorWebUI
-import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{BDDMetricTaskDone, BDDMetricTaskCurrentTime, BDDMetricTaskStart}
 
 import scala.collection.mutable.HashMap
 
@@ -81,17 +80,6 @@ object BDRecordProfiler {
 		}
 	}
 
-	def updateTaskInfo(tID: Long, sID: Int): Unit = {
-		val time = System.currentTimeMillis()
-		BDExecutorManager.sendMessage(BDDMetricTaskStart(sID, tID, BDExecutorManager.GetExecutorId, time))
-	}
-
-
-	def updateTaskDone(tID: Long, sID: Int): Unit = {
-
-		val time = System.currentTimeMillis()
-		BDExecutorManager.sendMessage(BDDMetricTaskDone(sID, tID, BDExecutorManager.GetExecutorId, time))
-	}
 
 	/** *****
 	  *

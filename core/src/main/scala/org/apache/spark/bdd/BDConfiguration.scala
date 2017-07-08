@@ -16,7 +16,7 @@ class BDConfiguration extends  Serializable{
 	var STATUS_SERVER: String = "http://localhost:9988"
 	var EXECUTOR_UI: Boolean = true /**Enable Executor Ui for data profiling*/
 	var STRAGGLER_REQUEST_PERIOD :Int= 3000
-	var SOURCECODE_PATH : String = ""
+	var SOURCECODE_PATH : String =null
 	var WATCHPOINT_DATA_SEND_TO_DRIVER : Boolean = true
 	val DEFAULT_WEBSOCKET_PORT = 9099
 

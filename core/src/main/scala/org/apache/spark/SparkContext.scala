@@ -24,10 +24,6 @@ import java.util.{Arrays, Locale, Properties, ServiceLoader, UUID}
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
-import org.apache.spark.bdd.BDConfiguration
-import org.apache.spark.lineage.LineageContext
-import org.apache.spark.ui.debugger.DebuggerListener
-
 import scala.collection.JavaConverters._
 import scala.collection.Map
 import scala.collection.generic.Growable
@@ -75,10 +71,6 @@ import org.apache.spark.util._
  *   this config overrides the default configs as well as system properties.
  */
 class SparkContext(config: SparkConf) extends Logging {
-
-
-  //Saving Lineage Context in SC -- Tag Bigdebug @Gulzar 06/20
-  def lc: SparkConf  = config
 
 
   // The call site where this SparkContext was constructed.
