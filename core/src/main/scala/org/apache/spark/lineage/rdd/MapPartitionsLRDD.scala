@@ -43,6 +43,13 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 		val pc: BDCodeFix[T, U] = compiler.eval[BDCodeFix[T, U]](code)
 		pc.getClass.getName
 	}
+
+	override def compute(split: Partition, context: TaskContext): Iterator[U] = {
+
+			f(context, split.index, firstParent[T].iterator(split, context))
+
+	}
+
 	/**
 	 * Batch Remediation of crashing records --Tag Bigdebug @Gulzar 06/20
 	 **/
@@ -70,5 +77,7 @@ class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
 				)
 			)
 	}
+
+
 
 }

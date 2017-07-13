@@ -19,6 +19,7 @@ class BDConfiguration extends  Serializable{
 	var SOURCECODE_PATH : String =null
 	var WATCHPOINT_DATA_SEND_TO_DRIVER : Boolean = true
 	val DEFAULT_WEBSOCKET_PORT = 9099
+	val DRIVER_DEBUGGER_PORT = 23009
 
 
 	def setTerminationOnFinished(term : Boolean): Unit =  {

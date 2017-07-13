@@ -25,18 +25,46 @@ object WordCount {
 		bconf.setFilePath("/home/ali/work/temp/git/bigdebug2.0/bigdebug/examples/src/main/scala/org/apache/spark/examples/bigdebug/WordCount.scala")
 		bconf.setCrashResolution("lm")
 		val lc = new LineageContext(conf, bconf)
-		val lines = lc.textFile(file)
-		lines.flatMapWithProfiling{ s =>
+		 lc.textFile(file).filterWithProfiling { s =>
+			true
+		}.flatMapWithProfiling{ s =>
 			if(s.contains("x")){
 					Thread.sleep(2000)
 			}
 			s.split(" ")}
 			.watchpoint( s => s.contains(","))
-			.simultedBreakpoint().map{ p =>
+			//.simultedBreakpoint()
+			.map{ p =>
 				(p,1)}
 			.reduceByKey(_+_)
 			.map(s => s)
 			.collect().foreach(println)
+	}
+}
+
+
+object WordCountComm {
+	def main (args: Array[String]) {
+		val conf = new SparkConf()
+		var file = ""
+		if (args.length > 1){
+			val master = args(1)
+			file = args(0)
+			conf.setAppName("BigDebug--WordCount").setMaster(master)
+		}
+		else{
+			file = args(0)
+			conf.setAppName("BigDebug--WordCount").setMaster("local[4]")
+		}
+		val bconf = new BDConfiguration()
+		bconf.setCrashMonitoring(true)
+		bconf.setFilePath("/home/ali/work/temp/git/bigdebug2.0/bigdebug/examples/src/main/scala/org/apache/spark/examples/bigdebug/WordCount.scala")
+		bconf.setCrashResolution("lm")
+		val lc = new LineageContext(conf, bconf)
+		val lines = lc.textFile(file)
+		lines.filterWithProfiling { s =>
+		s.contains("pa")
+		}.collect().foreach(println)
 	}
 }
 //object WordCountSpark {

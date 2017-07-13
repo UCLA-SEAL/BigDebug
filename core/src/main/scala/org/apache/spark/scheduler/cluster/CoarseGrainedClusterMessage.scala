@@ -34,6 +34,13 @@ private[spark] object CoarseGrainedClusterMessages {
 	/**
 	 * Message Passing Classes for Bigebug --Tag Bigdebug @ Gulzar 6/16
 	 **/
+	case class RegisterExecutorDebugger(
+		                           executorId: String,
+		                           executorRef: RpcEndpointRef,
+		                           hostname: String)
+		extends CoarseGrainedClusterMessage
+
+	case class TestMessage(str: String) extends CoarseGrainedClusterMessage
 
 	case class RegisterSocketInfo(port: Int, host: String, id: String)
 		extends CoarseGrainedClusterMessage

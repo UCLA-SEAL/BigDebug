@@ -75,14 +75,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     firstParent[T].iterator(split, context).map(tap)
   }
-// Edit by Gulzar 6/16
-//  override def filter(f: T => Boolean): Lineage[T] ={
-//    val cleanF = sparkContext.clean(f)
-//    new MapPartitionsLRDD[T, T](
-//      this,
-//      (context, pid, iter) => iter.filter(cleanF),
-//      preservesPartitioning = true)
-//  }
+
 
   override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r._2.toLong))
 

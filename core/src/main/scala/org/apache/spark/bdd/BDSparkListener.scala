@@ -80,6 +80,7 @@ class BDSparkListener extends SparkListener with Logging {
 
 	override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
 		println(getMethodName())
+		BDDriverBackend.shutdown()
 	}
 
 	override def onExecutorMetricsUpdate(

@@ -110,6 +110,9 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
       ThreadUtils.newDaemonSingleThreadScheduledExecutor("driver-revive-thread")
 
     override def onStart() {
+      val str = rpcEnv.address.toString
+      logInfo(s"""Starting Driver Side  Channel @  $str """)
+
       // Periodically revive offers to allow delay scheduling to work
       val reviveIntervalMs = conf.getTimeAsMs("spark.scheduler.revive.interval", "1s")
 

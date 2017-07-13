@@ -20,7 +20,7 @@ package org.apache.spark.lineage
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInputFormat}
 import org.apache.spark._
-import org.apache.spark.bdd.{BDConfiguration, BDSparkListener, BDHandlerDriverSide}
+import org.apache.spark.bdd.{BDDriverBackend, BDConfiguration, BDSparkListener, BDHandlerDriverSide}
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.rdd._
@@ -77,6 +77,9 @@ class LineageContext(@transient val sparkConf: SparkConf, bdConf: BDConfiguratio
 	}
 
 	def this(sc: SparkContext) = this(sc.conf)
+
+	// Initiating Driver Side Debugging Comm Channel -- Tag Bigdebug @ Gulzar 07/12
+	BDDriverBackend.getBDDriverBackend(sparkConf.clone , sparkContext)
 
 	/**
 	 * Create a DebuggingListener then add it into SparkContext, and create a DebuggingTab if there is SparkUI.
