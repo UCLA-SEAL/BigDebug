@@ -18,6 +18,15 @@
     <packaging>jar</packaging>
     <name>Spark Lineage Project</name>
     <dependencies>
+        <!--
+            Socket Dependency
+        -->
+        <dependency>
+            <groupId>com.github.nkzawa</groupId>
+            <artifactId>socket.io-client</artifactId>
+            <version>0.4.2</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.binary.version}</artifactId>
@@ -60,6 +69,17 @@
     <build>
         <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
         <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+            <resource>
+                <!-- Include the properties file to provide the build information. -->
+                <directory>${project.build.directory}/extra-resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
         <plugins>
             <plugin>
                 <groupId>org.scalatest</groupId>

@@ -92,6 +92,7 @@
     <module>common/unsafe</module>
     <module>common/tags</module>
     <module>core</module>
+    <module>lineage</module>
     <module>graphx</module>
     <module>mllib</module>
     <module>mllib-local</module>
@@ -112,7 +113,6 @@
     <module>external/kafka-0-10</module>
     <module>external/kafka-0-10-assembly</module>
     <module>external/kafka-0-10-sql</module>
-    <module>lineage</module>
   </modules>
 
   <properties>
