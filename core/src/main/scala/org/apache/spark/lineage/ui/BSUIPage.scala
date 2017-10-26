@@ -69,6 +69,9 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           <div class="row-fluid">
           <div class="span6">
             <h4>Select one of the following tests: </h4>
+            <br/>
+            <br/>
+            <br/>
             <label class="radio">
               <input type="radio" name="testoption" id="min" value="min" >Debug the minimum output value</input>
               </label>
