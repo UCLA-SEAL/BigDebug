@@ -41,3 +41,60 @@ function initbsWebSocket(){
                 };
             }
 }
+
+var editor = undefined;
+var list = [];
+function unhighlight(e) {
+    var f = function (a) {
+        e.removeLineClass(a, 'background', 'line-bp')
+    };
+    list.map(f)
+    list = [];
+}
+function highlightLine(lineNumber) {
+    var myeditor = editor;
+    unhighlight(myeditor);
+    list.push(lineNumber);
+    myeditor.addLineClass(lineNumber, 'background', 'line-bp');
+};
+function highlightLine_error(lineNumber) {
+    var myeditor = editor;
+    myeditor.addLineClass(lineNumber - 1, 'background', 'line-error');
+};
+function createCode() {
+    editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+        lineNumbers: true,
+        matchBrackets: true,
+        // theme: "ambiance",
+        mode: "text/x-scala",
+        styleActiveLine: true,
+        viewportMargin: Infinity,
+        gutters: ["CodeMirror-linenumbers", "breakpoints"]
+    });
+    editor.on("gutterClick", function (cm, n) {
+        var info = cm.lineInfo(n);
+        cm.setGutterMarker(n, "breakpoints", info.gutterMarkers ? null : makeMarker());
+    });
+
+    if (document.getElementById("breaklineinfo") !== null) {
+        highlightLine(parseInt(document.getElementById("breaklineinfo").value))
+        var crashes = document.getElementById("crashlineinfo").value.split(" ")
+        for (var i = 0; i < crashes.length; i++) {
+            var val = parseInt(crashes[i])
+            if (!isNaN(val)) highlightLine_error(val)
+        }
+    }
+    if(document.getElementById("disablelines") !== null){
+        var dis_lines =  document.getElementById("disablelines").value.split(",").map(function(a){
+            return parseInt(a)
+        });
+        dis_lines.map(function(a){
+            editor.addLineClass(a, 'background', 'line-dis');
+        });
+        editor.on('beforeChange',function(cm,change) {
+            if ( ~dis_lines.indexOf(change.from.line) ) {
+                change.cancel();
+            }
+        });
+    }
+};

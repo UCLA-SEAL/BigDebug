@@ -19,7 +19,7 @@ package org.apache.spark.lineage.ui
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.JettyUtils._
-import org.apache.spark.ui.{SparkUI, UIUtils, WebUI}
+import org.apache.spark.ui.{JettyUtils, SparkUI, UIUtils, WebUI}
 import org.apache.spark.{SecurityManager, SparkConf}
 
 import scala.xml.Node
@@ -61,7 +61,7 @@ class BigSiftWebUI(
     val profilePage = new BSUIPage(this , bslistbus)
     attachPage(profilePage)
     attachHandler(createStaticHandler(BigSiftWebUI.STATIC_RESOURCE_BASE, "/static"))
-
+    attachHandler(JettyUtils.createRedirectHandler("/do", "/", BSUIPage.handleDebuggerCommand))
   }
 }
 

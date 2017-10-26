@@ -15,6 +15,8 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
   def render(request: HttpServletRequest): Seq[Node] = {
     val title = "BigSift -- Automated Debugging For Apache Spark "
 
+    val doUrl = "%s/do".format(UIUtils.prependBaseUri(parent.getBasePath))
+
     val data = listener.getFaultLocalizationJSONData()
     val jobtime = {
       if (listener.initialJobTime.isDefined) {
@@ -43,8 +45,16 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         Seq.empty
       }
     }
+
+    val customStyle = "{height: 200px; width: 400px;}"
+
+
     val content =
       <div>
+        <style type="text/css">
+          .CodeMirror
+          {customStyle}
+        </style>
         <h5>
           {"Debugging Application : " + parent.getSparkConf().get("spark.app.name")}
         </h5>
@@ -54,6 +64,47 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         <div id="initJobTime">
           {jobtime}
         </div>
+
+        <form method="GET" action={doUrl}>
+          <div class="row-fluid">
+          <div class="span6">
+            <h4>Select one of the following tests: </h4>
+            <label class="radio">
+              <input type="radio" name="testoption" id="min" value="min" >Debug the minimum output value</input>
+              </label>
+
+              <label class="radio">
+                <input type="radio" name="testoption" id="max" value="max">Debug the maximum output value</input>
+                </label>
+
+            <label class="radio">
+              <input type="radio" name="testoption" id="5sigma" value="5sigma">Debug all the output values not in 5-Sigma range of the median</input>
+            </label>
+
+            <label class="radio">
+              <input type="radio" name="testoption" id="nan" value="nan">
+                Debug NaN and Null output values</input>
+            </label>
+
+            <label class="radio">
+              <input type="radio" name="testoption" id="udt" value="udt">
+                Debug the output values that fail the test predicate in code box</input>
+            </label>
+
+          </div>
+          <div class="span6">
+            <h4>Write a test predicate here: </h4>
+              <textarea id="code" name="code" style="display: none;">{"Write a test function here!!"}</textarea>
+          </div>
+        </div>
+          <div class="col-md-4 text-center">
+            <br/>
+            <br/>
+            <br/>
+            <button type="submit" class="btn btn-large btn-success">Run BigSift!</button>
+          </div>
+        </form>
+
         <div id="finalDebugTime">
           {debugtime}
         </div>
@@ -80,7 +131,10 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
       </div>
     val headers = {
         <link rel="stylesheet" href={UIUtils.prependBaseUri("/static/amcharts/fl_chart.css")} type="text/css"/>
-        <script src={UIUtils.prependBaseUri("/static/bigsift.js")}></script>
+               <link rel="stylesheet" href={UIUtils.prependBaseUri("/static/codemirror.css")} type="text/css"/>
+               <link rel="stylesheet" href={UIUtils.prependBaseUri("/static/theme/ambiance.css")} type="text/css"/>
+
+             <script src={UIUtils.prependBaseUri("/static/bigsift.js")}></script>
         <script src={UIUtils.prependBaseUri("/static/amcharts/Chart.min.js")}></script>
         <script src={UIUtils.prependBaseUri("/static/amcharts/amcharts.js")}></script>
         <script src={UIUtils.prependBaseUri("/static/amcharts/serial.js")}></script>
@@ -89,8 +143,12 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         <script src={UIUtils.prependBaseUri("/static/jquery.min.js")}></script>
         <script src={UIUtils.prependBaseUri("/static/jquery-1.11.1.min.js")}></script>
         <script src={UIUtils.prependBaseUri("/static/amcharts/fl_chart.js")}></script>
+             <script src={UIUtils.prependBaseUri("/static/codemirror.js")}></script>
+             <script src={UIUtils.prependBaseUri("/static/mode/clike/clike.js")}></script>
+             <script src={UIUtils.prependBaseUri("/static/addon/edit/matchbrackets.js")}></script>
+             <script src={UIUtils.prependBaseUri("/static/addon/selection/active-line.js")}></script>
     }
-    BigSiftWebUI.basicSparkPage(content, title, onLoad = s"initbsWebSocket();initChart()", headers)
+    BigSiftWebUI.basicSparkPage(content, title, onLoad = s"initbsWebSocket();initChart();createCode();", headers)
   }
 
 
@@ -114,6 +172,28 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
       </td>
     </tr>
   }
+}
+object BSUIPage extends Logging{
+
+  def handleDebuggerCommand(request: HttpServletRequest): Unit = {
+    val command: String = Option(request.getParameter("testoption")).getOrElse("")
+    command match {
+      case "min" =>
+        logInfo("Use min test function")
+      case "max" =>
+        logInfo("Use max test function")
+      case "nan" =>
+        logInfo("Use nan test function")
+      case "5sigma" =>
+        logInfo("Use 5sigma test function")
+      case "udt" =>
+        val code = request.getParameter("code")
+        logInfo("Use usedefined test function")
+      case _ => {
+        logInfo("Error : handleDebuggerCommand Invalid Command")
+      }
+    }
+}
 }
 
 
