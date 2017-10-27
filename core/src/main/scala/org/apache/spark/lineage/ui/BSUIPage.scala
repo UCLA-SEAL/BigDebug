@@ -83,9 +83,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           {jobtime}
         </div>
 
-        <div id ="output">
-          {output}
-        </div>
+        <div id ="output">{output}</div>
 
         <form method="GET" action={doUrl}>
           <div class="row-fluid">
