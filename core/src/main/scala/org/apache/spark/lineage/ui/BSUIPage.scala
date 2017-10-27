@@ -55,7 +55,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           <strong>Application Output </strong>
           <div class="panel">
           <textarea name="record">
-            {listener.initialOutput.get}
+            {listener.initialOutput.get.replaceAll("~" , "\n")}
           </textarea>
           </div>
         </div>
@@ -102,7 +102,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
                 </label>
 
             <label class="radio">
-              <input type="radio" name="testoption" id="5sigma" value="5sigma">Debug all the output values not in 5-Sigma range of the median</input>
+              <input type="radio" name="testoption" id="5sigma" value="5sigma">Debug all output values that are not in 5-Sigma range of median</input>
             </label>
 
             <label class="radio">
@@ -112,7 +112,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
 
             <label class="radio">
               <input type="radio" name="testoption" id="udt" value="udt">
-                Debug the output values that fail the test predicate in code box</input>
+                Debug output values that fail the test predicate in code box</input>
             </label>
 
           </div>
