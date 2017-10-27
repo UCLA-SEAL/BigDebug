@@ -16,7 +16,9 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
     val title = "BigSift -- Automated Debugging For Apache Spark "
 
     val doUrl = "%s/do".format(UIUtils.prependBaseUri(parent.getBasePath))
-
+    val placeholder_code = "def test(record : Any) : Boolean = {\n" +
+         "  //Implement Test function here\n" +
+         "}"
     val data = listener.getFaultLocalizationJSONData()
     val jobtime = {
       if (listener.initialJobTime.isDefined) {
@@ -46,6 +48,22 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
       }
     }
 
+
+    val output = {
+      if (listener.initialOutput.isDefined) {
+        <div class="alert alert-danger">
+          <strong>Application Output </strong>
+          <div class="panel">
+          <textarea name="record">
+            {listener.initialOutput.get}
+          </textarea>
+          </div>
+        </div>
+      } else {
+        Seq.empty
+      }
+    }
+
     val customStyle = "{height: 200px; width: 400px;}"
 
 
@@ -65,11 +83,14 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           {jobtime}
         </div>
 
+        <div id ="output">
+          {output}
+        </div>
+
         <form method="GET" action={doUrl}>
           <div class="row-fluid">
           <div class="span6">
-            <h4>Select one of the following tests: </h4>
-            <br/>
+            <h5>Select one of the following test options: </h5>
             <br/>
             <br/>
             <label class="radio">
@@ -96,8 +117,8 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
 
           </div>
           <div class="span6">
-            <h4>Write a test predicate here: </h4>
-              <textarea id="code" name="code" style="display: none;">{"Write a test function here!!"}</textarea>
+            <h5>Write a test predicate below: </h5>
+              <textarea id="code" name="code" style="display: none;">{placeholder_code}</textarea>
           </div>
         </div>
           <div class="col-md-4 text-center">
@@ -175,8 +196,6 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
       </td>
     </tr>
   }
-}
-object BSUIPage extends Logging{
 
   def handleDebuggerCommand(request: HttpServletRequest): Unit = {
     val command: String = Option(request.getParameter("testoption")).getOrElse("")
@@ -192,12 +211,14 @@ object BSUIPage extends Logging{
       case "udt" =>
         val code = request.getParameter("code")
         logInfo("Use usedefined test function")
+        listener.notifyBigSiftWait();
       case _ => {
         logInfo("Error : handleDebuggerCommand Invalid Command")
       }
     }
+  }
 }
-}
+
 
 
 

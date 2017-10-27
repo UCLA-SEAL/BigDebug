@@ -18,6 +18,16 @@
   color: #8a1f11;
 }
 
+.panel {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+.panel textarea {
+  width: 100%;
+}
+
+
 .line-dis {
   background: #e5e6eb ;
   color: #e5ebff ;

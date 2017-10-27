@@ -10,7 +10,6 @@ import scala.collection.mutable.ArrayBuffer
  * Created by ali on 8/10/17.
  */
 
-
 class BSListenerBusImpl(conf: SparkConf) extends BigSiftUIListenerBus {
 
   val ui_listener = new BigSiftUIListenerImpl(conf, this)
@@ -19,7 +18,6 @@ class BSListenerBusImpl(conf: SparkConf) extends BigSiftUIListenerBus {
   override def addListener(listener: BigSiftUIListener) {
     bsuiListeners += listener
   }
-
 }
 
 trait BigSiftUIListenerBus extends Logging {
@@ -31,17 +29,28 @@ trait BigSiftUIListenerBus extends Logging {
   protected val list_fli = new ArrayBuffer[FaultLocalizationInfo]
     with mutable.SynchronizedBuffer[FaultLocalizationInfo]
 
-  var lastFaultInfo: Option[FaultLocalizationInfo] = None
+   var lastFaultInfo: Option[FaultLocalizationInfo] = None
    var initialSize: Option[Long] = None
    var initialJobTime: Option[Long] = None
    var totalLocalizationTime: Option[Long] = None
-
-
+   var initialOutput: Option[String] = None
+   var waitObjectForBigSIft : Object = new Object;
 
   def addListener(listener: BigSiftUIListener) {
     bsuiListeners += listener
   }
 
+  def notifyBigSiftWait(): Unit ={
+    waitObjectForBigSIft.synchronized {
+      waitObjectForBigSIft.notifyAll();
+
+    }
+  }
+  def waitForUICommand(): Unit ={
+    waitObjectForBigSIft.synchronized {
+      waitObjectForBigSIft.wait()
+    }
+  }
   /**
    * Post an event to all attached listeners.
    *
@@ -52,6 +61,19 @@ trait BigSiftUIListenerBus extends Logging {
     bsuiListeners.foreach { listener =>
       try {
         listener.report(fli)
+      } catch {
+        case e: Exception =>
+          e.printStackTrace()
+      }
+    }
+  }
+
+
+  def postOutput(out: String): Unit = {
+    initialOutput = Some(out)
+    bsuiListeners.foreach { listener =>
+      try {
+        listener.postOutput(out)
       } catch {
         case e: Exception =>
           e.printStackTrace()
@@ -116,6 +138,14 @@ trait BigSiftUIListenerBus extends Logging {
     }
   }
 
+
+  def getOutput(): Option[String] ={
+    if(initialOutput.isDefined) {
+      Some(s"""{ "key": ${BigSiftWebUI.OUTPUT} , "data" : "${initialOutput.get}" }""")
+    } else{
+      None
+    }
+  }
 
   def getInitialsize(): Option[String] ={
     if(initialSize.isDefined) {

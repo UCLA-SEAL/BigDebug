@@ -15,6 +15,7 @@ trait BigSiftUIListener {
   def postInitialJobTime(time:Long) : Unit = {}
   def postInitialSize(size:Long): Unit = {}
   def postFinalLocalizationTime(time: Long): Unit = {}
+  def postOutput(out:String): Unit = {}
 }
 
 class BigSiftUIListenerImpl(conf: SparkConf, bigSiftUIListenerBus: BigSiftUIListenerBus) extends BigSiftUIListener with Logging {
@@ -46,7 +47,9 @@ class BigSiftUIListenerImpl(conf: SparkConf, bigSiftUIListenerBus: BigSiftUIList
     bigsiftSocket.get.socket.updateBigSiftUI(bigSiftUIListenerBus.getFinalDebuggingTime.get)
 
   }
-
+  override def postOutput(out:String): Unit = {
+    bigsiftSocket.get.socket.updateBigSiftUI(bigSiftUIListenerBus.getOutput.get)
+  }
 
   def setSocket(socket: SocketRunner): Unit = {
     bigsiftSocket = Some(socket)

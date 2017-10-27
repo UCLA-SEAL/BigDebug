@@ -33,6 +33,11 @@ function initbsWebSocket(){
                         case 4:
                             document.getElementById('finalDebugTime').innerHTML ="<div class=\"alert alert-success\"> <strong>Total Debugging Time : </strong>" +json["data"]+ " seconds" +  "</div>";
                             break;
+                        case 5:
+                            var output = json["data"];
+                            output = output.replace(new RegExp('~', 'g'), '\n');
+                            document.getElementById('output').innerHTML ="<div class=\"alert alert-danger\"> <strong>Application Output </strong>  <div class=\"panel\"><textarea name=\"record\">" + output +  "</textarea></div> </div>";
+                            break;
                         default:
                             console.log("Key not found : " + key)
 

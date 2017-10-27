@@ -61,7 +61,7 @@ class BigSiftWebUI(
     val profilePage = new BSUIPage(this , bslistbus)
     attachPage(profilePage)
     attachHandler(createStaticHandler(BigSiftWebUI.STATIC_RESOURCE_BASE, "/static"))
-    attachHandler(JettyUtils.createRedirectHandler("/do", "/", BSUIPage.handleDebuggerCommand))
+    attachHandler(JettyUtils.createRedirectHandler("/do", "/", profilePage.handleDebuggerCommand))
   }
 }
 
@@ -73,6 +73,7 @@ private[spark] object BigSiftWebUI {
   val JOBTIME = 2
   val SIZE = 3
   val DEBUGTIME = 4
+  val OUTPUT = 5
 
   /** Returns a page with the spark css/js and a simple format. Used for scheduler UI. */
   def basicSparkPage(content: => Seq[Node], title: String , onLoad:String = "" , additionalHeaders: Seq[Node] = Seq.empty ): Seq[Node] = {
