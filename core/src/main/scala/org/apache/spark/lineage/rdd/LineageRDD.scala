@@ -69,7 +69,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     }).cache())
   }
 
-  def filter(f: Long): LineageRDD = {
+  def filter(f: Long): LineageRDD = withScope {
     if(!prevResult.isEmpty) {
       val values = prevResult.filter(r => r._1 == f).map(_._2)
       firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()

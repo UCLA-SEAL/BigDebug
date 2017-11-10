@@ -44,7 +44,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * For each key k in `this` or `other`, return a resulting RDD that contains a tuple with the
    * list of values for that key in `this` as well as `other`.
    */
-  override def cogroup[W](other: RDD[(K, W)]): Lineage[(K, (Iterable[V], Iterable[W]))] = {
+  override def cogroup[W](other: RDD[(K, W)]): Lineage[(K, (Iterable[V], Iterable[W]))] = self.withScope{
     cogroup(other, defaultPartitioner(self, other))
   }
 
@@ -53,7 +53,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * list of values for that key in `this` as well as `other`.
    */
   override def cogroup[W](other: RDD[(K, W)], partitioner: Partitioner)
-  : Lineage[(K, (Iterable[V], Iterable[W]))]  = {
+  : Lineage[(K, (Iterable[V], Iterable[W]))]  = self.withScope{
     if (partitioner.isInstanceOf[HashPartitioner] && keyClass.isArray) {
       throw new SparkException("Default partitioner cannot partition array keys.")
     }
@@ -82,7 +82,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
                mergeCombiners: (C, C) => C,
                partitioner: Partitioner,
                mapSideCombine: Boolean = true,
-               serializer: Serializer = null)(implicit ct: ClassTag[C]): Lineage[(K, C)] =  {
+               serializer: Serializer = null)(implicit ct: ClassTag[C]): Lineage[(K, C)] =  self.withScope{
     require(mergeCombiners != null, "mergeCombiners must be defined") // required as of Spark 0.9.0
     if (keyClass.isArray) {
       if (mapSideCombine) {
@@ -118,7 +118,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
                        mergeCombiners: (C, C) => C,
                        partitioner: Partitioner,
                        mapSideCombine: Boolean = true,
-                       serializer: Serializer = null): Lineage[(K, C)] =  {
+                       serializer: Serializer = null): Lineage[(K, C)] =  self.withScope{
     combineByKeyWithClassTag(createCombiner, mergeValue, mergeCombiners,
       partitioner, mapSideCombine, serializer)(null)
   }
@@ -133,7 +133,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
    * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
    */
-  override def groupByKey(): Lineage[(K, Iterable[V])] = {
+  override def groupByKey(): Lineage[(K, Iterable[V])] = self.withScope{
     groupByKey(defaultPartitioner(self))
   }
 
@@ -146,7 +146,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
    * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
    */
-  override def groupByKey(numPartitions: Int): Lineage[(K, Iterable[V])] = {
+  override def groupByKey(numPartitions: Int): Lineage[(K, Iterable[V])] = self.withScope{
     groupByKey(new HashPartitioner(numPartitions))
   }
 
@@ -160,7 +160,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * aggregation (such as a sum or average) over each key, using [[PairRDDFunctions.aggregateByKey]]
    * or [[PairRDDFunctions.reduceByKey]] will provide much better performance.
    */
-  override def groupByKey(partitioner: Partitioner): Lineage[(K, Iterable[V])] = {
+  override def groupByKey(partitioner: Partitioner): Lineage[(K, Iterable[V])] = self.withScope{
     // groupByKey shouldn't use map side combine because map side combine does not
     // reduce the amount of data shuffled and requires all map side data be inserted
     // into a hash table, leading to more objects in the old gen.
@@ -178,7 +178,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * "combiner" in MapReduce. Output will be hash-partitioned with the existing partitioner/
    * parallelism level.
    */
-  override def reduceByKey(func: (V, V) => V): Lineage[(K, V)] = {
+  override def reduceByKey(func: (V, V) => V): Lineage[(K, V)] = self.withScope{
     reduceByKey(defaultPartitioner(self), func)
   }
 
@@ -187,7 +187,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * the merging locally on each mapper before sending results to a reducer, similarly to a
    * "combiner" in MapReduce.
    */
-  override def reduceByKey(partitioner: Partitioner, func: (V, V) => V): Lineage[(K, V)] = {
+  override def reduceByKey(partitioner: Partitioner, func: (V, V) => V): Lineage[(K, V)] = self.withScope{
     combineByKey[V]((v: V) => v, func, func, partitioner)
   }
 
@@ -196,7 +196,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * the merging locally on each mapper before sending results to a reducer, similarly to a
    * "combiner" in MapReduce. Output will be hash-partitioned with numPartitions partitions.
    */
-  override def reduceByKey(func: (V, V) => V, numPartitions: Int): Lineage[(K, V)] = {
+  override def reduceByKey(func: (V, V) => V, numPartitions: Int): Lineage[(K, V)] = self.withScope{
     reduceByKey(new HashPartitioner(numPartitions), func)
   }
 
@@ -210,7 +210,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `this` and
    * (k, v2) is in `other`. Uses the given Partitioner to partition the output RDD.
    */
-  override def join[W](other: RDD[(K, W)], partitioner: Partitioner): Lineage[(K, (V, W))] = {
+  override def join[W](other: RDD[(K, W)], partitioner: Partitioner): Lineage[(K, (V, W))] = self.withScope{
     this.cogroup(other, partitioner).flatMapValues( pair =>
       for (v <- pair._1; w <- pair._2) yield (v, w)
     )
@@ -221,7 +221,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * pair of elements will be returned as a (k, (v1, v2)) tuple, where (k, v1) is in `this` and
    * (k, v2) is in `other`. Performs a hash join across the cluster.
    */
-  override def join[W](other: RDD[(K, W)]): Lineage[(K, (V, W))] = {
+  override def join[W](other: RDD[(K, W)]): Lineage[(K, (V, W))] = self.withScope{
     join(other, defaultPartitioner(self, other))
   }
 
@@ -229,7 +229,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * Pass each value in the key-value pair RDD through a map function without changing the keys;
    * this also retains the original RDD's partitioning.
    */
-  override def mapValues[U](f: V => U): Lineage[(K, U)] = {
+  override def mapValues[U](f: V => U): Lineage[(K, U)] =self.withScope {
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
       (context, pid, iter) => iter.map { case (k, v) => (k, cleanF(v)) },
@@ -240,7 +240,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
    * Pass each value in the key-value pair RDD through a flatMap function without changing the
    * keys; this also retains the original RDD's partitioning.
    */
-  override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = {
+  override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = self.withScope{
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
       (context, pid, iter) => iter.flatMap { case (k, v) =>

@@ -62,7 +62,7 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     this
   }
 
-  override def tapRight(): TapLRDD[(K, C)] = {
+  override def tapRight(): TapLRDD[(K, C)] = previous.withScope{
     val tap = new TapPostShuffleLRDD[(K, C)](
       lineageContext, Seq(new OneToOneDependency[(K, C)](this))
     )
@@ -71,7 +71,7 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     tap.setCached(this)
   }
 
-  override def tapLeft(): TapLRDD[(K, C)] = {
+  override def tapLeft(): TapLRDD[(K, C)] = previous.withScope{
     var newDeps = Seq.empty[Dependency[_]]
     for(dep <- dependencies) {
       newDeps = newDeps :+ new OneToOneDependency(dep.rdd)

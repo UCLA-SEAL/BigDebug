@@ -232,7 +232,7 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage containing only the elements that satisfy a predicate.
    */
-  override def filter(f: T => Boolean): Lineage[T] = {
+  override def filter(f: T => Boolean): Lineage[T] = withScope{
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
@@ -244,7 +244,7 @@ trait Lineage[T] extends RDD[T] {
    * Return a new Lineage by first applying a function to all elements of this
    * Lineage, and then flattening the results.
    */
-  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] ={
+  override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =withScope{
     val cleanF = lineageContext.sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.flatMap(cleanF))
   }
@@ -287,7 +287,7 @@ trait Lineage[T] extends RDD[T] {
   /**
    * Return a new Lineage by applying a function to all elements of this Lineage.
    */
-  override def map[U: ClassTag](f: T => U): Lineage[U] = {
+  override def map[U: ClassTag](f: T => U): Lineage[U] = withScope{
     val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.map(cleanF))
   }
@@ -299,7 +299,7 @@ trait Lineage[T] extends RDD[T] {
    * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
    */
   override def mapPartitions[U: ClassTag](
-                                           f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = {
+                                           f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = withScope{
     val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(iter)
     new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
   }

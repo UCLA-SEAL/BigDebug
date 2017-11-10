@@ -90,7 +90,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       keyClass: Class[K],
       valueClass: Class[V],
       minPartitions: Int = sparkContext.defaultMinPartitions
-      ): Lineage[(K, V)] = {
+      ): Lineage[(K, V)] = sparkContext.withScope {
     // A Hadoop configuration can be about 10 KB, which is pretty big, so broadcast it.
     val confBroadcast = sparkContext.broadcast(
       new SerializableConfiguration(sparkContext.hadoopConfiguration))

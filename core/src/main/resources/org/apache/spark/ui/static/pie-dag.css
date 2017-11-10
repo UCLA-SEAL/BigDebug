@@ -1,0 +1,27 @@
+#col3 {
+  float:left;
+  position:relative;
+  overflow:hidden;
+}
+#graph {
+  float: left; 
+}
+#pieDagContainer {
+  float: left;
+} 
+#job-dag-data-viz{
+  width:60%;
+  float: left;
+  background: "white";
+}   
+
+#pieDagContainer svg g#graph0 g.node path{
+    stroke: #ffffff;
+}
+#pieDagContainer svg g#graph0 ellipse {
+    stroke: indianred;
+}
+#pieDagContainer svg g#graph0 g.cluster polygon {
+    stroke: #FF99AC;
+}
+

@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.ui
 
-import org.apache.spark.SparkConf
+import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.internal.Logging
 
 import scala.collection.mutable
@@ -10,8 +10,9 @@ import scala.collection.mutable.ArrayBuffer
  * Created by ali on 8/10/17.
  */
 
-class BSListenerBusImpl(conf: SparkConf) extends BigSiftUIListenerBus {
+class BSListenerBusImpl(conf: SparkConf , sc: Option[SparkContext] = None) extends BigSiftUIListenerBus {
 
+  sparkContext = sc
   val ui_listener = new BigSiftUIListenerImpl(conf, this)
   addListener(ui_listener)
 
@@ -29,12 +30,14 @@ trait BigSiftUIListenerBus extends Logging {
   protected val list_fli = new ArrayBuffer[FaultLocalizationInfo]
     with mutable.SynchronizedBuffer[FaultLocalizationInfo]
 
-   var lastFaultInfo: Option[FaultLocalizationInfo] = None
-   var initialSize: Option[Long] = None
-   var initialJobTime: Option[Long] = None
-   var totalLocalizationTime: Option[Long] = None
-   var initialOutput: Option[String] = None
-   var waitObjectForBigSIft : Object = new Object;
+  var jobId: Int = -1
+  var sparkContext: Option[SparkContext] = None
+  var lastFaultInfo: Option[FaultLocalizationInfo] = None
+  var initialSize: Option[Long] = None
+  var initialJobTime: Option[Long] = None
+  var totalLocalizationTime: Option[Long] = None
+  var initialOutput: Option[String] = None
+  var waitObjectForBigSIft : Object = new Object;
 
   def addListener(listener: BigSiftUIListener) {
     bsuiListeners += listener
