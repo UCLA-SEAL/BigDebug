@@ -49,6 +49,7 @@ class BigSiftUIListenerImpl(conf: SparkConf, bigSiftUIListenerBus: BigSiftUIList
   }
   override def postOutput(out:String): Unit = {
     bigsiftSocket.get.socket.updateBigSiftUI(bigSiftUIListenerBus.getOutput.get)
+    bigsiftSocket.get.socket.updateBigSiftUI(bigSiftUIListenerBus.getOutputForViz().get)
   }
 
   def setSocket(socket: SocketRunner): Unit = {

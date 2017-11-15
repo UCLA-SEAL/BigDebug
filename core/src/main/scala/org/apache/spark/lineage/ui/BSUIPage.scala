@@ -20,6 +20,14 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
          "  //Implement Test function here\n" +
          "}"
     val data = listener.getFaultLocalizationJSONData()
+    val outputdata = {
+      if (listener.initialOutputViz.isDefined){
+        listener.getOutputForViz(true).get
+      }
+      else s"""{ "key": ${BigSiftWebUI.UIDATA} , "data" : [{}]}"""
+    }
+
+
     val jobtime = {
       if (listener.initialJobTime.isDefined) {
         <div class="alert alert-success" >
@@ -47,6 +55,9 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         Seq.empty
       }
     }
+
+
+
     val output = {
       if (listener.initialOutput.isDefined) {
         <div class="alert alert-danger">
@@ -61,6 +72,8 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         Seq.empty
       }
     }
+
+
     val customStyle = "{height: 200px; width: 400px;}"
     val content =
       <div>
@@ -80,32 +93,33 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
 
         <div id ="output">{output}</div>
 
+        <div id="chartdivoutput"></div>
+
         <form method="GET" action={doUrl}>
           <div class="row-fluid">
           <div class="span6">
             <h5>Select one of the following test options: </h5>
             <br/>
-            <br/>
             <label class="radio">
-              <input type="radio" name="testoption" id="min" value="min" >Debug the minimum output value</input>
+              <input type="radio" name="testoption" id="min" value="min" >Explain input records that lead to a minimum output</input>
               </label>
 
               <label class="radio">
-                <input type="radio" name="testoption" id="max" value="max">Debug the maximum output value</input>
+                <input type="radio" name="testoption" id="max" value="max">Explain input records that lead to a maximum output</input>
                 </label>
 
             <label class="radio">
-              <input type="radio" name="testoption" id="5sigma" value="5sigma">Debug all output values that are not in 5-Sigma range of median</input>
+              <input type="radio" name="testoption" id="5sigma" value="5sigma">Explain input records that lead to output values not in 5-Sigma range of median</input>
             </label>
 
             <label class="radio">
               <input type="radio" name="testoption" id="nan" value="nan">
-                Debug NaN and Null output values</input>
+                Explain input records that lead to a NaN or a Null</input>
             </label>
 
             <label class="radio">
               <input type="radio" name="testoption" id="udt" value="udt">
-                Debug output values that fail the test predicate in code box</input>
+                Explain input records that lead to output values failing the test predicate in code box</input>
             </label>
 
           </div>
@@ -115,8 +129,6 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           </div>
         </div>
           <div class="col-md-4 text-center">
-            <br/>
-            <br/>
             <br/>
             <button type="submit" class="btn btn-large btn-success">Run BigSift!</button>
           </div>
@@ -143,6 +155,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
         <div>{BSUIPage.getPieDiv(listener)}</div>
         <input type="hidden" id="websocketport" name="portws" value={parent.getExecutorWebSocketPort.toString}/>
         <input type="hidden" id="initdata" name="initdata" value={data}/>
+        <input type="hidden" id="initoutputdata" name="initoutputdata" value={outputdata}/>
         <script src={UIUtils.prependBaseUri("/static/piechart.js")}></script>
       </div>
 
@@ -157,6 +170,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           <script src={UIUtils.prependBaseUri("/static/amcharts/amcharts.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/amcharts/serial.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/amcharts/themes/black.js")}></script>
+            <script src={UIUtils.prependBaseUri("/static/amcharts/themes/light.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/amcharts/plugins/dataloader/dataloader.min.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/jquery.min.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/amcharts/fl_chart.js")}></script>
@@ -173,7 +187,7 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
           <script src={UIUtils.prependBaseUri("/static/viz-lite.js")}></script>
           <script src={UIUtils.prependBaseUri("/static/d3-graphviz.min.js")}></script>
     }
-    BigSiftWebUI.basicSparkPage(content, title, onLoad = s"initbsWebSocket();initChart();createCode();", headers)
+    BigSiftWebUI.basicSparkPage(content, title, onLoad = s"initbsWebSocket();initChart();initOutputChart();createCode();", headers)
   }
 
 
@@ -202,16 +216,26 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
     val command: String = Option(request.getParameter("testoption")).getOrElse("")
     command match {
       case "min" =>
+        listener.setTestType(1)
         logInfo("Use min test function")
+        listener.notifyBigSiftWait()
       case "max" =>
+        listener.setTestType(2)
         logInfo("Use max test function")
+        listener.notifyBigSiftWait()
       case "nan" =>
+        listener.setTestType(3)
         logInfo("Use nan test function")
+        listener.notifyBigSiftWait()
       case "5sigma" =>
+        listener.setTestType(4)
         logInfo("Use 5sigma test function")
+        listener.notifyBigSiftWait()
       case "udt" =>
-        val code = request.getParameter("code")
         logInfo("Use usedefined test function")
+        listener.setTestType(5)
+        val code = request.getParameter("code")
+        listener.compilePredicate(code)
         listener.notifyBigSiftWait();
       case _ => {
         logInfo("Error : handleDebuggerCommand Invalid Command")

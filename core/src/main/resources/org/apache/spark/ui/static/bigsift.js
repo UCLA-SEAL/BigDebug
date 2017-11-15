@@ -38,6 +38,9 @@ function initbsWebSocket(){
                             output = output.replace(new RegExp('~', 'g'), '\n');
                             document.getElementById('output').innerHTML ="<div class=\"alert alert-danger\"> <strong>Application Output </strong>  <div class=\"panel\"><textarea name=\"record\">" + output +  "</textarea></div> </div>";
                             break;
+                        case 6:
+                            updateOutputChart(json["data"]);
+                            break;
                         default:
                             console.log("Key not found : " + key)
 

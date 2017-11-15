@@ -38,6 +38,30 @@ trait BigSiftUIListenerBus extends Logging {
   var totalLocalizationTime: Option[Long] = None
   var initialOutput: Option[String] = None
   var waitObjectForBigSIft : Object = new Object;
+  var initialOutputViz: Option[mutable.ArraySeq[Any]] = None
+
+
+  /**
+    * User Defined Test Predicated Handler
+    */
+  val compiler = new BDCodeFixCompiler(None)
+  var testType :Int = -1;
+  var test : Option[Any=> Boolean] = None;
+
+  def setTestType(s:Int): Unit ={
+    testType = s;
+  }
+
+  def compilePredicate(code:String): Unit ={
+    val pc: BDCodeFix = compiler.eval[BDCodeFix](code)
+    setFunction(pc)
+  }
+
+  def setFunction(p: BDCodeFix): Unit ={
+    test = Some(p.test)
+  }
+
+  /***/
 
   def addListener(listener: BigSiftUIListener) {
     bsuiListeners += listener
@@ -72,8 +96,11 @@ trait BigSiftUIListenerBus extends Logging {
   }
 
 
-  def postOutput(out: String): Unit = {
+  def postOutput(out: String , arr: mutable.ArraySeq[Any] = null): Unit = {
     initialOutput = Some(out)
+    if(arr != null ){
+      initialOutputViz = Some(arr);
+    }
     bsuiListeners.foreach { listener =>
       try {
         listener.postOutput(out)
@@ -82,6 +109,7 @@ trait BigSiftUIListenerBus extends Logging {
           e.printStackTrace()
       }
     }
+
   }
 
 
@@ -149,6 +177,38 @@ trait BigSiftUIListenerBus extends Logging {
       None
     }
   }
+
+
+  def getOutputForViz(withKey: Boolean = true ): Option[String] ={
+    var outputStr = ""
+    if(initialOutputViz.isDefined) {
+      initialOutputViz.get.head match {
+        case  a : Tuple2[Any, Any] =>
+              a.asInstanceOf[Tuple2[Any, Any]]._2 match {
+                case _ :Int =>
+                  var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, Int]]]
+                    outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : ${s._2} } """  ).reduce(_+","+_)
+                case _ :Float =>
+                  var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, Float]]]
+                  outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : ${s._2} } """  ).reduce(_+","+_)
+                case _ : String =>
+                  var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, String]]]
+                  outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : "${s._2}" } """  ).reduce(_+","+_)
+
+                case _ => logInfo("Output type not supported")
+              }
+        case _  => logInfo("Output type not supported")
+      }
+      if(withKey){
+        Some(s""" {"key" :  ${BigSiftWebUI.OUTPUTVIZ}, "data" : [ ${outputStr} ]  }""")
+      }else{
+        Some(s"""[ ${outputStr} ]""")
+      }
+    } else{
+      None
+    }
+  }
+
 
   def getInitialsize(): Option[String] ={
     if(initialSize.isDefined) {

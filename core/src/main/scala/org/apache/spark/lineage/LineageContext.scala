@@ -30,7 +30,6 @@ import scala.collection.mutable
 import scala.collection.mutable.{HashSet, Stack}
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
-
 object LineageContext {
   type RecordId = (Int, Int)
   val Dummy = 0

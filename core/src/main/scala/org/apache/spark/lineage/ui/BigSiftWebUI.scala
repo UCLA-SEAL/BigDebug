@@ -74,6 +74,8 @@ private[spark] object BigSiftWebUI {
   val SIZE = 3
   val DEBUGTIME = 4
   val OUTPUT = 5
+  val OUTPUTVIZ = 6
+
 
   /** Returns a page with the spark css/js and a simple format. Used for scheduler UI. */
   def basicSparkPage(content: => Seq[Node], title: String , onLoad:String = "" , additionalHeaders: Seq[Node] = Seq.empty ): Seq[Node] = {
