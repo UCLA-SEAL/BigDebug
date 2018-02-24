@@ -63,6 +63,10 @@ private[spark] class TaskContextImpl(
    */
   // Used to pipeline records through taps inside the same stage
   @transient var currentInputId: Int = -1
+  
+  // Used to track performance for records inside the same stage - added by Jason
+  // Int.MAXVALUE in nanoseconds is almost 25 days, sufficient for research at leas  t.
+  @transient var currentTimeTaken: Int = -1
 
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null

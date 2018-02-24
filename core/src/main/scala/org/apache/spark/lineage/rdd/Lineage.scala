@@ -9,7 +9,7 @@ import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.util.{PackIntIntoLong, Utils}
-import org.apache.spark.{OneToOneDependency, Partitioner, TaskContext}
+import org.apache.spark.{OneToOneDependency, Partitioner, TaskContext, TaskContextImpl}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -63,8 +63,12 @@ trait Lineage[T] extends RDD[T] {
           getTap.get
         case tap: TapHadoopLRDD[Any@unchecked, Long@unchecked] =>
           tap //.map(_.swap)
-        case tap: TapLRDD[(Long, Long)@unchecked] =>
-          tap.map(r => (r._1, (Dummy, r._2)))
+        case tap: TapLRDD[(Long, Long, Int)@unchecked] =>
+          // Jason: Added computation time as 3rd entry, currently set as Int (ns)
+          tap.map(r => {
+            println(s"getLineageMapCall: ${r}")
+            (r._1, (Dummy, r._2), r._3)
+          })
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -161,7 +165,35 @@ trait Lineage[T] extends RDD[T] {
   /** Returns the first parent Lineage */
   protected[spark] override def firstParent[U: ClassTag]: Lineage[U] =
     dependencies.head.rdd.asInstanceOf[Lineage[U]]
-
+  
+  /** Added by Jason ########################################################################### */
+  
+  // Borrowed and adapted from http://biercoff.com/easily-measuring-code-execution-time-in-scala/
+  /**
+   * Measures the time taken when executing the provided block, in nanoseconds. Stores this value
+   * into ,
+   * and stores it into this
+   * @param block
+   * @return
+   */
+  def measureTime[R](taskContext: TaskContext, block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    // Add to task context?? (t0 - t1).toInt
+    val timeTaken = (t1 - t0).toInt
+    taskContext.asInstanceOf[TaskContextImpl].currentTimeTaken = timeTaken
+    // println(s"Time taken: ${timeTaken}")
+    result
+  }
+  
+  /** Wraps a function to measure how long its calls take */
+  def timedFunction[T,U](taskContext: TaskContext, f: T => U): T => U =
+    (inp: T) => measureTime(taskContext, {f(inp)})
+  
+  
+  /** End added by Jason section ############################################################### */
+  
   /**
    * Return an array that contains all of the elements in this RDD.
    */
@@ -236,7 +268,7 @@ trait Lineage[T] extends RDD[T] {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
-      (context, pid, iter) => iter.filter(cleanF),
+      (context, pid, iter) => iter.filter(timedFunction(context, cleanF)),
       preservesPartitioning = true)
   }
 
@@ -289,7 +321,8 @@ trait Lineage[T] extends RDD[T] {
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = withScope{
     val cleanF = sparkContext.clean(f)
-    new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.map(cleanF))
+    new MapPartitionsLRDD[U, T](this, {(context, pid, iter) =>
+      iter.map(timedFunction(context, cleanF))})
   }
 
   /**

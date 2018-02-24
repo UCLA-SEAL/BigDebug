@@ -19,6 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.util.LongIntByteBuffer
+import org.apache.spark.lineage.util.org.apache.spark.lineage.util.LongIntIntByteBuffer
 import org.apache.spark.lineage.{LineageContext, LineageManager}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
@@ -35,7 +36,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var nextRecord: Int = _
 
-  @transient private var buffer: LongIntByteBuffer = _
+  @transient private var buffer: LongIntIntByteBuffer = _
 
   private var combine: Boolean = true
 
@@ -84,7 +85,8 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
       preservesPartitioning = true)
   }
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r._2.toLong))
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r
+    ._2.toLong, r._3))
 
   override def releaseBuffer(): Unit = {
     buffer.clear()
@@ -105,12 +107,14 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeBuffer() = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
+  def initializeBuffer() = buffer = new LongIntIntByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
     val id = newRecordId()
-    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId)
+    println(s"TapLRDD TIME: ${tContext.currentTimeTaken}")
+    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, tContext.currentTimeTaken)
     if(isLast) {
+      // TODO figure out how this is used, if at all
       (record, PackIntIntoLong(splitId, id)).asInstanceOf[T]
     } else {
       record
