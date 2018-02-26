@@ -54,7 +54,10 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
   override def collect(): Array[Any] = {
     val result = prev.context.runJob(
-      prev, (iter: Iterator[(Any, Any)]) => iter.toArray.distinct
+      prev, (iter: Iterator[(Any, Any)]) => {
+        // TODO properly set up the typing rather than this hack
+        iter.asInstanceOf[Iterator[(Any, Any, Any)]].toArray.distinct
+      }
     ).filter(_ != null) // Needed for removing results from empty partitions
 
     Array.concat(result: _*).asInstanceOf[Array[Any]]
@@ -63,7 +66,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   }
 
   override def filter(f: (Any) => Boolean): LineageRDD = {
-    new LineageRDD(firstParent[(Any, Any)].filter(r => r._1 match {
+    new LineageRDD(firstParent[(Any, Any, Any)].filter(r => r._1 match {
       case l: Long => f(l.asInstanceOf[Any])
       case p: (Any, Any) => f(r)
     }).cache())
