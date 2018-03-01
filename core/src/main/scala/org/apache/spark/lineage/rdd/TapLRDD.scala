@@ -18,8 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.util.LongIntByteBuffer
-import org.apache.spark.lineage.util.org.apache.spark.lineage.util.LongIntIntByteBuffer
+import org.apache.spark.lineage.util.LongIntLongByteBuffer
 import org.apache.spark.lineage.{LineageContext, LineageManager}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
@@ -36,7 +35,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var nextRecord: Int = _
 
-  @transient private var buffer: LongIntIntByteBuffer = _
+  @transient private var buffer: LongIntLongByteBuffer = _
 
   private var combine: Boolean = true
 
@@ -74,15 +73,16 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     LineageManager.initMaterialization(this, split, context)
 
-    firstParent[T].iterator(split, context).map(tap)
+    // Make sure to time the current tap function here too.
+    firstParent[T].iterator(split, context).map(measureTime(context, tap, this.id))
   }
 
-  override def filter(f: T => Boolean): Lineage[T] ={
+  override def filter(f: T => Boolean): Lineage[T] = {
     val cleanF = sparkContext.clean(f)
+    // Jason: need to understand this better
+    // difference from Lineage#filter is that no "withScope" is used.
     new MapPartitionsLRDD[T, T](
-      this,
-      (context, pid, iter) => iter.filter(cleanF),
-      preservesPartitioning = true)
+      this, (context, pid, iter, rddId) => iter.filter(cleanF), preservesPartitioning = true)
   }
 
   override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r
@@ -107,17 +107,29 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeBuffer() = buffer = new LongIntIntByteBuffer(tContext.getFromBufferPool())
+  def initializeBuffer() = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
     val id = newRecordId()
-    println(s"TapLRDD TIME: ${tContext.currentTimeTaken}")
-    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, tContext.currentTimeTaken)
+    val timeTaken = slowestPathHelper(dependencies)
+    logInfo(s"time taken from paths: $timeTaken")
+    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, timeTaken)
     if(isLast) {
-      // TODO figure out how this is used, if at all
       (record, PackIntIntoLong(splitId, id)).asInstanceOf[T]
     } else {
       record
+    }
+  }
+  
+  def slowestPath(rdd: RDD[_]) : Long = {
+      tContext.getRddRecordOutputTime(rdd.id) + slowestPathHelper(rdd.dependencies)
+  }
+  
+  private def slowestPathHelper(deps: Seq[Dependency[_]]): Long = {
+    if (deps.isEmpty) {
+      0
+    } else {
+      deps.map(dep => slowestPath(dep.rdd)).max
     }
   }
 }

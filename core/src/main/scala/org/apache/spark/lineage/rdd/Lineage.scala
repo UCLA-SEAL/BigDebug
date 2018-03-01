@@ -65,10 +65,7 @@ trait Lineage[T] extends RDD[T] {
           tap //.map(_.swap)
         case tap: TapLRDD[(Long, Long, Int)@unchecked] =>
           // Jason: Added computation time as 3rd entry, currently set as Int (ns)
-          tap.map(r => {
-            println(s"getLineageMapCall: ${r}")
-            (r._1, (Dummy, r._2), r._3)
-          })
+          tap.map(r => (r._1, (Dummy, r._2), r._3))
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
@@ -176,21 +173,18 @@ trait Lineage[T] extends RDD[T] {
    * @param block
    * @return
    */
-  def measureTime[R](taskContext: TaskContext, block: => R): R = {
+  def measureTime[R](taskContext: TaskContext, block: => R, rddId: Int): R = {
     val t0 = System.nanoTime()
     val result = block    // call-by-name
     val t1 = System.nanoTime()
-    // Add to task context?? (t0 - t1).toInt
-    val timeTaken = (t1 - t0).toInt
-    taskContext.asInstanceOf[TaskContextImpl].currentTimeTaken = timeTaken
-    // println(s"Time taken: ${timeTaken}")
+    val timeTaken = t1 - t0
+    taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)
     result
   }
   
   /** Wraps a function to measure how long its calls take */
-  def timedFunction[T,U](taskContext: TaskContext, f: T => U): T => U =
-    (inp: T) => measureTime(taskContext, {f(inp)})
-  
+  def timedFunction[T,U](taskContext: TaskContext, f: T => U, rddId: Int): T => U =
+    (inp: T) => measureTime(taskContext, {f(inp)}, rddId)
   
   /** End added by Jason section ############################################################### */
   
@@ -268,7 +262,7 @@ trait Lineage[T] extends RDD[T] {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
-      (context, pid, iter) => iter.filter(timedFunction(context, cleanF)),
+      (context, pid, iter, rddId) => iter.filter(timedFunction(context, cleanF, rddId)),
       preservesPartitioning = true)
   }
 
@@ -277,8 +271,10 @@ trait Lineage[T] extends RDD[T] {
    * Lineage, and then flattening the results.
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =withScope{
-    val cleanF = lineageContext.sparkContext.clean(f)
-    new MapPartitionsLRDD[U, T](this, (context, pid, iter) => iter.flatMap(cleanF))
+    // TODO add timing
+    val cleanF = context.clean(f)
+    new MapPartitionsLRDD[U, T](this,
+      (context, pid, iter, rddId) => iter.flatMap(cleanF))
   }
 
   /**
@@ -321,8 +317,8 @@ trait Lineage[T] extends RDD[T] {
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = withScope{
     val cleanF = sparkContext.clean(f)
-    new MapPartitionsLRDD[U, T](this, {(context, pid, iter) =>
-      iter.map(timedFunction(context, cleanF))})
+    new MapPartitionsLRDD[U, T](this, (context, pid, iter, rddId) =>
+                                          iter.map(timedFunction(context, cleanF, rddId)))
   }
 
   /**
@@ -333,7 +329,7 @@ trait Lineage[T] extends RDD[T] {
    */
   override def mapPartitions[U: ClassTag](
                                            f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = withScope{
-    val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(iter)
+    val func = (context: TaskContext, pid: Int, iter: Iterator[T], rddId: Int) => f(iter)
     new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
   }
 
@@ -346,7 +342,7 @@ trait Lineage[T] extends RDD[T] {
    */
   override def mapPartitionsWithIndex[U: ClassTag](
                                                     f: (Int, Iterator[T]) => Iterator[U], preservesPartitioning: Boolean = false): Lineage[U] = {
-    val func = (context: TaskContext, index: Int, iter: Iterator[T]) => f(index, iter)
+    val func = (context: TaskContext, index: Int, iter: Iterator[T], rddId: Int) => f(index, iter)
     new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
   }
 

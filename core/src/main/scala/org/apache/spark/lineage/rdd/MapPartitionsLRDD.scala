@@ -17,17 +17,25 @@
 
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.TaskContext
+import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd.MapPartitionsRDD
 
 import scala.reflect._
 
+/** Lineage-based extension of MapPartitionsRDD using a function that accepts the current
+ * RDD id for the purposes of measuring time/performance.
+ */
 class MapPartitionsLRDD[U: ClassTag, T: ClassTag](prev: Lineage[T],
-    f: (TaskContext, Int, Iterator[T]) => Iterator[U],  // (TaskContext, partition index, iterator)
+    f: (TaskContext, Int, Iterator[T], Int) => Iterator[U],  // (TaskContext, partition index,
+                                                              // iterator, rddId)
     preservesPartitioning: Boolean = false)
-  extends MapPartitionsRDD[U, T](prev, f, preservesPartitioning) with Lineage[U] {
-
+  // the parent function argument (TC, Int, Iter)=>Iter isn't used because we override compute
+  extends MapPartitionsRDD[U, T](prev,null,preservesPartitioning) with Lineage[U] {
+  
   override def lineageContext = prev.lineageContext
 
   override def ttag = classTag[U]
+  
+  override def compute(split: Partition, context: TaskContext): Iterator[U] =
+    f(context, split.index, firstParent[T].iterator(split, context), this.id)
 }

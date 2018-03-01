@@ -232,7 +232,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def mapValues[U](f: V => U): Lineage[(K, U)] =self.withScope {
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
-      (context, pid, iter) => iter.map { case (k, v) => (k, cleanF(v)) },
+      (context, pid, iter, rddId) => iter.map { case (k, v) => (k, cleanF(v)) },
       preservesPartitioning = true)
   }
 
@@ -243,7 +243,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = self.withScope{
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
-      (context, pid, iter) => iter.flatMap { case (k, v) =>
+      (context, pid, iter, rddId) => iter.flatMap { case (k, v) =>
         cleanF(v).map(x => (k, x))
       },
       preservesPartitioning = true)

@@ -20,8 +20,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.LongIntByteBuffer
-import org.apache.spark.lineage.util.org.apache.spark.lineage.util.LongIntIntByteBuffer
+import org.apache.spark.lineage.util.LongIntLongByteBuffer
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -30,11 +29,11 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var buffer: LongIntIntByteBuffer = _
+  @transient private var buffer: LongIntLongByteBuffer = _
 
   override def materializeBuffer: Array[Any] = buffer.iterator.toArray
 
-  override def initializeBuffer = buffer = new LongIntIntByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer() = {
     buffer.clear()
@@ -43,8 +42,12 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   override def tap(record: (K, V)) = {
     tContext.currentInputId = newRecordId
-    println(s"TapHadoopLRDD TIME: ${tContext.currentTimeTaken}")
-    buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord, tContext.currentTimeTaken)
+    // TODO measure the time taken for hadoop rows, which were read from the previous RDD
+    // because that computation is sealed in HadoopRDD, we would likely need to wrap the iterator
+    // in the TapLRDD.compute function
+    val timeTaken = 0L
+    tContext.updateRDDRecordTime(firstParent.id, timeTaken)
+    buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord, 0L)
     record
   }
 }

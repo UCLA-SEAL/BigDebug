@@ -30,6 +30,8 @@ import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.metrics.source.Source
 import org.apache.spark.util._
 
+import scala.collection.mutable.{HashMap, Map}
+
 private[spark] class TaskContextImpl(
                                       val stageId: Int,
                                       val partitionId: Int,
@@ -61,12 +63,14 @@ private[spark] class TaskContextImpl(
   /**
    * ***************************************** Matteo ********************************************
    */
+  // (and some Jason)
+  
+  
   // Used to pipeline records through taps inside the same stage
   @transient var currentInputId: Int = -1
   
-  // Used to track performance for records inside the same stage - added by Jason
-  // Int.MAXVALUE in nanoseconds is almost 25 days, sufficient for research at leas  t.
-  @transient var currentTimeTaken: Int = -1
+  // Jason - Used to track performance for records per RDD(id)
+  @transient private var rddTimeMap: Map[Int, Long] = new HashMap()
 
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null
@@ -102,7 +106,18 @@ private[spark] class TaskContextImpl(
   def addToBufferPool(data: Array[Byte]): Unit = bufferPool.add(data)
 
   def addToBufferPoolLarge(data: Array[Byte]): Unit = bufferPoolLarge.add(data)
-
+  
+  // Jason - KISS for now. Might add more for optimizations later, so
+  // no direct access to the underlying map.
+  // Key = RDD, value = time taken for last output record, ie how long it took to if rdd.map(udf)
+  // yields rdd2, the time it took to generate a record in rdd2 will be stored with rdd as the key.
+  // This is because the newly generated RDD's id is not determined until it is actually created,
+  // but the UDF provided needs access to a given RDD.
+  def updateRDDRecordTime(rddId: Int, timeNanos: Long) = rddTimeMap(rddId) = timeNanos
+  
+  // Jason - might want to add some sort of default value, but that could also depend on how we
+  // want to time our calls.
+  def getRddRecordOutputTime(rddId: Int): Long = rddTimeMap(rddId)
   /**
    * *************************************************************************************
    */

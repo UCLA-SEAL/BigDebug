@@ -48,6 +48,10 @@ class TapParallelCollectionLRDD[T: ClassTag](
 
   override def tap(record: T) = {
     tContext.currentInputId = newRecordId
+    // TODO measure the time taken for each row of both parent and this map function
+    // See TapHadoopLRDD for more details
+    tContext.updateRDDRecordTime(firstParent.id, 0)
+    
     buffer.add(record, nextRecord)
     record
   }
