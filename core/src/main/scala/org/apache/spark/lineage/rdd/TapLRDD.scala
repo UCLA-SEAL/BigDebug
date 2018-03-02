@@ -128,32 +128,49 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   // in recursive terms, this would compute accumulate(currValue, aggregate(childrenValues))
   // Because the current RDD has no time (it's still computing), we only return the aggregate over
   // its dependencies
+  private val dependencyRDDs = this.dependencies.map(_.rdd)
+  private var postOrderDeps: Option[Seq[RDD[_]]] = None
+  private val cachedTimes = mutable.HashMap[RDD[_], Long]()
+  
   def computeTotalTime(accumulateFunction: (Long, Long) => Long = _+_,
                        aggregateFunction:Seq[Long]=>Long = _.foldLeft(0L)(math.max)) : Long = {
-    val dependencyRDDs = this.dependencies.map(_.rdd)
-    val s1 = mutable.Stack[RDD[_]](dependencyRDDs:_*)
-    val postOrderStack = new mutable.Stack[RDD[_]]
-    val seen = new mutable.HashSet[RDD[_]]
-    var curr: RDD[_] = null
-    // First: add all RDDs in post-order traversal
-    while (s1.nonEmpty) {
-      curr = s1.pop()
-      postOrderStack.push(curr)
-      seen.add(curr)
-      s1.pushAll(curr.dependencies.map(_.rdd).filter(!seen(_)))
+    if(postOrderDeps.isEmpty) {
+      // compute a post-order iteration of dependencies which need to be measured
+      val s = mutable.Stack[RDD[_]](dependencyRDDs:_*)
+      val seen = new mutable.HashSet[RDD[_]]
+      val postOrderStack = new mutable.Stack[RDD[_]]
+      var curr: RDD[_] = null
+      while(s.nonEmpty) {
+        val currRdd = s.pop()
+        postOrderStack.push(currRdd)
+        seen.add(currRdd)
+        s.pushAll(currRdd.dependencies.map(_.rdd).filter(!seen(_)))
+      }
+      postOrderDeps = Some(postOrderStack.toSeq)
     }
     
-    val cachedTimes = mutable.HashMap[RDD[_], Long]() // initialization/base value
-    while(postOrderStack.nonEmpty) {
-      curr = postOrderStack.pop()
-      if(!cachedTimes.contains(curr)) {
-        val currTime: Long = accumulateFunction(
-          tContext.getRddRecordOutputTime(curr.id),
-          aggregateFunction(curr.dependencies.map(_.rdd).map(cachedTimes(_))))
-        cachedTimes(curr) = currTime
+    // Some dependencies may appear in more than one RDD
+    cachedTimes.clear() // rather than reallocate
+    for(curr <- postOrderDeps.get) {
+      if(cachedTimes.contains(curr)) {
+        // error
+        logError("WHAT IS HAPPENING? " + curr)
       }
+      val currTime: Long = accumulateFunction(
+        tContext.getRddRecordOutputTime(curr.id),
+        aggregateFunction(curr.dependencies.map(_.rdd).map(cachedTimes(_))))
+      cachedTimes(curr) = currTime
     }
     // No time taken for the current RDD because it's still running...
     aggregateFunction(dependencyRDDs.map(cachedTimes(_)))
+  }
+  
+  def printMethodTime[R](tag: String, block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    val timeTaken = t1 - t0
+    logInfo(s"${tag}: ${timeTaken / 1000000} ms")
+    result
   }
 }

@@ -32,9 +32,9 @@ class TapParallelCollectionLRDD[T: ClassTag](
   def this(@transient prev: ParallelCollectionLRDD[_]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var buffer: util.ArrayDeque[(T, Int)] = null
+  @transient private var buffer: util.ArrayDeque[(T, Int, Long)] = null
 
-  override def initializeBuffer() = buffer = new util.ArrayDeque[(T, Int)]()
+  override def initializeBuffer() = buffer = new util.ArrayDeque[(T, Int, Long)]()
 
   override def materializeBuffer = {
     if (buffer != null) {
@@ -50,9 +50,9 @@ class TapParallelCollectionLRDD[T: ClassTag](
     tContext.currentInputId = newRecordId
     // TODO measure the time taken for each row of both parent and this map function
     // See TapHadoopLRDD for more details
-    tContext.updateRDDRecordTime(firstParent.id, 0)
-    
-    buffer.add(record, nextRecord)
+    val timeTaken = 0L
+    tContext.updateRDDRecordTime(firstParent.id, timeTaken)
+    buffer.add(record, nextRecord, timeTaken)
     record
   }
 }
