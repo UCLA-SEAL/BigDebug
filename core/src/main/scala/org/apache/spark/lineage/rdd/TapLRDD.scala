@@ -139,7 +139,6 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
       val s = mutable.Stack[RDD[_]](dependencyRDDs:_*)
       val seen = new mutable.HashSet[RDD[_]]
       val postOrderStack = new mutable.Stack[RDD[_]]
-      var curr: RDD[_] = null
       while(s.nonEmpty) {
         val currRdd = s.pop()
         postOrderStack.push(currRdd)
@@ -152,10 +151,6 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     // Some dependencies may appear in more than one RDD
     cachedTimes.clear() // rather than reallocate
     for(curr <- postOrderDeps.get) {
-      if(cachedTimes.contains(curr)) {
-        // error
-        logError("WHAT IS HAPPENING? " + curr)
-      }
       val currTime: Long = accumulateFunction(
         tContext.getRddRecordOutputTime(curr.id),
         aggregateFunction(curr.dependencies.map(_.rdd).map(cachedTimes(_))))
@@ -170,7 +165,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     val result = block    // call-by-name
     val t1 = System.nanoTime()
     val timeTaken = t1 - t0
-    logInfo(s"${tag}: ${timeTaken / 1000000} ms")
+    logInfo(s"$tag: ${timeTaken / 1000000} ms")
     result
   }
 }
