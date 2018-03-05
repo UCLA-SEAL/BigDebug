@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage.rdd
 
+import Lineage._
+
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.LocalityAwarePartitioner
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
@@ -55,7 +57,8 @@ class ShowRDD[K: ClassTag](prev: Lineage[(K, String)])
       case _: TapParallelCollectionLRDD[_] => position
       case _ => {
         var right = position
-        val shuffled: Lineage[(K, Any)] = position match {
+        val shuffled: Lineage[(K, Any, Long)] = position match {
+          /* Jason Tuple2->3 temporarily commented out
           case _: TapPreShuffleLRDD[_] =>
             val part = new LocalityAwarePartitioner(position.partitions.size)
             new ShuffledLRDD[K, Any, Any](prev.asInstanceOf[Lineage[(K, Any)]], part)
@@ -64,19 +67,21 @@ class ShowRDD[K: ClassTag](prev: Lineage[(K, String)])
             right = new ShuffledLRDD[K, Any, Any](position.map {
                 case (a, b) => (b.asInstanceOf[K], a)
               }, part).setMapSideCombine(false)
-            prev.asInstanceOf[Lineage[(K, Any)]]
-          case _ => prev.asInstanceOf[Lineage[(K, Any)]]
+            prev.asInstanceOf[Lineage[(K, Any)]]*/
+          case _ => prev.asInstanceOf[Lineage[(K, Any, Long)]]
         }
 
         var join = rightJoin(
           shuffled,
-          right.asInstanceOf[Lineage[(K, Any)]]
+          right.asInstanceOf[Lineage[(K, Any, Long)]]
         )
         join = position match {
-          case _: TapPostCoGroupLRDD[_] => join.map(r => (r._2, r._1)).asInstanceOf[Lineage[(K, Any)]].cache()
+          case _: TapPostCoGroupLRDD[_] => join.map(_.swap)
+                                                .asInstanceOf[Lineage[(K, Any, Long)]].cache()
           case _ => join.cache()
         }
-        new LineageRDD(join.asInstanceOf[Lineage[(Any, Any)]])
+        // implicit conversion not detected by IntelliJ
+        new LineageRDD(join.asInstanceOf[Lineage[(Any, Any, Long)]])
       }
     }
   }

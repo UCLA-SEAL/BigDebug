@@ -36,27 +36,27 @@ import org.apache.spark.util.collection.CompactBuffer
 import scala.reflect._
 
 private[spark]
-class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with Lineage[Any] {
+class LineageRDD(val prev: Lineage[(RecordId, Any, Long)]) extends RDD[Any](prev) with
+  Lineage[Any] {
 
-  def this(prev: => Lineage[(Int, Any)]) = this(prev.map(r => ((Dummy, r._1), r._2)))
+  def this(prev: => Lineage[(Int, Any, Long)]) = this(prev.map(r => ((Dummy, r._1), r._2, r._3)))
 
   override def lineageContext = prev.lineageContext
 
   override def ttag = classTag[Any]
 
-  override def getPartitions: Array[Partition] = firstParent[(Any, Any)].partitions
+  override def getPartitions: Array[Partition] = firstParent[(Any, Any, Long)].partitions
 
   override def compute(split: Partition, context: TaskContext) = {
-    firstParent[(Any, Any)].iterator(split, context)//.map(r => r._1)
+    firstParent[(Any, Any, Long)].iterator(split, context)//.map(r => r._1)
   }
 
-  var prevResult = Array[(Int, (Any, Any))]()
+  var prevResult = Array[(Int, (Any, Any))]() // not sure how this is used
 
   override def collect(): Array[Any] = {
     val result = prev.context.runJob(
-      prev, (iter: Iterator[(Any, Any)]) => {
-        // TODO properly set up the typing rather than this hack
-        iter.asInstanceOf[Iterator[(Any, Any, Any)]].toArray.distinct
+      prev, (iter: Iterator[(Any, Any, Long)]) => {
+        iter.toArray.distinct
       }
     ).filter(_ != null) // Needed for removing results from empty partitions
 
@@ -66,7 +66,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   }
 
   override def filter(f: (Any) => Boolean): LineageRDD = {
-    new LineageRDD(firstParent[(Any, Any, Any)].filter(r => r._1 match {
+    // implicit conversion not detected by IntelliJ
+    new LineageRDD(firstParent[(Any, Any, Long)].filter(r => r._1 match {
       case l: Long => f(l.asInstanceOf[Any])
       case p: (Any, Any) => f(r)
     }).cache())
@@ -75,12 +76,14 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   def filter(f: Long): LineageRDD = withScope {
     if(!prevResult.isEmpty) {
       val values = prevResult.filter(r => r._1 == f).map(_._2)
-      firstParent[(RecordId, Any)].filter(r => values.contains(r)).cache()
+      firstParent[(RecordId, Any, Long)].filter(r => values.contains(r)).cache()
     } else {
-      new LineageRDD(firstParent[(Long, Any)].filter(r => r._1 == f).cache())
-      //new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
+      // implicit conversion not detected by IntelliJ
+      new LineageRDD(firstParent[(Long, Any, Long)].filter(r => r._1 == f).cache())
     }
   }
+  
+  /* Jason Tuple2->3 temporarily commented out
 
   override def saveAsDBTable(url: String, username: String, password: String, path: String, driver: String): Unit = {
     var f: Iterator[(Any, Any)] => Unit = null
@@ -222,12 +225,15 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
     merge(file, path)
   }
+  */
 
   def getBack(): LineageRDD = {
     prev.lineageContext.getBackward()
     prev.lineageContext.getCurrentLineagePosition.get
   }
 
+  /*
+  Jason Tuple2->3 temporarily commented out
   def goNext(): LineageRDD = {
     val next = prev.lineageContext.getForward
     lineageContext.getCurrentLineagePosition.get match {
@@ -238,21 +244,26 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       case _ => rightJoin[Any, Any](prev, next).map(_.swap).cache()
     }
   }
+  */
 
   def goBack(path: Int = 0): LineageRDD = {
     val next = lineageContext.getBackward(path)
     if (next.isDefined) {
-      val shuffled: Lineage[(RecordId, Any)] = lineageContext.getCurrentLineagePosition.get match {
+      val shuffled: Lineage[(RecordId, Any, Long)] = lineageContext.getCurrentLineagePosition.get
+      match {
+        /* Jason Tuple2->3 temporarily commented out
         case _: TapPreShuffleLRDD[_]  =>
           val part = new LocalityAwarePartitioner(next.get.partitions.size)
           val join = rightJoin[Long, (CompactBuffer[Long], Int)](prev, lineageContext.getLastLineageSeen.get.asInstanceOf[Lineage[(Long, (CompactBuffer[Long], Int))]])
             new ShuffledLRDD[RecordId, Any, Any](join
                 .map(r => (r._2, r._1))
-                .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy, r._2)))), part)
+                .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy,
+                r._2)))), part) */
         case _ => prev
       }
 
       lineageContext.getCurrentLineagePosition.get match {
+        /* Jason Tuple2->3 temporarily commented out
         case _: TapPreShuffleLRDD[_] =>
           rightJoin(shuffled, next.get)
             .flatMap(r => r._2.asInstanceOf[Array[Int]].map(b => (r._1, (r._1._1, b))))
@@ -263,15 +274,20 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
         case _: TapPostCoGroupLRDD[_] =>
           rightJoin[Int, (CompactBuffer[Int], Int)](shuffled.map(_.swap),next.get)
             .flatMap(r => r._2._1.map(c => ((c, r._1), (c, r._2._2))))
-            .cache()
-        case _ =>
+            .cache()*/
+        case _ => // TODO figure out join logic
           rightJoin[Int, Any](shuffled.map(_.swap), next.get.map { r =>
-              if(r._1.isInstanceOf[Tuple2[_, _]])(r._1._2, r._2) else r.asInstanceOf[(Int, Any)]})
-            .map(r => ((Dummy, r._1), r._2))
+              if(r._1.isInstanceOf[Tuple2[_, _]]) {
+                (r._1._2, r._2, r._3)
+              } else {
+                r.asInstanceOf[(Int, Any, Long)]
+              }
+          }).map(r => ((Dummy, r._1), r._2))
             .cache()
       }
     } else {
       lineageContext.getCurrentLineagePosition.get match {
+        /* Jason Tuple2->3 temporarily commented out
         case _: TapPreShuffleLRDD[_] =>
           val part = new LocalityAwarePartitioner(prev.partitions.size)
           val shuffled = new ShuffledLRDD[RecordId, Any, Any](prev
@@ -279,7 +295,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
             .flatMap(r => r._2._1.map(c => ((PackIntIntoLong.getLeft(c), r._2._2), (Dummy, r._1)))), part)
           rightJoin[RecordId, Array[Int]](shuffled, lineageContext.getCurrentLineagePosition.get)
             .flatMap(r => r._2.map(b => (r._1, (Dummy, b))))
-            .cache
+            .cache */
         case _ => prev.map(_.swap).cache()
       }
     }
@@ -288,11 +304,12 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   def goBackAll(times: Int = Int.MaxValue) = go(times, Direction.BACKWARD)
 
   def goNextAll(times: Int = Int.MaxValue) = go(times)
-
+  
+  /* Jason Tuple2->3 temporarily commented out
   def show(): ShowRDD[_] = {
     show(false)
   }
-
+  
   def show(print:Boolean): ShowRDD[_] = {
     val position = lineageContext.getCurrentLineagePosition
     if(position.isDefined) {
@@ -371,29 +388,29 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
               val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
               ((r._2._2, hash), ((r._1, r._2._1), hash).toString())
             })).cache()
+          // Jason - the below //-ed lines were actually commented out already
           // Following is a detailed version to set result
-
-//            val join_left = current.asInstanceOf[Lineage[(RecordId, _)]].map {
-//              r => ((PackIntIntoLong(r._1._1,
-//                if(pre.isCombinerEnabled) 0
-//                else r._2 match {
-//                  case r1: Int => r1
-//                  case r2: (Int, Int)@unchecked => r2._2
-//                  case _ => 0 // Added by Youfu
-//                }), r._1._2), r._1._1.asInstanceOf[Any])
-//            }
-//            join_left.collect().foreach(println)
-//            val join_right = pre.getCachedData.map {
-//              r =>
-//                val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
-//                val return_VAL =((r._2._2, hash), ((r._1, r._2._1), hash).toString())
-//                return_VAL
-//            }
-//            join_right.collect().foreach(println)
-//            val join_rdd = rightJoin[(Long, Int), String](join_left, join_right)
-//            join_rdd.collect().foreach(println)
-//            result = new ShowRDD(join_rdd)
-//            result = result.cache()
+          //            val join_left = current.asInstanceOf[Lineage[(RecordId, _)]].map {
+          //              r => ((PackIntIntoLong(r._1._1,
+          //                if(pre.isCombinerEnabled) 0
+          //                else r._2 match {
+          //                  case r1: Int => r1
+          //                  case r2: (Int, Int)@unchecked => r2._2
+          //                  case _ => 0 // Added by Youfu
+          //                }), r._1._2), r._1._1.asInstanceOf[Any])
+          //            }
+          //            join_left.collect().foreach(println)
+          //            val join_right = pre.getCachedData.map {
+          //              r =>
+          //                val hash = Hashing.murmur3_32().hashString(r._1.toString).asInt()
+          //                val return_VAL =((r._2._2, hash), ((r._1, r._2._1), hash).toString())
+          //                return_VAL
+          //            }
+          //            join_right.collect().foreach(println)
+          //            val join_rdd = rightJoin[(Long, Int), String](join_left, join_right)
+          //            join_rdd.collect().foreach(println)
+          //            result = new ShowRDD(join_rdd)
+          //            result = result.cache()
           case post : TapPostShuffleLRDD[(Any, Long) @unchecked] =>
             val current: Lineage[(Int, Any)] = if(!lineageContext.getlastOperation.isDefined) {
               prev.asInstanceOf[Lineage[(RecordId, (CompactBuffer[Int], Int))]].map(r => (r._2._2, r._1))
@@ -420,7 +437,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     } else {
       throw new UnsupportedOperationException("what position are you talking about?")
     }
-  }
+  } */
 
   private[spark] def go(times: Int, direction: Direction = Direction.FORWARD): LineageRDD =
   {
@@ -431,7 +448,8 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
         if(direction == Direction.BACKWARD) {
           result = result.goBack()
         } else {
-          result = result.goNext
+          // Jason Tuple2->3 temporarily commented out
+          // result = result.goNext
         }
         counter = counter + 1
       }

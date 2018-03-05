@@ -40,9 +40,9 @@ object LineageContext {
 
   implicit def fromLToLRDD(lineage: Lineage[_]) = new LineageRDD(lineage)
 
-  implicit def fromLToLRDD2(lineage: Lineage[(Int, Any)]) = new LineageRDD(lineage)
+  implicit def fromLToLRDD2(lineage: Lineage[(Int, Any, Long)]) = new LineageRDD(lineage)
 
-  implicit def fromLToLRDD3(lineage: Lineage[(Any, Int)]) = new LineageRDD(lineage)
+  implicit def fromLToLRDD3(lineage: Lineage[(Any, Int, Long)]) = new LineageRDD(lineage)
 
   implicit def fromLineageToShowRDD(lineage: Lineage[(RecordId, String)]) = new ShowRDD(lineage)
 
@@ -355,11 +355,13 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       lastOperation = Some(Direction.BACKWARD)
       None
     } else {
-      val result: Lineage[(RecordId, Any)] = getCurrentLineagePosition.get match {
-        case postCG: TapPostCoGroupLRDD[(Int, Any) @unchecked] =>
-          postCG.map(r => ((Dummy, r._1), r._2))
+      val result: Lineage[(RecordId, Any, Long)] = getCurrentLineagePosition.get match {
+        case postCG: TapPostCoGroupLRDD[(Int, Any, Long) @unchecked] =>
+          postCG.map(r => ((Dummy, r._1), r._2, r._3))
         case hadoop: TapHadoopLRDD[Long @unchecked, Int @unchecked] =>
-          hadoop.map(_.swap).map(r => ((Dummy, r._1), r._2))
+          // Jason Tuple2->3 temporarily 'hack' (probably the right way actually)
+          hadoop.asInstanceOf[TapLRDD[(Long, Int, Long)]]
+            .map(r => ((Dummy, r._2), r._1, r._3))
         case tap: TapLRDD[_] => tap
       }
       Some(result)

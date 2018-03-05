@@ -83,7 +83,8 @@ trait Lineage[T] extends RDD[T] {
 
   def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = Iterator.empty
 
-  private[spark] def rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
+  private[spark] def rightJoin[T, V](prev: Lineage[(T, Any, Long)],
+                                           next: Lineage[(T, V, Long)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[T]()
@@ -101,6 +102,8 @@ trait Lineage[T] extends RDD[T] {
         if (hashSet.isEmpty) {
           Iterator.empty
         } else {
+          // Jason Tuple2->3 need to consider what to do with the Long values (currently just
+          // taking next value, but in practice might want to retain values or aggregate them)
           streamIter.filter(current => {
             hashSet.contains(current._1)
           })
@@ -441,30 +444,30 @@ trait Lineage[T] extends RDD[T] {
 }
 
 object Lineage {
-  implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any)] =
-    rdd.asInstanceOf[Lineage[(RecordId, Any)]]
+  implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any, Long)] =
+    rdd.asInstanceOf[Lineage[(RecordId, Any, Long)]]
 
-  implicit def castLineage5(rdd: (Any, RecordId)): (Int, Any) =
-    (rdd._1.asInstanceOf[RecordId]._2, rdd._2)
+  implicit def castLineage5(rdd: (Any, RecordId, Long)): (Int, Any, Long) =
+    (rdd._1.asInstanceOf[RecordId]._2, rdd._2, rdd._3)
 
-  implicit def castLineage10(rdd: Lineage[_]): Lineage[(Int, Any)] =
-    rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
-      case r1: Int => (r1, r._2)
-      case r2: RecordId => (r2._2, r._2)
-      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2)
+  implicit def castLineage10(rdd: Lineage[_]): Lineage[(Int, Any, Long)] =
+    rdd.asInstanceOf[Lineage[(_, _, Long)]].map(r => r._1 match {
+      case r1: Int => (r1, r._2, r._3)
+      case r2: RecordId => (r2._2, r._2, r._3)
+      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2, r._3)
     })
 
-  implicit def castLineage16(rdd: Lineage[_]): Lineage[(Long, Any)] =
-    rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
-      case r1: (_, Long)@unchecked => (r1._2, r._2)
-      case r2: Long => (r2, r._2)
+  implicit def castLineage16(rdd: Lineage[_]): Lineage[(Long, Any, Long)] =
+    rdd.asInstanceOf[Lineage[(_, _, Long)]].map(r => r._1 match {
+      case r1: (_, Long)@unchecked => (r1._2, r._2, r._3)
+      case r2: Long => (r2, r._2, r._3)
     })
 
-  implicit def castLineage17(rdd: Lineage[_]): Lineage[(Any, Any)] =
-    rdd.asInstanceOf[Lineage[(_, _)]].map(r => r._1 match {
-      case r2: (_, _) => (r2._2, r._2)
-      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2)
-      case  _ => (r._1, r._2)
+  implicit def castLineage17(rdd: Lineage[_]): Lineage[(Any, Any, Long)] =
+    rdd.asInstanceOf[Lineage[(_, _, Long)]].map(r => r._1 match {
+      case r2: (_, _) => (r2._2, r._2, r._3)
+      case r3: Long => (PackIntIntoLong.getLeft(r3), r._2, r._3)
+      case  _ => (r._1, r._2, r._3)
     })
 
   implicit def castLineage3(rdd: Lineage[_]): TapLRDD[_] =
@@ -473,15 +476,20 @@ object Lineage {
   implicit def castLineage4(rdd: Lineage[(RecordId, Any)]): Lineage[(RecordId, String)] =
     rdd.asInstanceOf[Lineage[(RecordId, String)]]
 
-  implicit def castLineage12(rdd: Lineage[(Int, Any)]): Lineage[(RecordId, Any)] =
-    rdd.map(r => ((Dummy, r._1), r._2))
+  implicit def castLineage12(rdd: Lineage[(Int, Any, Long)]): Lineage[(RecordId, Any, Long)] =
+    rdd.map(r => ((Dummy, r._1), r._2, r._3))
 
-  implicit def castLineage13(rdd: Lineage[(Any, RecordId)]): Lineage[(Long, Any)] =
-    rdd.asInstanceOf[Lineage[(Long, Any)]]
+  implicit def castLineage13(rdd: Lineage[(Any, RecordId, Long)]): Lineage[(Long, Any, Long)] =
+    rdd.asInstanceOf[Lineage[(Long, Any, Long)]]
 
   implicit def castLineage14(rdd: Lineage[_]): Lineage[(Int, (CompactBuffer[Int], Int))] =
     rdd.asInstanceOf[Lineage[(Int, (CompactBuffer[Int], Int))]]
 
   implicit def castLineage15(rdd: Lineage[_]): Lineage[(RecordId, Array[Int])] =
     rdd.asInstanceOf[Lineage[(RecordId, Array[Int])]]
+  
+  // Jason - adding swap to Tuple3 for legacy support
+  implicit class SwappableTuple3[A, B, C](t: (A,B,C)) {
+    def swap: (B, A, C) = (t._2, t._1, t._3)
+  }
 }
