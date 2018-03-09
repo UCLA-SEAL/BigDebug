@@ -122,12 +122,16 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
   }
   
-  // TODO optimize this further, eg if you can cache accumulated times within each RDD?
+  // TODO Jason - optimize this further, eg if you can cache accumulated times within each RDD?
   // Do we want to be computing this now?
   // iterative implementation of a post-order DAG traversal
   // in recursive terms, this would compute accumulate(currValue, aggregate(childrenValues))
   // Because the current RDD has no time (it's still computing), we only return the aggregate over
   // its dependencies
+  // IMPLEMENTATION NOTE: dependencyRDDs needs to be generated at creation time because this
+  // RDD's dependencies will be updated during getLineage (where navigation only occurs between
+  // taps). If this is removed or altered, this RDD will need an alternate way to determine it's
+  // actual dependencies (as opposed to the taps used for lineage navigation)
   private val dependencyRDDs = this.dependencies.map(_.rdd)
   private var postOrderDeps: Option[Seq[RDD[_]]] = None
   private val cachedTimes = mutable.HashMap[RDD[_], Long]()
@@ -143,7 +147,14 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
         val currRdd = s.pop()
         postOrderStack.push(currRdd)
         seen.add(currRdd)
-        s.pushAll(currRdd.dependencies.map(_.rdd).filter(!seen(_)))
+        // general idea: existing TapLRDD impls will already have computed time for their
+        // predecessors (but not their own .map function, which is why they're still included here)
+        // Unfortunately this approach does not allow the final TapLRDD to be timed, so consider
+        // refactoring.
+        currRdd match {
+          case _: TapLRDD[_] => // do not add dependencies since they were already accounted for.
+          case _ => s.pushAll(currRdd.dependencies.map(_.rdd).filter(!seen(_)))
+        }
       }
       postOrderDeps = Some(postOrderStack.toSeq)
     }
@@ -151,10 +162,15 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     // Some dependencies may appear in more than one RDD
     cachedTimes.clear() // rather than reallocate
     for(curr <- postOrderDeps.get) {
-      val currTime: Long = accumulateFunction(
-        tContext.getRddRecordOutputTime(curr.id),
-        aggregateFunction(curr.dependencies.map(_.rdd).map(cachedTimes(_))))
-      cachedTimes(curr) = currTime
+      cachedTimes(curr) = curr match {
+        case _: TapLRDD[_] =>
+          // dependencies already accounted for
+          tContext.getRddRecordOutputTime(curr.id)
+        case _ =>
+          accumulateFunction(
+            tContext.getRddRecordOutputTime(curr.id),
+            aggregateFunction(curr.dependencies.map(_.rdd).map(cachedTimes(_))))
+      }
     }
     // No time taken for the current RDD because it's still running...
     aggregateFunction(dependencyRDDs.map(cachedTimes(_)))
