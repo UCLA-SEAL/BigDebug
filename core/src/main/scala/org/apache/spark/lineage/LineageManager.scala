@@ -17,11 +17,16 @@
 
 package org.apache.spark.lineage
 
-import scala.collection.mutable.HashSet
+import org.apache.ignite.{IgniteCache, Ignition}
 
+import scala.collection.mutable.HashSet
 import org.apache.spark._
+import org.apache.spark.lineage.rdd.{TapHadoopLRDD, TapLRDD}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
+import org.apache.spark.util.PackIntIntoLong
+
+import collection.JavaConverters._
 
 /**
  * Spark class responsible for passing RDDs partition contents to the BlockManager and making
@@ -45,7 +50,8 @@ object LineageManager{
   def materialize(
       split: Int,
       context: TaskContext,
-      effectiveStorageLevel: Option[StorageLevel]): Unit = {
+      effectiveStorageLevel: Option[StorageLevel],
+      appId: Option[String]): Unit = {
 //    val updatedBlocks = new ArrayBuffer[(BlockId, BlockStatus)]
     val toMaterialize = underMaterialization.synchronized {
       val rdds = underMaterialization.filter(r => (r._2 == split) && (r._3 == context.stageId))
@@ -56,12 +62,28 @@ object LineageManager{
     toMaterialize.foreach(tap => {
       val t = new Runnable() {
         override def run() {
-          val key = RDDBlockId(tap._1.id, split)
-          val arr = tap._1.materializeBuffer
+          val rdd = tap._1.asInstanceOf[RDD[_]]
+          val key = RDDBlockId(rdd.id, split)
+          val arr = rdd.materializeBuffer
+          
           try {
               blockManager.putIterator(key, arr.toIterator, tap._4, true)
+              
+            // TODO set up key properly
+            val ignite = Ignition.ignite()
+            var cacheName = s"${appId.get}_${rdd.id}"
+            println(s"JASON - caching in $cacheName")
+            val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheName)
+            val bufferMap: Map[Long, (Long, Long, Long)] = arr.map(r => {
+              var rec = r.asInstanceOf[(Long, Long, Long)]
+              (rec._1, rec)
+            }).toMap
+            cache.putAll(bufferMap.asJava)
           } catch {
-            case e: Exception => println(e)
+            case e: Exception => {
+              println(e)
+              e.printStackTrace()
+            }
           } finally {
             tap._1.releaseBuffer()
           }
@@ -81,9 +103,10 @@ object LineageManager{
       split: Int,
       context: TaskContext,
       _blockManager: BlockManager,
-      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_AND_DISK)): Unit = {
+      effectiveStorageLevel: Option[StorageLevel] = Some(StorageLevel.MEMORY_AND_DISK),
+      appId: Option[String] = None): Unit = {
     blockManager = _blockManager
-    materialize(split, context, effectiveStorageLevel)
+    materialize(split, context, effectiveStorageLevel, appId)
   }
 
 }

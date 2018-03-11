@@ -28,6 +28,7 @@
   <artifactId>spark-core_2.11</artifactId>
   <properties>
     <sbt.project.name>core</sbt.project.name>
+    <ignite.version>2.3.0</ignite.version>
   </properties>
   <packaging>jar</packaging>
   <name>Spark Project Core</name>
@@ -39,6 +40,46 @@
       <groupId>com.github.nkzawa</groupId>
       <artifactId>socket.io-client</artifactId>
       <version>0.4.2</version>
+    </dependency>
+
+      <dependency>
+      <groupId>org.apache.ignite</groupId>
+      <artifactId>ignite-core</artifactId>
+      <version>${ignite.version}</version>
+      
+      <!--<exclusions>
+        &lt;!&ndash;Added exclusions to bypass enforcer, which will flag any 2.10 item&ndash;&gt;
+        <exclusion>
+          <groupId>com.twitter</groupId>
+          <artifactId>chill_2.10</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.spark</groupId>
+          <artifactId>spark-unsafe_2.10</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.scalatest</groupId>
+          <artifactId>scalatest_2.10</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.spark</groupId>
+          <artifactId>spark-tags_2.10</artifactId>
+        </exclusion>
+        &lt;!&ndash; Added exclusions to bypass compilation issues &ndash;&gt;
+        &lt;!&ndash; See maven repo for dependencies https://mvnrepository.com/artifact/org.apache.ignite/ignite-spark_2.10/2.3.0 &ndash;&gt;
+
+        &lt;!&ndash; Seems Spark might use 2.10, which is incompatible with 2.11 &ndash;&gt;
+        <exclusion>
+          <groupId>org.json4s</groupId>
+          <artifactId>json4s-core_2.11</artifactId>
+        </exclusion>
+
+        &lt;!&ndash; Getting errors in spark-ui that suggest conflict  &ndash;&gt;
+        <exclusion>
+          <groupId>org.apache.spark</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>-->
     </dependency>
 
       <dependency>

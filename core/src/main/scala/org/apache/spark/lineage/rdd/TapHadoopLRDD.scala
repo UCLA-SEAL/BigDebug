@@ -31,7 +31,9 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
 
   @transient private var buffer: LongIntLongByteBuffer = _
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray
+  // Jason - convert to be equivalent to TapLRDD in Long 2nd value
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r
+    ._2.toLong, r._3))
 
   override def initializeBuffer = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
 

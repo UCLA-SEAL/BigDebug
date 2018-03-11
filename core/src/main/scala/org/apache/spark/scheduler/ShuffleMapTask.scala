@@ -115,7 +115,8 @@ private[spark] class ShuffleMapTask(
         }
         throw e
     } finally {
-      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager)
+      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager,
+        appId=appId)
       // Added by Matteo
     }
   }

@@ -88,7 +88,8 @@ private[spark] class ResultTask[T, U](
     try {
       func(context, rdd.iterator(partition, context))
     } finally {
-      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager)
+      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager,
+        appId=appId)
       // Added by Matteo
     }
   }
