@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage
 
+import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
+import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{IgniteCache, Ignition}
 
 import scala.collection.mutable.HashSet
@@ -73,7 +75,9 @@ object LineageManager{
             val ignite = Ignition.ignite()
             var cacheName = s"${appId.get}_${rdd.id}"
             println(s"JASON - caching in $cacheName")
-            val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheName)
+            val cacheConf = new CacheConfiguration[Long, (Long, Long, Long)](cacheName)
+              .setAffinity(new RendezvousAffinityFunction(false, 4)) // TODO this is a hack...
+            val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheConf)
             val bufferMap: Map[Long, (Long, Long, Long)] = arr.map(r => {
               var rec = r.asInstanceOf[(Long, Long, Long)]
               (rec._1, rec)
