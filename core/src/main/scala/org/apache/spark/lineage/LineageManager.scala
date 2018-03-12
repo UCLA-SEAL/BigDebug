@@ -74,9 +74,14 @@ object LineageManager{
             // TODO set up key properly
             val ignite = Ignition.ignite()
             var cacheName = s"${appId.get}_${rdd.id}"
-            println(s"JASON - caching in $cacheName")
+            // TODO number of cache partitions is currently fixed because the default 1024
+            // cannot be overridden globally or changed after creation, but is too high for local
+            // development. Using IgniteRDDs will result in one RDD partition per cache
+            // partition, and simple operations will end up spawning 1024 tasks.
+            val numPartitionsPerCache = 2
             val cacheConf = new CacheConfiguration[Long, (Long, Long, Long)](cacheName)
-              .setAffinity(new RendezvousAffinityFunction(false, 4)) // TODO this is a hack...
+              .setAffinity(new RendezvousAffinityFunction(false, numPartitionsPerCache))
+              
             val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheConf)
             val bufferMap: Map[Long, (Long, Long, Long)] = arr.map(r => {
               var rec = r.asInstanceOf[(Long, Long, Long)]
