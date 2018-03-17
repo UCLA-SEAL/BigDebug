@@ -2718,4 +2718,6 @@ object PackIntIntoLong {
   def getLeft(value: Long): Int = (value >>> 32).toInt // >>> operator 0-fills from left
 
   def getRight(value: Long): Int = (value & RIGHT).toInt
+  
+  def extractToTuple(value: Long): (Int, Int) = (getLeft(value), getRight(value))
 }

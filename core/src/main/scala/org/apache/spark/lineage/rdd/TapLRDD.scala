@@ -113,7 +113,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   def tap(record: T) = {
     val id = newRecordId()
     val timeTaken = computeTotalTime()
-    logInfo(s"computed time: $timeTaken")
+    // logInfo(s"computed time: $timeTaken")
     buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, timeTaken)
     if(isLast) {
       (record, PackIntIntoLong(splitId, id)).asInstanceOf[T]

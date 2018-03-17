@@ -19,7 +19,7 @@ package org.apache.spark.lineage
 
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
-import org.apache.ignite.{IgniteCache, Ignition}
+import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 
 import scala.collection.mutable.HashSet
 import org.apache.spark._
@@ -74,15 +74,9 @@ object LineageManager{
             // TODO set up key properly
             val ignite = Ignition.ignite()
             var cacheName = s"${appId.get}_${rdd.id}"
-            // TODO number of cache partitions is currently fixed because the default 1024
-            // cannot be overridden globally or changed after creation, but is too high for local
-            // development. Using IgniteRDDs will result in one RDD partition per cache
-            // partition, and simple operations will end up spawning 1024 tasks.
-            val numPartitionsPerCache = 2
-            val cacheConf = new CacheConfiguration[Long, (Long, Long, Long)](cacheName)
-              .setAffinity(new RendezvousAffinityFunction(false, numPartitionsPerCache))
-              
-            val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheConf)
+            
+            val cache: IgniteCache[Long, (Long, Long, Long)] = createOrGetIgniteCache(ignite,
+              cacheName)
             val bufferMap: Map[Long, (Long, Long, Long)] = arr.map(r => {
               var rec = r.asInstanceOf[(Long, Long, Long)]
               (rec._1, rec)
@@ -106,7 +100,19 @@ object LineageManager{
 //    val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
 //    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
   }
-
+  
+  // TODO number of cache partitions is currently fixed because the default 1024
+  // cannot be overridden globally or changed after creation, but is too high for local
+  // development. Using IgniteRDDs will result in one RDD partition per cache
+  // partition, and simple operations will end up spawning 1024 tasks.
+  def createOrGetIgniteCache(ignite: Ignite, cacheName: String, numPartitionsPerCache: Int = 2) = {
+    val cacheConf = new CacheConfiguration[Long, (Long, Long, Long)](cacheName)
+      .setAffinity(new RendezvousAffinityFunction(false, numPartitionsPerCache))
+    
+    val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheConf)
+    cache
+  }
+  
   def finalizeTaskCache(
       rdd: RDD[_],
       split: Int,
