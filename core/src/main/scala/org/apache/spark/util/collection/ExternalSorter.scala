@@ -786,7 +786,7 @@ private[spark] class ExternalSorter[K, V, C](
             } else {
               new Tuple2(elem._2, PackIntIntoLong(context.partitionId, 0))
             })
-            println(newElem)
+
             writer.write(newElem._1, newElem._2)
           }
         }
