@@ -31,6 +31,7 @@ class ShuffleWriteMetrics private[spark] () extends Serializable {
   private[executor] val _bytesWritten = new LongAccumulator
   private[executor] val _recordsWritten = new LongAccumulator
   private[executor] val _writeTime = new LongAccumulator
+  private[executor] val _dataSerializationTime = new LongAccumulator
 
   /**
    * Number of bytes written for the shuffle by this task.
@@ -46,10 +47,19 @@ class ShuffleWriteMetrics private[spark] () extends Serializable {
    * Time the task spent blocking on writes to disk or buffer cache, in nanoseconds.
    */
   def writeTime: Long = _writeTime.sum
+  
+  /**
+   * (jteoh) Time spent serializing data from java objects to bytes, in nanoseconds.
+   * Note: implementation is currently assuming that writeTime includes both IO and
+   * serialization time.
+   */
+  def dataSerializationTime: Long = _dataSerializationTime.sum
 
   private[spark] def incBytesWritten(v: Long): Unit = _bytesWritten.add(v)
   private[spark] def incRecordsWritten(v: Long): Unit = _recordsWritten.add(v)
   private[spark] def incWriteTime(v: Long): Unit = _writeTime.add(v)
+  // jteoh
+  private[spark] def incDataSerializationTime(v: Long): Unit = _dataSerializationTime.add(v)
   private[spark] def decBytesWritten(v: Long): Unit = {
     _bytesWritten.setValue(bytesWritten - v)
   }
