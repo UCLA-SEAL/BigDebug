@@ -17,11 +17,11 @@
 
 package org.apache.spark.storage;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 import org.apache.spark.annotation.Private;
 import org.apache.spark.executor.ShuffleWriteMetrics;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * Intercepts write calls and tracks total time spent writing in order to update shuffle write
@@ -42,34 +42,38 @@ public final class TimeTrackingOutputStream extends OutputStream {
   public void write(int b) throws IOException {
     final long startTime = System.nanoTime();
     outputStream.write(b);
-    writeMetrics.incWriteTime(System.nanoTime() - startTime);
+    incrementTimeSinceStart(startTime);
   }
 
   @Override
   public void write(byte[] b) throws IOException {
     final long startTime = System.nanoTime();
     outputStream.write(b);
-    writeMetrics.incWriteTime(System.nanoTime() - startTime);
+    incrementTimeSinceStart(startTime);
   }
 
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
     final long startTime = System.nanoTime();
     outputStream.write(b, off, len);
-    writeMetrics.incWriteTime(System.nanoTime() - startTime);
+    incrementTimeSinceStart(startTime);
   }
 
   @Override
   public void flush() throws IOException {
     final long startTime = System.nanoTime();
     outputStream.flush();
-    writeMetrics.incWriteTime(System.nanoTime() - startTime);
+    incrementTimeSinceStart(startTime);
   }
 
   @Override
   public void close() throws IOException {
     final long startTime = System.nanoTime();
     outputStream.close();
-    writeMetrics.incWriteTime(System.nanoTime() - startTime);
+    incrementTimeSinceStart(startTime);
+  }
+
+  private void incrementTimeSinceStart(long startTime) {
+    writeMetrics.incWriteIOTime(System.nanoTime() - startTime);
   }
 }

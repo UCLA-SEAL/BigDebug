@@ -222,12 +222,14 @@ class TaskMetrics private[spark] () extends Serializable {
     // jteoh - readTime
     shuffleRead.READ_TIME -> shuffleReadMetrics._readTime,
     shuffleRead.DATA_DESERIALIZATION_TIME -> shuffleReadMetrics._dataDeserializationTime,
+    shuffleRead.READ_IO_TIME -> shuffleReadMetrics._readIOTime,
     
     shuffleWrite.BYTES_WRITTEN -> shuffleWriteMetrics._bytesWritten,
     shuffleWrite.RECORDS_WRITTEN -> shuffleWriteMetrics._recordsWritten,
     shuffleWrite.WRITE_TIME -> shuffleWriteMetrics._writeTime,
     // jteoh - serialization time
     shuffleWrite.DATA_SERIALIZATION_TIME -> shuffleWriteMetrics._dataSerializationTime,
+    shuffleWrite.WRITE_IO_TIME -> shuffleWriteMetrics._writeIOTime,
     
     input.BYTES_READ -> inputMetrics._bytesRead,
     input.RECORDS_READ -> inputMetrics._recordsRead,

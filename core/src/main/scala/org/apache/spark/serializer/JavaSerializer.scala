@@ -44,8 +44,9 @@ private[spark] class JavaSerializationStream(
       objOut.writeObject(t)
       // jteoh: if we're guaranteed that this class is recreated for each task, we can abstract
       // out the shuffleWriteMetrics call to avoid excessive method calls.
-      TaskContext.get().taskMetrics().shuffleWriteMetrics.incDataSerializationTime(System
-        .nanoTime - startTime)
+      if(TaskContext.get() != null) {
+        TaskContext.get().taskMetrics().shuffleWriteMetrics.incWriteTime(System.nanoTime - startTime)
+      }
     } catch {
       case e: NotSerializableException if extraDebugInfo =>
         throw SerializationDebugger.improveException(t, e)
@@ -62,13 +63,17 @@ private[spark] class JavaSerializationStream(
   def close() { objOut.close() }
 }
 
-private[spark] class JavaDeserializationStream(in: InputStream, loader: ClassLoader)
+private[spark] class JavaDeserializationStream(var in: InputStream, loader: ClassLoader)
   extends DeserializationStream {
 
   // jteoh: intermediately wrap `in` to track timing metrics.
-  private val timedIn = new TimeTrackingInputStream(TaskContext.get().taskMetrics()
-    .shuffleReadMetrics, in)
-  private val objIn = new ObjectInputStream(timedIn) {
+  // This is an approximation - in practice, we would ideally follow TimeTrackingOutputStream and
+  // only instantiate where necessary. This approximation is acceptable if we assume there is
+  // a large amount of data compared to other IO-related operations, such as task serde.
+  if(TaskContext.get() != null) {
+    in = new TimeTrackingInputStream(TaskContext.get().taskMetrics().shuffleReadMetrics, in)
+  }
+  private val objIn = new ObjectInputStream(in) {
     override def resolveClass(desc: ObjectStreamClass): Class[_] =
       try {
         // scalastyle:off classforname
@@ -83,8 +88,9 @@ private[spark] class JavaDeserializationStream(in: InputStream, loader: ClassLoa
   def readObject[T: ClassTag](): T = {
     val startTime = System.nanoTime
     val result = objIn.readObject().asInstanceOf[T]
-    TaskContext.get().taskMetrics().shuffleReadMetrics.incDataDeserializationTime(System.nanoTime
-      - startTime)
+    if(TaskContext.get() != null) {
+      TaskContext.get().taskMetrics().shuffleReadMetrics.incReadTime(System.nanoTime - startTime)
+    }
     result
   }
   def close() { objIn.close() }
@@ -115,8 +121,10 @@ private[spark] class JavaSerializerInstance(
     out.writeObject(t)
     out.close()
     val result = bos.toByteBuffer
-    TaskContext.get().taskMetrics().shuffleWriteMetrics.incDataSerializationTime(System
-      .nanoTime - startTime)
+    if(TaskContext.get() != null) {
+      TaskContext.get().taskMetrics().shuffleWriteMetrics.incWriteTime(System
+        .nanoTime - startTime)
+    }
     result
   }
 
@@ -125,8 +133,10 @@ private[spark] class JavaSerializerInstance(
     val bis = new ByteBufferInputStream(bytes)
     val in = deserializeStream(bis)
     val result = in.readObject()
-    TaskContext.get().taskMetrics().shuffleReadMetrics.incDataDeserializationTime(System.nanoTime
-      - startTime)
+    if(TaskContext.get() != null) {
+      TaskContext.get().taskMetrics().shuffleReadMetrics.incReadTime(System.nanoTime
+        - startTime)
+    }
     result
   }
 
@@ -135,8 +145,10 @@ private[spark] class JavaSerializerInstance(
     val bis = new ByteBufferInputStream(bytes)
     val in = deserializeStream(bis, loader)
     val result = in.readObject()
-    TaskContext.get().taskMetrics().shuffleReadMetrics.incDataDeserializationTime(System.nanoTime
-      - startTime)
+    if(TaskContext.get() != null) {
+      TaskContext.get().taskMetrics().shuffleReadMetrics.incReadTime(System.nanoTime
+        - startTime)
+    }
     result
   }
 

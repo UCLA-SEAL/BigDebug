@@ -56,6 +56,7 @@ private[spark] object InternalAccumulator {
     // jteoh
     val READ_TIME = SHUFFLE_READ_METRICS_PREFIX + "readTime"
     val DATA_DESERIALIZATION_TIME = SHUFFLE_READ_METRICS_PREFIX + "dataDeserializationTime"
+    val READ_IO_TIME= SHUFFLE_READ_METRICS_PREFIX + "readIOTime"
   }
 
   // Names of shuffle write metrics
@@ -65,6 +66,7 @@ private[spark] object InternalAccumulator {
     val WRITE_TIME = SHUFFLE_WRITE_METRICS_PREFIX + "writeTime"
     // jteoh
     val DATA_SERIALIZATION_TIME = SHUFFLE_WRITE_METRICS_PREFIX + "dataSerializationTime"
+    val WRITE_IO_TIME = SHUFFLE_WRITE_METRICS_PREFIX + "writeIOTime"
   }
 
   // Names of output metrics

@@ -37,6 +37,7 @@ class ShuffleReadMetrics private[spark] () extends Serializable {
   // jteoh
   private[executor] val _readTime = new LongAccumulator
   private[executor] val _dataDeserializationTime = new LongAccumulator
+  private[executor] val _readIOTime = new LongAccumulator
 
   /**
    * Number of remote blocks fetched in this shuffle by this task.
@@ -76,9 +77,19 @@ class ShuffleReadMetrics private[spark] () extends Serializable {
   def readTime: Long = _readTime.sum
   
   /**
-   * (jteoh) Time spent reading records, including both IO and data deserialization, in nanoseconds.
+   * (jteoh) Time spent deserializing records, in nanoseconds. Contrast with readTime, this does
+   * not include IO. readTime includes IO and deserialization, if applicable.
+   * @depr
    */
   def dataDeserializationTime: Long = _dataDeserializationTime.sum
+  
+  /**
+   * (jteoh) Time spent on IO only - this is used only for operations that are known to be
+   * strictly IO (ie not including serialization/deserialization). In practice, the goal is to
+   * identify deserialization time by subtracting this value from readTime, which includes both
+   * deserialization and IO.
+   */
+  def readIOTime: Long = _readIOTime.sum
   
   /**
    * Total bytes fetched in the shuffle by this task (both remote and local).
@@ -99,6 +110,7 @@ class ShuffleReadMetrics private[spark] () extends Serializable {
   // jteoh
   private[spark] def incReadTime(v: Long): Unit = _readTime.add(v)
   private[spark] def incDataDeserializationTime(v: Long): Unit = _dataDeserializationTime.add(v)
+  private[spark] def incReadIOTime(v: Long): Unit = _readIOTime.add(v)
   
   private[spark] def setRemoteBlocksFetched(v: Int): Unit = _remoteBlocksFetched.setValue(v)
   private[spark] def setLocalBlocksFetched(v: Int): Unit = _localBlocksFetched.setValue(v)
@@ -124,6 +136,7 @@ class ShuffleReadMetrics private[spark] () extends Serializable {
     _recordsRead.setValue(0)
     _readTime.setValue(0)
     _dataDeserializationTime.setValue(0)
+    _readIOTime.setValue(0)
     
     metrics.foreach { metric =>
       _remoteBlocksFetched.add(metric.remoteBlocksFetched)
@@ -134,6 +147,7 @@ class ShuffleReadMetrics private[spark] () extends Serializable {
       _recordsRead.add(metric.recordsRead)
       _readTime.add(metric.readTime)
       _dataDeserializationTime.add(metric.dataDeserializationTime)
+        _readIOTime.add(metric.readIOTime)
     }
   }
 }
@@ -154,6 +168,7 @@ private[spark] class TempShuffleReadMetrics {
   // jteoh
   private[this] var _readTime = 0L
   private[this] var _dataDeserializationTime = 0L
+  private[this] var _readIOTime = 0L
 
   def incRemoteBlocksFetched(v: Long): Unit = _remoteBlocksFetched += v
   def incLocalBlocksFetched(v: Long): Unit = _localBlocksFetched += v
@@ -164,6 +179,7 @@ private[spark] class TempShuffleReadMetrics {
   // jteoh
   def incReadTime(v: Long): Unit = _readTime += v
   def incDataDeserializationTime(v: Long): Unit = _dataDeserializationTime += v
+  def incReadIOTime(v: Long): Unit = _readIOTime += v
 
   def remoteBlocksFetched: Long = _remoteBlocksFetched
   def localBlocksFetched: Long = _localBlocksFetched
@@ -174,4 +190,5 @@ private[spark] class TempShuffleReadMetrics {
   //jteoh
   def readTime: Long = _readTime
   def dataDeserializationTime: Long = _dataDeserializationTime
+  def readIOTime: Long = _readIOTime
 }

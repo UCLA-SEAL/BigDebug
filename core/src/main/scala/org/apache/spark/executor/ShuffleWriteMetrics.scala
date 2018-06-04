@@ -32,6 +32,7 @@ class ShuffleWriteMetrics private[spark] () extends Serializable {
   private[executor] val _recordsWritten = new LongAccumulator
   private[executor] val _writeTime = new LongAccumulator
   private[executor] val _dataSerializationTime = new LongAccumulator
+  private[executor] val _writeIOTime = new LongAccumulator
 
   /**
    * Number of bytes written for the shuffle by this task.
@@ -50,16 +51,29 @@ class ShuffleWriteMetrics private[spark] () extends Serializable {
   
   /**
    * (jteoh) Time spent serializing data from java objects to bytes, in nanoseconds.
-   * Note: implementation is currently assuming that writeTime includes both IO and
-   * serialization time.
+   * Contrast with writeTime - this is ONLY serialization and does not include IO. writeTime
+   * includes IO and serialization, if applicable.
+   * @deprecated - In practice, this is not sufficiently accurate. We would actually need to
+   *            calculate `writeTime + dataSerializationTime - writeIOTime`, at which point it's
+   *            clearer and easier to manage by merging dataSerialization into writeTime.
    */
   def dataSerializationTime: Long = _dataSerializationTime.sum
+  
+  /**
+   * (jteoh) Time spent on IO only - this is used only for operations that are known to be
+   * strictly IO (ie not including serialization/deserialization). In practice, the goal is to
+   * identify serialization time by subtracting this value from write, which includes both
+   * serialization and IO.
+   */
+  def writeIOTime: Long = _writeIOTime.sum
 
   private[spark] def incBytesWritten(v: Long): Unit = _bytesWritten.add(v)
   private[spark] def incRecordsWritten(v: Long): Unit = _recordsWritten.add(v)
   private[spark] def incWriteTime(v: Long): Unit = _writeTime.add(v)
   // jteoh
   private[spark] def incDataSerializationTime(v: Long): Unit = _dataSerializationTime.add(v)
+  private[spark] def incWriteIOTime(v: Long): Unit = _writeIOTime.add(v)
+  
   private[spark] def decBytesWritten(v: Long): Unit = {
     _bytesWritten.setValue(bytesWritten - v)
   }

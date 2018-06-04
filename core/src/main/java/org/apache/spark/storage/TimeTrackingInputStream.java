@@ -113,6 +113,6 @@ public final class TimeTrackingInputStream extends InputStream {
   }
 
   private void incrementTimeSinceStart(long startTime) {
-    readMetrics.incReadTime(System.nanoTime() - startTime);
+    readMetrics.incReadIOTime(System.nanoTime() - startTime);
   }
 }
