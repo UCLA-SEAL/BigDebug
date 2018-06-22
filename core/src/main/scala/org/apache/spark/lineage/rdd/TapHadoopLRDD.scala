@@ -43,7 +43,7 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   }
 
   override def tap(record: (K, V)) = {
-    tContext.currentInputId = newRecordId
+    tContext.currentInputId = newRecordId()
     // TODO measure the time taken for hadoop rows, which were read from the previous RDD
     // because that computation is sealed in HadoopRDD, we would likely need to wrap the iterator
     // in the TapLRDD.compute function

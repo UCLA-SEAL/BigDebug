@@ -245,7 +245,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
                 }
               }
 
-            case _ =>
+            case _ => // TODO jteoh: What about NarrowDependencies, e.g. range??
           }
         }
         if(deps.nonEmpty) {

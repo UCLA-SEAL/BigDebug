@@ -84,7 +84,7 @@ object LineageManager{
             cache.putAll(bufferMap.asJava)
           } catch {
             case e: Exception => {
-              println(e)
+              println(s"Error storing ignite data for RDD ${rdd}")
               e.printStackTrace()
             }
           } finally {

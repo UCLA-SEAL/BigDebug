@@ -122,6 +122,12 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
   }
   
+  // Note on 6/21/18 (weeks after implementation below): This seems severely overcomplicated.
+  // In practice, TapLRDD should only appear after one-to-one dependencies. A shuffle dependency
+  // would trigger other subclasses, i.e. pre/post shuffle which should have their own
+  // implementation.
+  // In other words, there is only a limited subset of the code/possible execution paths that is
+  // being exercised.
   // TODO Jason - optimize this further, eg if you can cache accumulated times within each RDD?
   // Do we want to be computing this now?
   // iterative implementation of a post-order DAG traversal
