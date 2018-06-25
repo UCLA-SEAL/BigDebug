@@ -17,18 +17,18 @@
 
 package org.apache.spark.lineage
 
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
-import org.apache.ignite.configuration.CacheConfiguration
-import org.apache.ignite.{Ignite, IgniteCache, Ignition}
-
-import scala.collection.mutable.HashSet
+import org.apache.ignite.IgniteCache
 import org.apache.spark._
-import org.apache.spark.lineage.rdd.{TapHadoopLRDD, TapLRDD}
+import org.apache.spark.lineage.ignite.CacheDataTypes.{PartitionWithRecId, TapLRDDValue}
+import org.apache.spark.lineage.ignite.{CacheArguments, IgniteCacheFactory}
+import org.apache.spark.lineage.rdd.{TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
-import org.apache.spark.util.PackIntIntoLong
 
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
+import scala.collection.mutable.HashSet
+import scala.language.implicitConversions
+
 
 /**
  * Spark class responsible for passing RDDs partition contents to the BlockManager and making
@@ -69,22 +69,35 @@ object LineageManager{
           val arr = rdd.materializeBuffer
           
           try {
-              blockManager.putIterator(key, arr.toIterator, tap._4, true)
+            blockManager.putIterator(key, arr.toIterator, tap._4, true)
               
             // TODO set up key properly
-            val ignite = Ignition.ignite()
-            var cacheName = s"${appId.get}_${rdd.id}"
+            val cacheName = s"${appId.get}_${rdd.id}"
+            val cacheArgs = CacheArguments(cacheName)
+            rdd match {
+              case _: TapLRDD[_] =>
+                val cache: IgniteCache[PartitionWithRecId, TapLRDDValue] =
+                  IgniteCacheFactory.createTapLRDDCache(cacheArgs)
+                val bufferMap: Map[PartitionWithRecId, TapLRDDValue] = arr.map(r => {
+                  val rec: TapLRDDValue = TapLRDDValue(r)
+                  (rec.key, rec)
+                }).toMap
+                cache.putAll(bufferMap.asJava)
+              case _: TapPreShuffleLRDD[_] =>
+              // case _: TapPostCoGroupLRDD[_] =>
+              case _: TapPostShuffleLRDD[_] =>
+              
+              
+              
+              case _ =>
+                println(s"Unhandled RDD for apache ignite storage: $rdd")
+  
+  
+            }
             
-            val cache: IgniteCache[Long, (Long, Long, Long)] = createOrGetIgniteCache(ignite,
-              cacheName)
-            val bufferMap: Map[Long, (Long, Long, Long)] = arr.map(r => {
-              var rec = r.asInstanceOf[(Long, Long, Long)]
-              (rec._1, rec)
-            }).toMap
-            cache.putAll(bufferMap.asJava)
           } catch {
             case e: Exception => {
-              println(s"Error storing ignite data for RDD ${rdd}")
+              println(s"Error storing ignite data for RDD $rdd")
               e.printStackTrace()
             }
           } finally {
@@ -101,18 +114,6 @@ object LineageManager{
 //    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
   }
   
-  // TODO number of cache partitions is currently fixed because the default 1024
-  // cannot be overridden globally or changed after creation, but is too high for local
-  // development. Using IgniteRDDs will result in one RDD partition per cache
-  // partition, and simple operations will end up spawning 1024 tasks.
-  def createOrGetIgniteCache(ignite: Ignite, cacheName: String, numPartitionsPerCache: Int = 2) = {
-    val cacheConf = new CacheConfiguration[Long, (Long, Long, Long)](cacheName)
-      .setAffinity(new RendezvousAffinityFunction(false, numPartitionsPerCache))
-    
-    val cache: IgniteCache[Long, (Long, Long, Long)] = ignite.getOrCreateCache(cacheConf)
-    cache
-  }
-  
   def finalizeTaskCache(
       rdd: RDD[_],
       split: Int,
@@ -123,5 +124,4 @@ object LineageManager{
     blockManager = _blockManager
     materialize(split, context, effectiveStorageLevel, appId)
   }
-
 }
