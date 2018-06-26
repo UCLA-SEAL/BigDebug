@@ -17,15 +17,11 @@
 
 package org.apache.spark.lineage
 
-import org.apache.ignite.IgniteCache
 import org.apache.spark._
-import org.apache.spark.lineage.ignite.CacheDataTypes.{PartitionWithRecId, TapLRDDValue}
-import org.apache.spark.lineage.ignite.{CacheArguments, IgniteCacheFactory}
-import org.apache.spark.lineage.rdd.{TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
+import org.apache.spark.lineage.ignite.PerfIgniteCacheStorage
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.HashSet
 import scala.language.implicitConversions
 
@@ -70,34 +66,11 @@ object LineageManager{
           
           try {
             blockManager.putIterator(key, arr.toIterator, tap._4, true)
-              
-            // TODO set up key properly
-            val cacheName = s"${appId.get}_${rdd.id}"
-            val cacheArgs = CacheArguments(cacheName)
-            rdd match {
-              case _: TapLRDD[_] =>
-                val cache: IgniteCache[PartitionWithRecId, TapLRDDValue] =
-                  IgniteCacheFactory.createTapLRDDCache(cacheArgs)
-                val bufferMap: Map[PartitionWithRecId, TapLRDDValue] = arr.map(r => {
-                  val rec: TapLRDDValue = TapLRDDValue(r)
-                  (rec.key, rec)
-                }).toMap
-                cache.putAll(bufferMap.asJava)
-              case _: TapPreShuffleLRDD[_] =>
-              // case _: TapPostCoGroupLRDD[_] =>
-              case _: TapPostShuffleLRDD[_] =>
-              
-              
-              
-              case _ =>
-                println(s"Unhandled RDD for apache ignite storage: $rdd")
-  
-  
-            }
             
+            PerfIgniteCacheStorage.store(appId, rdd, arr)
           } catch {
             case e: Exception => {
-              println(s"Error storing ignite data for RDD $rdd")
+              println(s"Error storing data for RDD $rdd")
               e.printStackTrace()
             }
           } finally {

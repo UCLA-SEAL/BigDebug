@@ -1,25 +1,16 @@
 package org.apache.spark.lineage.ignite
 
-import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
-import CacheDataTypes._
+import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 
 
 
+// Not quite an actual factory pattern, but useful for instantiating different KV cache types
 object IgniteCacheFactory {
-  
   val ignite: Ignite = Ignition.ignite()
 
-  def createTapLRDDCache: CacheArguments => IgniteCache[PartitionWithRecId, TapLRDDValue] =
-    createIgniteCache[PartitionWithRecId, TapLRDDValue]
-  
-  
-  def createTapPreShuffleRDDCache: CacheArguments => IgniteCache[Long, (Array[Long], Array[Long])] =
-    createIgniteCache[Long, (Array[Long], Array[Long])]
-  
-  
-  def createIgniteCache[K,V](cacheArguments: CacheArguments): IgniteCache[K,V] = {
+  def createIgniteCache[K, V](cacheArguments: CacheArguments): IgniteCache[K, V] = {
     val cacheConf = new CacheConfiguration[K, V](cacheArguments.cacheName)
       .setAffinity(
         new RendezvousAffinityFunction(false, cacheArguments.numPartitionsPerCache)
