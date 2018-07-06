@@ -20,8 +20,10 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
-import org.apache.spark.lineage.util.IntIntByteBuffer
+import org.apache.spark.lineage.util.{IntIntByteBuffer, IntIntLongByteBuffer}
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 private[spark]
@@ -29,28 +31,38 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
-  @transient private var buffer: IntIntByteBuffer = _
+  @transient private var buffer: IntIntLongByteBuffer = _
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
+    // jteoh: Added second map to separately track record tap time (pre-shuffle).
+    // for both: value is either currentInputId (often incremental) or current system time
+    // second map may be suboptimal - will need to analyze and see if there's anything that can
+    // be done to improve. One option may be reducing precision to milliseconds or even seconds.
+    // Another may be casting into the int range and then using the bitmap approach again.
     val map = new Int2RoaringBitMapOpenHashMap(16384)
+    val startTimeMap = new mutable.HashMap[Int, ListBuffer[Long]]
     val iterator = buffer.iterator
 
     while(iterator.hasNext) {
       val next = iterator.next()
-      map.put(next._1, next._2)
+      val key = next._1
+      map.put(key, next._2)
+      startTimeMap.getOrElseUpdate(key, new ListBuffer[Long]()) += next._3
     }
 
     // We release the buffer here because not needed anymore
     releaseBuffer()
 
     map.keySet().toIntArray.map(k =>
-      new Tuple2(new Tuple2(splitId.toInt, k), map.get(k).toArray)).toArray
+      // jteoh: converted from tuple2 to tuple3 which includes array of times.
+      //new Tuple2(new Tuple2(splitId.toInt, k), map.get(k).toArray)).toArray
+      new Tuple3(new Tuple2(splitId.toInt, k), map.get(k).toArray, startTimeMap(k).toList)).toArray
   }
 
-  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPoolLarge())
+  override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPoolLarge())
 
   override def releaseBuffer() = {
     if(buffer != null) {
@@ -61,7 +73,10 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   }
 
   override def tap(record: T) = {
-    buffer.put(Hashing.murmur3_32().hashString(record._1.toString).asInt(), tContext.currentInputId)
+    val preShuffleTime = System.nanoTime()
+    buffer.put( Hashing.murmur3_32().hashString(record._1.toString).asInt(),
+                tContext.currentInputId,
+                preShuffleTime)
     record
   }
 }

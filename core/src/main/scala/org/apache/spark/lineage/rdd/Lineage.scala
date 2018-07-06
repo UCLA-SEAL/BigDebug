@@ -328,7 +328,8 @@ trait Lineage[T] extends RDD[T] {
    * should be `false` unless this is a pair RDD and the input function doesn't modify the keys.
    */
   override def mapPartitions[U: ClassTag](
-                                           f: Iterator[T] => Iterator[U], preservesPartitioning: Boolean = false): RDD[U] = withScope{
+                                           f: Iterator[T] => Iterator[U],
+                                           preservesPartitioning: Boolean = false): Lineage[U] = withScope{
     val func = (context: TaskContext, pid: Int, iter: Iterator[T], rddId: Int) => f(iter)
     new MapPartitionsLRDD(this, context.clean(func), preservesPartitioning)
   }

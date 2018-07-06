@@ -46,7 +46,8 @@ object CacheDataTypes {
   // Note (jteoh): inputIds is int[] because the split is always the same as the split found in
   // outputId. (Not sure why TapLRDD decided to specify long, but that's not the case here)
   case class TapPreShuffleLRDDValue(outputId: PartitionWithRecId,
-                                    inputIds: Array[Int])
+                                    inputIds: Array[Int],
+                                    outputTimes: List[Long])
     extends PerfIgniteCacheValue {
     
     // TODO: integrate key type into API somewhere (IgniteCacheFactory?)
