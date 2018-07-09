@@ -18,24 +18,24 @@ package org.apache.spark.lineage.util
 
 import org.apache.spark.util.PackIntIntoLong
 
-class IntIntLongByteBuffer(data: Array[Byte]) extends ExtendedByteBuffer[Int, Int, Long](data) {
+class IntIntLongLongByteBuffer(data: Array[Byte]) extends ExtendedByteBuffer2[Int, Int, Long, Long](data) {
 
-  override def put(value1: Int, value2: Int, value3: Long): Unit = {
-    buffer.putLong(PackIntIntoLong(value1, value2)).putLong(value3)
-    if(position  + 16 > capacity) grow() // 4 + 4 + 8
+  override def put(value1: Int, value2: Int, value3: Long, value4: Long): Unit = {
+    buffer.putLong(PackIntIntoLong(value1, value2)).putLong(value3).putLong(value4)
+    if(position  + 24 > capacity) grow() // 4 + 4 + 8 + 8
   }
 
-  override def iterator: Iterator[(Int, Int, Long)] = new Iterator[(Int, Int, Long)] {
+  override def iterator: Iterator[(Int, Int, Long, Long)] = new Iterator[(Int, Int, Long, Long)] {
     private val curSize = position
     buffer.position(0)
 
     override def hasNext: Boolean = position < curSize
-    override def next(): (Int, Int, Long) = {
+    override def next(): (Int, Int, Long, Long) = {
       if (!hasNext) {
         throw new NoSuchElementException
       }
       val next = buffer.getLong
-      (PackIntIntoLong.getLeft(next), PackIntIntoLong.getRight(next), buffer.getLong)
+      (PackIntIntoLong.getLeft(next), PackIntIntoLong.getRight(next), buffer.getLong, buffer.getLong)
     }
   }
 }

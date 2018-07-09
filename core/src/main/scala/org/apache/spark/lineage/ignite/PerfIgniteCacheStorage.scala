@@ -53,10 +53,11 @@ object PerfIgniteCacheStorage {
       case _ : TapPreShuffleLRDD[_] =>
         val values = getValuesIterator[TapPreShuffleLRDDValue](appId, rdd)
         println("TapPreShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), [InputRecId*], " +
-          "[OutputStartTime*])")
+          "[OutputTimestamp*], [OutputLatency*])")
         values.take(topN).foreach( value =>
             println(s"\t(${value.outputId.asTuple}, [${value.inputIds.mkString(",")}], " +
-              s"[${value.outputTimes.mkString(",")}])")
+              s"[${value.outputTimestamps.mkString(",")}], [${value.outputRecordLatencies
+                .mkString(",")}])")
         )
 
       case _ : TapPostShuffleLRDD[_] =>
@@ -132,8 +133,8 @@ final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments) ex
 
 final class TapPreShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
   PerfIgniteCacheStorage[TapPreShuffleLRDDValue](cacheArguments, (r: Any) => {
-    val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long])]
-    TapPreShuffleLRDDValue((PackIntIntoLong.apply _).tupled(tuple._1), tuple._2, tuple._3)
+    val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
+    TapPreShuffleLRDDValue((PackIntIntoLong.apply _).tupled(tuple._1), tuple._2, tuple._3, tuple._4)
   })
 
 final class TapPostShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
