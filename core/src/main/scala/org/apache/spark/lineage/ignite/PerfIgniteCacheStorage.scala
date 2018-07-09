@@ -48,7 +48,7 @@ object PerfIgniteCacheStorage {
     type RecId = Int
     type OutputRecId = RecId
     type InputRecId = RecId
-    type LatencyMs = Long
+    type LatencyNs = Long
     rdd match {
       case _ : TapPreShuffleLRDD[_] =>
         val values = getValuesIterator[TapPreShuffleLRDDValue](appId, rdd)
@@ -71,7 +71,7 @@ object PerfIgniteCacheStorage {
         // inefficient materialization to list and sort by descending time, then take top few tuples
         val records: immutable.Seq[((OutputPartitionId, OutputRecId),
           (InputPartitionId, InputRecId),
-          LatencyMs)] =
+          LatencyNs)] =
         // Key is same as value, so toss it out
           values.toList
             .sortBy(-_.latency)
@@ -83,7 +83,7 @@ object PerfIgniteCacheStorage {
             .take(topN)
       
         println("TapLRDD Schema: " +
-          "((OutputPartitionId, OutputRecId), (InputPartitionId,InputRecId), LatencyMs)")
+          "((OutputPartitionId, OutputRecId), (InputPartitionId,InputRecId), LatencyNs)")
         records.foreach(r => println(s"\t$r"))
       case _ =>
         println(s"Warning: no ignite storage available for non-tapped RDD $rdd")
