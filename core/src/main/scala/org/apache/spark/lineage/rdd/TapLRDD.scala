@@ -112,7 +112,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def tap(record: T) = {
     val id = newRecordId()
-    val timeTaken = computeTotalTime()
+    val timeTaken = computeSimpleTime()
     // logInfo(s"computed time: $timeTaken")
     buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, timeTaken)
     if(isLast) {
@@ -122,6 +122,12 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     }
   }
   
+  // Simplified version of computeTotalTime. Should be the same in practice because task contexts
+  // are only updated within the current stage.
+  // 7/9/18 - Jason
+  def computeSimpleTime(): Long = {
+    tContext.getSummedRddRecordTime()
+  }
   // Note on 6/21/18 (weeks after implementation below): This seems severely overcomplicated.
   // In practice, TapLRDD should only appear after one-to-one dependencies. A shuffle dependency
   // would trigger other subclasses, i.e. pre/post shuffle which should have their own

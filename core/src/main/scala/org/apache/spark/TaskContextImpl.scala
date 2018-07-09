@@ -118,6 +118,10 @@ private[spark] class TaskContextImpl(
   // Jason - might want to add some sort of default value, but that could also depend on how we
   // want to time our calls.
   def getRddRecordOutputTime(rddId: Int): Long = rddTimeMap(rddId)
+  
+  // Jason - exposed under assumption that the task context will only contain a linear DAG, which
+  // should be the case since any branches/merges should be due to shuffles.
+  def getSummedRddRecordTime(): Long = rddTimeMap.foldLeft(0L)(_+_._2)
   /**
    * *************************************************************************************
    */
