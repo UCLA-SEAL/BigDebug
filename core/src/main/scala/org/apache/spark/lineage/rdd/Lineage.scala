@@ -83,6 +83,7 @@ trait Lineage[T] extends RDD[T] {
 
   def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = Iterator.empty
 
+  // jt comment: this is actually an inner join despite naming.
   private[spark] def rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>

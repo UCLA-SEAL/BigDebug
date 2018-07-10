@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.{IntIntByteBuffer, IntKeyAppendOnlyMap}
+import org.apache.spark.lineage.util.{IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
@@ -32,7 +32,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) {
 
-  @transient private var buffer: IntIntByteBuffer = _
+  @transient private var buffer: IntIntLongLongByteBuffer = _
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
@@ -64,11 +64,14 @@ class TapPostShuffleLRDD[T: ClassTag](
           map.changeValue(next._2, update)
         }
 
-        if(isLast) {
-          buffer.iterator.map(r => (PackIntIntoLong(splitId, r._1), (map(r._2), r._2))).toArray
+        // jteoh: refactoring ifLast check to make its usage clearer
+        val outputIdFn: Int => Long = if(isLast) {
+          PackIntIntoLong(splitId, _)
         } else {
-          buffer.iterator.map(r => (r._1.toLong, (map(r._2), r._2))).toArray
+          Int.int2long
         }
+        // jteoh: added timestamp and latency
+        buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2), r._3, r._4)).toArray
       } else {
         Array()
       }
@@ -79,7 +82,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     }
   }
 
-  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer() = buffer = new IntIntLongLongByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer = {
     if(tContext.currentBuffer != null) {
@@ -95,8 +98,16 @@ class TapPostShuffleLRDD[T: ClassTag](
   }
 
   override def tap(record: T) = {
+    val timeTaken = 0L // TODO - anything useful to measure here? using the extra value bc of
+    // buffer implementations (no IntIntLong) and possibility of extension.
+    val postShuffleTime = System.nanoTime()
+    
     tContext.currentInputId = record.asInstanceOf[(_, _)]._1.hashCode()
-    buffer.put(tContext.currentInputId, Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt())
+    buffer.put(tContext.currentInputId,
+      Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt(),
+      postShuffleTime,
+      timeTaken
+    )
     if(isLast) {
       (record, PackIntIntoLong(splitId, tContext.currentInputId)).asInstanceOf[T]
     } else {

@@ -58,9 +58,18 @@ object CacheDataTypes {
   }
   
   // TODO: figure out meaning of data types
+  // outputId: split + hashcode for key (not murmur!)
+  // inputIds: inputIDs that mapped to the same key. Tentative, depending on ext sorter.
+  // inputKeyHash: murmur hash (ideally unique) of the corresponding key
+  // outputTimestamp: time tracked at calls to tap()
+  // outputRecordLatency: how long it took within the stage to tap this record. Currently unused
+  // (0).
   case class TapPostShuffleLRDDValue(outputId: PartitionWithRecId,
-                                     compactBuffer: CompactBuffer[Long],
-                                     bufferKey: Int)
+                                     inputIds: CompactBuffer[Long],
+                                     inputKeyHash: Int,
+                                     outputTimestamp: Long,
+                                     outputRecordLatency: Long
+                                    )
     extends PerfIgniteCacheValue {
     
     def key: PartitionWithRecId = outputId
