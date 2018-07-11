@@ -12,7 +12,10 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.language.implicitConversions
 
-abstract class PerfIgniteCacheStorage[V <: PerfIgniteCacheValue](val cacheArguments: CacheArguments,
+abstract class PerfIgniteCacheStorage[V <: PerfIgniteCacheValue,
+                                      B <: TapLRDD[_]] ( // B used for tracking code, but not
+                                                         // required at runtime
+                                            val cacheArguments: CacheArguments,
                                             val conversionFn: Any => V) {
   val cache = IgniteCacheFactory.createIgniteCache[PartitionWithRecId, V](cacheArguments)
   def store(buffer: Array[Any]): Unit = {
@@ -32,7 +35,7 @@ object PerfIgniteCacheStorage {
   private def getValuesIterator[T <: PerfIgniteCacheValue](appId: Option[String],
                                                            rdd: RDD[_]): Iterable[T] = {
     doWithStorage(appId, rdd) {
-      storage: PerfIgniteCacheStorage[_] =>
+      storage: PerfIgniteCacheStorage[_,_] =>
         val cache = storage.cache
         val cursor = cache.query[Cache.Entry[PartitionWithRecId, T]](new ScanQuery(null))
         cursor.asScala.map(_.getValue)
@@ -53,7 +56,7 @@ object PerfIgniteCacheStorage {
       case _ : TapPreShuffleLRDD[_] =>
         val values = getValuesIterator[TapPreShuffleLRDDValue](appId, rdd)
         println("TapPreShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), [InputRecId*], " +
-          "[OutputTimestamp*], [OutputLatency*])")
+          "[OutputTimestamp*], [OutputLatency*]) (input partition id is same as output)")
         values.take(topN).foreach( value =>
             println(s"\t(${value.outputId.asTuple}, [${value.inputIds.mkString(",")}], " +
               s"[${value.outputTimestamps.mkString(",")}], [${value.outputRecordLatencies
@@ -62,10 +65,11 @@ object PerfIgniteCacheStorage {
 
       case _ : TapPostShuffleLRDD[_] =>
         val values = getValuesIterator[TapPostShuffleLRDDValue](appId, rdd)
-        println("TapPostShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), [InputRecId*], " +
+        println("TapPostShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), " +
+          "[(InputPartitionId, InputRecId)*], " +
           "InputKeyHash, OutputTimestamp, OutputLatency)")
         values.take(topN).foreach( value =>
-        println(s"\t(${value.outputId.asTuple}, [${value.inputIds.mkString(",")}], " +
+        println(s"\t(${value.outputId.asTuple}, [${value.inputIds.map(PackIntIntoLong.extractToTuple(_)).mkString(",")}], " +
           s"${value.inputKeyHash}, ${value.outputTimestamp}, ${value.outputRecordLatency})")
         )
 
@@ -75,15 +79,15 @@ object PerfIgniteCacheStorage {
         val records: immutable.Seq[((OutputPartitionId, OutputRecId),
           (InputPartitionId, InputRecId),
           LatencyNs)] =
-        // Key is same as value, so toss it out
           values.toList
             .sortBy(-_.latency)
+            .take(topN)
             .map(r => {
               (r.outputId.asTuple,
                 r.inputId.asTuple,
                 r.latency)
             })
-            .take(topN)
+            
       
         println("TapLRDD Schema: " +
           "((OutputPartitionId, OutputRecId), (InputPartitionId,InputRecId), LatencyNs)")
@@ -96,10 +100,11 @@ object PerfIgniteCacheStorage {
   // Template
   private def doWithStorage[T](appId: Option[String],
                             rdd: RDD[_])
-                           (fn: PerfIgniteCacheStorage[_] => T): Option[T] = {
+                           (fn: PerfIgniteCacheStorage[_,_] => T): Option[T] = {
     val cacheName = buildCacheName(appId, rdd)
     val cacheArgs = CacheArguments(cacheName)
-    val storageConstructor: Option[CacheArguments => PerfIgniteCacheStorage[_]] = getStorageConstructor(rdd)
+    val storageConstructor: Option[CacheArguments => PerfIgniteCacheStorage[_,_]] =
+      getStorageConstructor(rdd)
     
     // Returns none if no storage constructor defined
     storageConstructor.map(constructor => fn(constructor(cacheArgs)))
@@ -126,7 +131,7 @@ object PerfIgniteCacheStorage {
 }
 
 final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapLRDDValue](cacheArguments, (r: Any) => {
+  PerfIgniteCacheStorage[TapLRDDValue, TapLRDD[_]](cacheArguments, (r: Any) => {
     val tuple = r.asInstanceOf[(Long, Long,Long)]
     // implicitly rely on conversions to proper data types here, rather than using
     // `tupled` and using native types
@@ -134,13 +139,14 @@ final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments) ex
   })
 
 final class TapPreShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapPreShuffleLRDDValue](cacheArguments, (r: Any) => {
+  PerfIgniteCacheStorage[TapPreShuffleLRDDValue, TapPreShuffleLRDD[_]](cacheArguments, (r: Any) => {
     val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
     TapPreShuffleLRDDValue((PackIntIntoLong.apply _).tupled(tuple._1), tuple._2, tuple._3, tuple._4)
   })
 
 final class TapPostShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapPostShuffleLRDDValue](cacheArguments, (r: Any) => {
+  PerfIgniteCacheStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](cacheArguments, (r: Any)
+  => {
   val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long, Long)]
   TapPostShuffleLRDDValue(tuple._1, tuple._2._1, tuple._2._2, tuple._3, tuple._4)
 })
