@@ -29,7 +29,8 @@ abstract class PerfIgniteCacheStorage[V <: CacheValue,
                                                          // required at runtime
                                             val cacheArguments: CacheArguments,
                                             val conversionFn: Any => V) {
-  val cache = IgniteCacheFactory.createIgniteCache[PartitionWithRecId, V](cacheArguments)
+  // Possible optimization later - look into comment for keepPartitions
+  val cache = IgniteCacheFactory.createIgniteCacheWithPRKey[V](cacheArguments,keepPartitions=false)
   def store(buffer: Array[Any]): Unit = {
     val data = buffer.map(r => {
       val rec = conversionFn(r)
@@ -92,7 +93,7 @@ object PerfIgniteCacheStorage {
                             rdd: RDD[_])
                            (fn: PerfIgniteCacheStorage[_,_] => T): Option[T] = {
     val cacheName = buildCacheName(appId, rdd)
-    val cacheArgs = CacheArguments(cacheName)
+    val cacheArgs = CacheArguments(cacheName, rdd.getNumPartitions)
     val storageConstructor: Option[CacheArguments => PerfIgniteCacheStorage[_,_]] =
       getStorageConstructor(rdd)
     
