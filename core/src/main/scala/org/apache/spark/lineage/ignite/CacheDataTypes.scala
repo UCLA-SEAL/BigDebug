@@ -1,5 +1,8 @@
 package org.apache.spark.lineage.ignite
 
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
@@ -9,6 +12,12 @@ import scala.language.implicitConversions
  *  tapped lineage data
  */
 object CacheDataTypes {
+  val dateFormat = new SimpleDateFormat("HH:mm:ss:SSS")
+  // TODO make this configurable
+  dateFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"))
+  def timestampToDateStr(millis: Long) = dateFormat.format(millis)
+  
+  
   /** PartitionWithRecId is a common format used throughout Titian - I've simply created a
     * wrapper to abstract out the details
     */
@@ -49,7 +58,7 @@ object CacheDataTypes {
       TapLRDDValue(tuple._1, tuple._2, tuple._3)
     }
     def readableSchema: String = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
-      "=> ((InputPartitionId,InputRecId), LatencyNs)"
+      "=> ((InputPartitionId,InputRecId), LatencyMs)"
   }
   
   // Note (jteoh): inputIds is int[] because the split is always the same as the split found in
@@ -70,7 +79,8 @@ object CacheDataTypes {
     }
   
     override def toString: String = s"$outputId => ([${inputIds.mkString(",")}], " +
-      s"[${outputTimestamps.mkString(",")}], [${outputRecordLatencies.mkString(",")}])"
+      s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies
+        .mkString(",")}])"
   }
   
   object TapPreShuffleLRDDValue {
@@ -80,7 +90,7 @@ object CacheDataTypes {
     }
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
-      "([InputRecId*], [OutputTimestamp*], [OutputLatency*])"
+      "([InputRecId*], [OutputTime*], [OutputLatencyMs*])"
   }
   
   // TODO: figure out meaning of data types
@@ -105,7 +115,7 @@ object CacheDataTypes {
     override def toString: String = s"$outputId => ([${inputIds
       .mkString(",")
     }], " +
-      s"$inputKeyHash, $outputTimestamp, $outputRecordLatency)"
+      s"$inputKeyHash, ${timestampToDateStr(outputTimestamp)}, $outputRecordLatency)"
   }
   
   object TapPostShuffleLRDDValue {
@@ -121,7 +131,7 @@ object CacheDataTypes {
     }
     def readableSchema: String =
       s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
-        "InputRecId)*], InputKeyHash, OutputTimestamp, OutputLatency)"
+        "InputRecId)*], InputKeyHash, OutputTime, OutputLatencyMs)"
   }
   
   implicit def longToPartitionRec(value: Long): PartitionWithRecId = PartitionWithRecId(value)

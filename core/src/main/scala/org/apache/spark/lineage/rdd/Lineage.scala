@@ -168,16 +168,20 @@ trait Lineage[T] extends RDD[T] {
   
   // Borrowed and adapted from http://biercoff.com/easily-measuring-code-execution-time-in-scala/
   /**
-   * Measures the time taken when executing the provided block, in nanoseconds. Stores this value
-   * into ,
-   * and stores it into this
-   * @param block
-   * @return
+   * Measures the time taken when executing the provided block, in milliseconds. Stores this value
+   * using the current task context.
+   *
+   * This method could be modified to measure in nanoseconds. However, the shuffle-based
+   * performance is inherently limited to millis by clock time measurements and nanosecond
+   * precision can be significantly more costly:
+   * https://stackoverflow.com/questions/351565/system-currenttimemillis-vs-system-nanotime
+   * first comment on question: currentTimeMillis() runs in a few (5-6) cpu clocks, nanoTime depends
+   * on the underlying architecture and can be 100+ cpu clocks.
    */
   def measureTime[R](taskContext: TaskContext, block: => R, rddId: Int): R = {
-    val t0 = System.nanoTime()
+    val t0 = System.currentTimeMillis()
     val result = block    // call-by-name
-    val t1 = System.nanoTime()
+    val t1 = System.currentTimeMillis()
     val timeTaken = t1 - t0
     taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)
     result

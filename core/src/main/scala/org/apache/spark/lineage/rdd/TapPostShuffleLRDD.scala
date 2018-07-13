@@ -100,7 +100,7 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def tap(record: T) = {
     val timeTaken = 0L // TODO - anything useful to measure here? using the extra value bc of
     // buffer implementations (no IntIntLong) and possibility of extension.
-    val postShuffleTime = System.nanoTime()
+    val postShuffleTime = System.currentTimeMillis()
     
     tContext.currentInputId = record.asInstanceOf[(_, _)]._1.hashCode()
     buffer.put(tContext.currentInputId,

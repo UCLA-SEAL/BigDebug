@@ -86,7 +86,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   }
 
   override def tap(record: T) = {
-    val preShuffleTime = System.nanoTime()
+    val preShuffleTime = System.currentTimeMillis()
     val timeTaken = tContext.getSummedRddRecordTime()
     buffer.put( Hashing.murmur3_32().hashString(record._1.toString).asInt(),
                 tContext.currentInputId,
