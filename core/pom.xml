@@ -42,11 +42,23 @@
       <version>0.4.2</version>
     </dependency>
 
-      <dependency>
+    <dependency>
       <groupId>org.apache.ignite</groupId>
       <artifactId>ignite-core</artifactId>
       <version>${ignite.version}</version>
-      
+      <!-- <exclusion>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-unsafe_2.10</artifactId>
+      </exclusion> -->
+
+      <!-- 
+      7/12/2018 jteoh 
+      I think these were made when I attempted to use ignite-spark isntead of ignite-core.
+      Unfortunately, ignite-spark seems to use some 2.10 versions.
+      See https://issues.apache.org/jira/browse/IGNITE-6369
+      which is claimed to be fixed in https://issues.apache.org/jira/browse/IGNITE-3084
+      -->
+
       <!--<exclusions>
         &lt;!&ndash;Added exclusions to bypass enforcer, which will flag any 2.10 item&ndash;&gt;
         <exclusion>
