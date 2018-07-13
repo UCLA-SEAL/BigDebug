@@ -2,7 +2,7 @@ package org.apache.spark.lineage.ignite
 
 import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
-import org.apache.spark.lineage.ignite.CacheDataTypes.{PartitionWithRecId, PerfIgniteCacheValue, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
+import org.apache.spark.lineage.ignite.CacheDataTypes.{PartitionWithRecId, CacheValue, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
 import org.apache.spark.lineage.rdd.{TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
@@ -12,7 +12,19 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.language.implicitConversions
 
-abstract class PerfIgniteCacheStorage[V <: PerfIgniteCacheValue,
+/** Central class for binding [[TapLRDD]] and its subclasses with their
+ * [[CacheValue]] and ignite cache classes (this).
+ * This class also manages the conversion of records (from materialized buffers in the RDDs) to
+ * the corresponding [[CacheValue]], and may contain additional logic than that
+ * found in the Titian codebase.
+ *
+ * @param cacheArguments ignite cache configuration arguments
+ * @param conversionFn   function to convert records to the corresponding [[CacheValue]]
+ * @tparam V type of [[CacheValue]] to store. Should match with [[B]]
+ * @tparam B type of [[TapLRDD]] that this cache should be used with. While not explicitly
+ *           utilized in code, this is included for a clearer dependence mapping.
+ */
+abstract class PerfIgniteCacheStorage[V <: CacheValue,
                                       B <: TapLRDD[_]] ( // B used for tracking code, but not
                                                          // required at runtime
                                             val cacheArguments: CacheArguments,
@@ -25,6 +37,9 @@ abstract class PerfIgniteCacheStorage[V <: PerfIgniteCacheValue,
     }).toMap.asJava
     cache.putAll(data)
   }
+  
+  def get = cache.get _
+  def getAll = cache.getAll _
 }
 
 object PerfIgniteCacheStorage {
@@ -32,8 +47,8 @@ object PerfIgniteCacheStorage {
     doWithStorage(appId, rdd)(_.store(data))
   }
   
-  private def getValuesIterator[T <: PerfIgniteCacheValue](appId: Option[String],
-                                                           rdd: RDD[_]): Iterable[T] = {
+  def getValuesIterator[T <: CacheValue](appId: Option[String],
+                                         rdd: RDD[_]): Iterable[T] = {
     doWithStorage(appId, rdd) {
       storage: PerfIgniteCacheStorage[_,_] =>
         val cache = storage.cache
@@ -42,63 +57,38 @@ object PerfIgniteCacheStorage {
     }.getOrElse(Iterable.empty)
   }
   
+  /* Utility method to help with printing with schema - in practice, you can also use
+  getValuesIterator or the ignite RDD and rely on the default toString for the values
+   */
   def print(appId: Option[String], rdd: RDD[_], topN: Int = 15): Unit = {
     println(s"Printing contents for rdd ${rdd.getClass.getSimpleName}[${rdd.id}] in " +
       s"cache ${buildCacheName(appId, rdd)}")
-    type PartitionId = Int
-    type OutputPartitionId = PartitionId
-    type InputPartitionId = PartitionId
-    type RecId = Int
-    type OutputRecId = RecId
-    type InputRecId = RecId
-    type LatencyNs = Long
     rdd match {
       case _ : TapPreShuffleLRDD[_] =>
         val values = getValuesIterator[TapPreShuffleLRDDValue](appId, rdd)
-        println("TapPreShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), [InputRecId*], " +
-          "[OutputTimestamp*], [OutputLatency*]) (input partition id is same as output)")
-        values.take(topN).foreach( value =>
-            println(s"\t(${value.outputId.asTuple}, [${value.inputIds.mkString(",")}], " +
-              s"[${value.outputTimestamps.mkString(",")}], [${value.outputRecordLatencies
-                .mkString(",")}])")
-        )
+        println("TapPreShuffleLRDD Schema: " + TapPreShuffleLRDDValue.readableSchema)
+        values.take(topN).foreach(v => println("\t" + v))
 
       case _ : TapPostShuffleLRDD[_] =>
         val values = getValuesIterator[TapPostShuffleLRDDValue](appId, rdd)
-        println("TapPostShuffleLRDD Schema: ((OutputPartitionId, OutputRecId), " +
-          "[(InputPartitionId, InputRecId)*], " +
-          "InputKeyHash, OutputTimestamp, OutputLatency)")
-        values.take(topN).foreach( value =>
-        println(s"\t(${value.outputId.asTuple}, [${value.inputIds.map(PackIntIntoLong.extractToTuple(_)).mkString(",")}], " +
-          s"${value.inputKeyHash}, ${value.outputTimestamp}, ${value.outputRecordLatency})")
-        )
+        println("TapPostShuffleLRDD Schema: " + TapPostShuffleLRDDValue.readableSchema)
+        values.take(topN).foreach(v => println("\t" + v))
 
       case _ : TapLRDD[_] =>
         val values = getValuesIterator[TapLRDDValue](appId, rdd)
         // inefficient materialization to list and sort by descending time, then take top few tuples
-        val records: immutable.Seq[((OutputPartitionId, OutputRecId),
-          (InputPartitionId, InputRecId),
-          LatencyNs)] =
-          values.toList
-            .sortBy(-_.latency)
-            .take(topN)
-            .map(r => {
-              (r.outputId.asTuple,
-                r.inputId.asTuple,
-                r.latency)
-            })
-            
+        println("TapLRDD Schema: " + TapLRDDValue.readableSchema)
+        values.toList.sortBy(-_.latency)
+          .take(topN)
+          .foreach(v => println("\t" + v))
       
-        println("TapLRDD Schema: " +
-          "((OutputPartitionId, OutputRecId), (InputPartitionId,InputRecId), LatencyNs)")
-        records.foreach(r => println(s"\t$r"))
       case _ =>
         println(s"Warning: no ignite storage available for non-tapped RDD $rdd")
     }
   }
   
   // Template
-  private def doWithStorage[T](appId: Option[String],
+  def doWithStorage[T](appId: Option[String],
                             rdd: RDD[_])
                            (fn: PerfIgniteCacheStorage[_,_] => T): Option[T] = {
     val cacheName = buildCacheName(appId, rdd)
@@ -131,22 +121,19 @@ object PerfIgniteCacheStorage {
 }
 
 final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapLRDDValue, TapLRDD[_]](cacheArguments, (r: Any) => {
-    val tuple = r.asInstanceOf[(Long, Long,Long)]
-    // implicitly rely on conversions to proper data types here, rather than using
-    // `tupled` and using native types
-    TapLRDDValue(tuple._1, tuple._2, tuple._3)
-  })
+  PerfIgniteCacheStorage[TapLRDDValue, TapLRDD[_]](
+    cacheArguments,
+    TapLRDDValue.fromRecord
+  )
 
 final class TapPreShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapPreShuffleLRDDValue, TapPreShuffleLRDD[_]](cacheArguments, (r: Any) => {
-    val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
-    TapPreShuffleLRDDValue((PackIntIntoLong.apply _).tupled(tuple._1), tuple._2, tuple._3, tuple._4)
-  })
+  PerfIgniteCacheStorage[TapPreShuffleLRDDValue, TapPreShuffleLRDD[_]](
+    cacheArguments,
+    TapPreShuffleLRDDValue.fromRecord
+  )
 
 final class TapPostShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
-  PerfIgniteCacheStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](cacheArguments, (r: Any)
-  => {
-  val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long, Long)]
-  TapPostShuffleLRDDValue(tuple._1, tuple._2._1, tuple._2._2, tuple._3, tuple._4)
-})
+  PerfIgniteCacheStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](
+    cacheArguments,
+    TapPostShuffleLRDDValue.fromRecord
+  )
