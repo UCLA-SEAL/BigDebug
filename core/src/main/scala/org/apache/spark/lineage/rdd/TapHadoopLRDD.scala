@@ -21,6 +21,7 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.util.LongIntLongByteBuffer
+import org.apache.spark.util.PackIntIntoLong
 
 private[spark]
 class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -32,8 +33,15 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   @transient private var buffer: LongIntLongByteBuffer = _
 
   // Jason - convert to be equivalent to TapLRDD in Long 2nd value
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r
-    ._2.toLong, r._3))
+  // 7/13/18 update: rather than cast to long, pack with the split id. In normal Titian this is
+  // not necessary because the subsequent TapLRDD will be in the same partition (and thus
+  // zipPartitions can be used to more efficiently join).
+  // Note: The 'input key' here is misleadingly treated as a (K,V) because there's no explicit
+  // TapHadoopLRDD cache yet.
+  // Note: The values here are actually backwards w.r.t. the normal format of (output, input). It
+  // will be explicitly handled in the TapHadoopLRDDValue class.
+  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1,
+    PackIntIntoLong(splitId, r._2), r._3))
 
   override def initializeBuffer = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
 

@@ -2,8 +2,8 @@ package org.apache.spark.lineage.ignite
 
 import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
-import org.apache.spark.lineage.ignite.CacheDataTypes.{PartitionWithRecId, CacheValue, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
-import org.apache.spark.lineage.rdd.{TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
+import org.apache.spark.lineage.ignite.CacheDataTypes.{CacheValue, PartitionWithRecId, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
+import org.apache.spark.lineage.rdd.{TapHadoopLRDD, TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
@@ -75,6 +75,12 @@ object PerfIgniteCacheStorage {
         println("TapPostShuffleLRDD Schema: " + TapPostShuffleLRDDValue.readableSchema)
         values.take(topN).foreach(v => println("\t" + v))
 
+      case _ : TapHadoopLRDD[_,_] =>
+        val values = getValuesIterator[TapHadoopLRDDValue](appId, rdd)
+        println("TapHadoopLRDD Schema: " + TapHadoopLRDDValue.readableSchema)
+        values.toList.sortBy(_.byteOffset)
+          .take(topN).foreach(v => println("\t" + v))
+
       case _ : TapLRDD[_] =>
         val values = getValuesIterator[TapLRDDValue](appId, rdd)
         // inefficient materialization to list and sort by descending time, then take top few tuples
@@ -107,7 +113,9 @@ object PerfIgniteCacheStorage {
         Some(new TapPreShuffleLRDDIgniteStorage(_))
       case _: TapPostShuffleLRDD[_] =>
         Some(new TapPostShuffleLRDDIgniteStorage(_))
-      case _: TapLRDD[_] =>
+      case _: TapHadoopLRDD[_,_] =>
+        Some(new TapHadoopLRDDIgniteStorage(_))
+      case _: TapLRDD[_] => // needs to be at the end because all others extend from this
         Some(new TapLRDDIgniteStorage(_))
       case _ =>
         println(s"Warning: no ignite storage available for non-tapped RDD $rdd")
@@ -125,6 +133,12 @@ final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments) ex
   PerfIgniteCacheStorage[TapLRDDValue, TapLRDD[_]](
     cacheArguments,
     TapLRDDValue.fromRecord
+  )
+
+final class TapHadoopLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
+  PerfIgniteCacheStorage[TapHadoopLRDDValue, TapHadoopLRDD[_,_]](
+    cacheArguments,
+    TapHadoopLRDDValue.fromRecord
   )
 
 final class TapPreShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends

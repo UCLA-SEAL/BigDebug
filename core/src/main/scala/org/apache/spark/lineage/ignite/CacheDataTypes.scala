@@ -27,8 +27,7 @@ object CacheDataTypes {
     def split = partition // alias
     def recordId = PackIntIntoLong.getRight(value)
     def asTuple = PackIntIntoLong.extractToTuple(value)
-  
-    // TODO this is dangerous - perhaps label it somehow??
+    
     override def toString: String = asTuple.toString()
   }
 
@@ -44,10 +43,9 @@ object CacheDataTypes {
                           latency: Long)
     extends CacheValue {
     
-    // TODO: integrate key type into API somewhere (IgniteCacheFactory?)
-    def key: PartitionWithRecId = outputId
-  
-    override def toString: String = s"($outputId => $inputId, $latency)"
+    def key = outputId
+    
+    override def toString = s"($outputId => $inputId, $latency)"
   }
   
   object TapLRDDValue {
@@ -57,28 +55,49 @@ object CacheDataTypes {
       // `tupled` and using native types
       TapLRDDValue(tuple._1, tuple._2, tuple._3)
     }
-    def readableSchema: String = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
+    def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
       "=> ((InputPartitionId,InputRecId), LatencyMs)"
+  }
+  
+  case class TapHadoopLRDDValue(outputId: PartitionWithRecId,
+                                byteOffset: Long, // in hadoop file
+                                latency: Long)
+    extends CacheValue {
+    
+    def key = outputId
+    
+    override def toString = s"($outputId => $byteOffset, $latency)"
+  }
+  
+  object TapHadoopLRDDValue {
+    def fromRecord(r: Any) = {
+      val tuple = r.asInstanceOf[(Long, Long,Long)]
+      // implicitly rely on conversions to proper data types here, rather than using
+      // `tupled` and using native types
+      // As noted in TapHadoopLRDD, the first and second argument need to be swapped.
+      TapHadoopLRDDValue(tuple._2, tuple._1, tuple._3)
+    }
+    def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
+      "=> (ByteOffset, LatencyMs)"
   }
   
   // Note (jteoh): inputIds is int[] because the split is always the same as the split found in
   // outputId. (Not sure why TapLRDD decided to specify long, but that's not the case here)
   // These names might not be the most appropriate and are subject to change.
   case class TapPreShuffleLRDDValue(outputId: PartitionWithRecId,
-                                    inputIds: Array[Int],
+                                    inputRecIds: Array[Int],
                                     outputTimestamps: List[Long],
                                     outputRecordLatencies: List[Long])
     extends CacheValue {
     
-    // TODO: integrate key type into API somewhere (IgniteCacheFactory?)
-    def key: PartitionWithRecId = outputId
+    def key = outputId
     
     def inputPartitionWithRecIds: Array[PartitionWithRecId] = {
       val partition = outputId.partition
-      inputIds.map(new PartitionWithRecId(partition, _))
+      inputRecIds.map(new PartitionWithRecId(partition, _))
     }
   
-    override def toString: String = s"$outputId => ([${inputIds.mkString(",")}], " +
+    override def toString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
       s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies
         .mkString(",")}])"
   }
@@ -93,7 +112,6 @@ object CacheDataTypes {
       "([InputRecId*], [OutputTime*], [OutputLatencyMs*])"
   }
   
-  // TODO: figure out meaning of data types
   // outputId: split + hashcode for key (not murmur!)
   // inputIds: inputIDs that mapped to the same key. Tentative, depending on ext sorter.
   //  7/12/2018 jteoh - these only appear to be used for their partitions right now, but it used
@@ -110,9 +128,9 @@ object CacheDataTypes {
                                     )
     extends CacheValue {
     
-    def key: PartitionWithRecId = outputId
+    def key = outputId
   
-    override def toString: String = s"$outputId => ([${inputIds
+    override def toString = s"$outputId => ([${inputIds
       .mkString(",")
     }], " +
       s"$inputKeyHash, ${timestampToDateStr(outputTimestamp)}, $outputRecordLatency)"
@@ -129,7 +147,7 @@ object CacheDataTypes {
       TapPostShuffleLRDDValue(tuple._1, tuple._2._1.map(PartitionWithRecId), tuple._2._2, tuple._3,
         tuple._4)
     }
-    def readableSchema: String =
+    def readableSchema =
       s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
         "InputRecId)*], InputKeyHash, OutputTime, OutputLatencyMs)"
   }
