@@ -36,6 +36,7 @@ object CacheDataTypes {
    */
   abstract class CacheValue {
     def key: PartitionWithRecId
+    def inputKeys: Seq[PartitionWithRecId]
   }
   
   case class TapLRDDValue(outputId: PartitionWithRecId,
@@ -44,6 +45,8 @@ object CacheDataTypes {
     extends CacheValue {
     
     def key = outputId
+  
+    override def inputKeys: Seq[PartitionWithRecId] = Seq(inputId)
     
     override def toString = s"($outputId => $inputId, $latency)"
   }
@@ -65,6 +68,9 @@ object CacheDataTypes {
     extends CacheValue {
     
     def key = outputId
+  
+    override def inputKeys: Seq[PartitionWithRecId] =
+      throw new UnsupportedOperationException("TapHadoopLRDDs represent the start of an execution tree and do not have other lineage input")
     
     override def toString = s"($outputId => $byteOffset, $latency)"
   }
@@ -91,12 +97,10 @@ object CacheDataTypes {
     extends CacheValue {
     
     def key = outputId
-    
-    def inputPartitionWithRecIds: Array[PartitionWithRecId] = {
-      val partition = outputId.partition
-      inputRecIds.map(new PartitionWithRecId(partition, _))
-    }
   
+    override def inputKeys: Seq[PartitionWithRecId] =
+      inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
+    
     override def toString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
       s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies
         .mkString(",")}])"
@@ -129,6 +133,10 @@ object CacheDataTypes {
     extends CacheValue {
     
     def key = outputId
+
+    // See comments above - inputIds is only used for partition.
+    override def inputKeys: Seq[PartitionWithRecId] =
+      inputIds.map(inp => new PartitionWithRecId(inp.partition, inputKeyHash))
   
     override def toString = s"$outputId => ([${inputIds
       .mkString(",")
