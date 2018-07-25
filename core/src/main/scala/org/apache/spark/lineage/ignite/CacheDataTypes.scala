@@ -53,10 +53,18 @@ object CacheDataTypes {
   
   object TapLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[(Long, Long,Long)]
-      // implicitly rely on conversions to proper data types here, rather than using
-      // `tupled` and using native types
-      TapLRDDValue(tuple._1, tuple._2, tuple._3)
+      val (outputLong, inputRecId, latency) = r.asInstanceOf[(Long, Long,Long)]
+      // note from jteoh:
+      // In Titian, the input consists solely of the record ID as partition ID is the same and
+      // the join procedure was within partitions anyways. As this is no longer the case, we
+      // augment the input ID with partition after the fact. Note that this is technically
+      // slightly suboptimal in that we would ideally directly modify Titian. For the time being,
+      // I'm trying to preserve Titian code appearance for reference purposes. Feel free to write
+      // this directly into TapLRDD in the future though, to simplify the coupling.
+      val output = PartitionWithRecId(outputLong)
+      val split = output.split
+      val inputWithSplit = new PartitionWithRecId(split, inputRecId.toInt)
+      TapLRDDValue(output, inputWithSplit, latency)
     }
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
       "=> ((InputPartitionId,InputRecId), LatencyMs)"

@@ -75,6 +75,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     LineageManager.initMaterialization(this, split, context)
 
     // Make sure to time the current tap function here too.
+    // jteoh later note on 7/23/2018 - I don't think this is being picked up though.
     firstParent[T].iterator(split, context).map(measureTime(context, tap, this.id))
   }
 
