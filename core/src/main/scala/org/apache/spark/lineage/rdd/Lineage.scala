@@ -278,6 +278,10 @@ trait Lineage[T] extends RDD[T] {
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =withScope{
     // TODO add timing
+    // consider: measure each call of cleanF (which returns an iterable) and divide by the total
+    // number returned.
+    // Doesn't this inherently require knowing how many were returned? but the API specifically
+    // only requires a TraversableOnce. Ugly option: buffer.
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[U, T](this,
       (context, pid, iter, rddId) => iter.flatMap(cleanF))

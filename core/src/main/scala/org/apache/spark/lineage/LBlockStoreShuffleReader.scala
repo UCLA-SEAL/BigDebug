@@ -45,7 +45,7 @@ private[spark] class LBlockStoreShuffleReader[K, C](
 
   val dep = handle.dependency
 
-  /** Read the combined key-values for this reduce task */
+  /** Read the combined key-values for this reduce task */ // jteoh: shuffId isn't even used...
   override def read(isCache: Option[Boolean] = None, shuffId: Int = 0): Iterator[Product2[K, C]] = {
     val blockFetcherItr = new ShuffleBlockFetcherIterator(
       context,
@@ -84,7 +84,8 @@ private[spark] class LBlockStoreShuffleReader[K, C](
     val interruptibleIter = new InterruptibleIterator[(Any, Any)](context, metricIter)
 
 
-    if (isCache.isDefined) {
+    if (isCache.isDefined) { // jteoh: need to understand and document how isCache is used here
+      // as ternary value
       if (isCache.get) {
         return interruptibleIter.asInstanceOf[Iterator[Product2[K, C]]]
       } else {

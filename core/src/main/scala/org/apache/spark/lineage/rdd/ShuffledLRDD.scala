@@ -43,6 +43,9 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
   override def lineageContext: LineageContext = previous.lineageContext
 
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
+    // notable differences:
+    // using Some(isLineageActive) to getReader
+    // passing in (isPreShuffleCache, id) as arguments to read() call.
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
     SparkEnv.get.shuffleManager
     .getReader(dep.shuffleHandle, split.index, split.index + 1, context, Some(isLineageActive))
@@ -79,6 +82,7 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     new TapPreShuffleLRDD[(K, C)](lineageContext, newDeps).setCached(this).combinerEnabled(mapSideCombine)
   }
 
+  // jteoh: this appears to not be used anywhere.
   override def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = {
     if (tappedIter.isEmpty) {
       return tappedIter
