@@ -44,8 +44,8 @@ class TapPostCoGroupLRDD[T: ClassTag](
 
       while (iterator.hasNext) {
         val next = iterator.next()
-        set.add(next._1)
-        map.changeValue(
+        set.add(next._1) // next._1 = (murmurhash, outputRecId) as Long
+        map.changeValue( // map: murmurHash -> [outputLineageIds])
         PackIntIntoLong.getLeft(next._1), {
           val tmp = new CompactBuffer[Long]()
           tmp += next._2
@@ -62,9 +62,9 @@ class TapPostCoGroupLRDD[T: ClassTag](
 
       if(isLast) {
         set.iterator
-          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r)))
+          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r))) //murmurhash, outputRecId
           .map(r => (PackIntIntoLong(splitId, r._2), (map.getOrElse(r._1, null), r._1))
-          ).toArray
+          ).toArray // ( OutputLinId(Partition,RecId), (CompactBuf[InpLinIds], murmurHash) )
       } else {
         set.iterator
           .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r)))
@@ -92,11 +92,14 @@ class TapPostCoGroupLRDD[T: ClassTag](
     tContext.currentInputId = newRecordId()
     val iters = for(iter <- values) yield {
       iter.map(r => {
-        buffer.put(PackIntIntoLong(hash, nextRecord), r._2)
+        buffer.put(PackIntIntoLong(hash, nextRecord), r._2) // TODO jteoh: figure out where Longs
+        // come from
+        //(murmurHash, outputId), all Longs - I'm guessing lineage IDs but not sure how they're
+        // introduced...
         r._1
       })
     }
 
-    (key, iters.reverse).asInstanceOf[T]
+    (key, iters.reverse).asInstanceOf[T] // jteoh: why reverse??
   }
 }
