@@ -110,18 +110,29 @@ class CoGroupedRDD[K: ClassTag](
   }
 
   override def getPartitions: Array[Partition] = {
+    // jteoh: If this RDD has been serialized, rdds will be null. To specifically support
+    // getNumPartitions (which for some RDDs, depends on the partitions of the parent), this
+    // method will return a dummy array of the desired length when the transient rdds
+    // are not present. Note that these values are only placeholders to 'pass' checks and are not
+    // actual partitions!.
     val array = new Array[Partition](part.numPartitions)
-    for (i <- 0 until array.length) {
-      // Each CoGroupPartition will have a dependency per contributing RDD
-      array(i) = new CoGroupPartition(i, rdds.zipWithIndex.map { case (rdd, j) =>
-        // Assume each RDD contributed a single dependency, and get it
-        dependencies(j) match {
-          case s: ShuffleDependency[_, _, _] =>
-            None
-          case _ =>
-            Some(new NarrowCoGroupSplitDep(rdd, i, rdd.partitions(i)))
-        }
-      }.toArray)
+    if(rdds != null) {
+      for (i <- 0 until array.length) {
+        // Each CoGroupPartition will have a dependency per contributing RDD
+        array(i) = new CoGroupPartition(i, rdds.zipWithIndex.map { case (rdd, j) =>
+          // Assume each RDD contributed a single dependency, and get it
+          dependencies(j) match {
+            case s: ShuffleDependency[_, _, _] =>
+              None
+            case _ =>
+              Some(new NarrowCoGroupSplitDep(rdd, i, rdd.partitions(i)))
+          }
+        }.toArray)
+      }
+    } else {
+      for (i <- 0 until array.length) {
+        array(i) = new CoGroupPartition(i, Array.empty)
+      }
     }
     array
   }
