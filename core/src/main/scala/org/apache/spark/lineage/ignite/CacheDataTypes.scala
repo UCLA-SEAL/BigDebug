@@ -13,16 +13,17 @@ import scala.language.implicitConversions
  */
 object CacheDataTypes {
   val dateFormat = new SimpleDateFormat("HH:mm:ss:SSS")
-  // TODO make this configurable
-  dateFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"))
   def timestampToDateStr(millis: Long) = dateFormat.format(millis)
-  
+  def setDisplayTimeZone(timeZone: TimeZone): Unit = dateFormat.setTimeZone(timeZone)
+  def setDisplayTimeZone(tz: String): Unit = setDisplayTimeZone(TimeZone.getTimeZone(tz))
+  setDisplayTimeZone("America/Los_Angeles") // default value
   
   /** PartitionWithRecId is a common format used throughout Titian - I've simply created a
     * wrapper to abstract out the details
     */
   case class PartitionWithRecId(value: Long) {
     def this(partition: Int, id: Int) = this(PackIntIntoLong(partition, id))
+    def this(tuple: (Int, Int)) = this((PackIntIntoLong.apply _).tupled(tuple))
     def partition = PackIntIntoLong.getLeft(value)
     def split = partition // alias
     def recordId = PackIntIntoLong.getRight(value)
@@ -33,12 +34,18 @@ object CacheDataTypes {
 
   /** Temp base class for easy interpretation of record key in ignite. In practice we might not
    * want to actually store the key inside the value object, so this is subject to change/removal.
+   * As of initial implementation, every cache actually has records of (value.key, value)
    */
   abstract class CacheValue {
     def key: PartitionWithRecId
     def inputKeys: Seq[PartitionWithRecId]
+    def cacheValueString: String
+    
+    override final def toString: String = cacheValueString
+    
   }
   
+  /** TapLRDD cache value */
   case class TapLRDDValue(outputId: PartitionWithRecId,
                           inputId: PartitionWithRecId,
                           latency: Long)
@@ -48,7 +55,7 @@ object CacheDataTypes {
   
     override def inputKeys: Seq[PartitionWithRecId] = Seq(inputId)
     
-    override def toString = s"($outputId => $inputId, $latency)"
+    override def cacheValueString = s"($outputId => $inputId, $latency)"
   }
   
   object TapLRDDValue {
@@ -80,7 +87,7 @@ object CacheDataTypes {
     override def inputKeys: Seq[PartitionWithRecId] =
       throw new UnsupportedOperationException("TapHadoopLRDDs represent the start of an execution tree and do not have other lineage input")
     
-    override def toString = s"($outputId => $byteOffset, $latency)"
+    override def cacheValueString = s"($outputId => $byteOffset, $latency)"
   }
   
   object TapHadoopLRDDValue {
@@ -89,11 +96,13 @@ object CacheDataTypes {
       // implicitly rely on conversions to proper data types here, rather than using
       // `tupled` and using native types
       // As noted in TapHadoopLRDD, the first and second argument need to be swapped.
-      TapHadoopLRDDValue(tuple._2, tuple._1, tuple._3)
+      TapHadoopLRDDValue(PartitionWithRecId(tuple._2), tuple._1, tuple._3)
     }
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
       "=> (ByteOffset, LatencyMs)"
   }
+  
+  // ----------- SHUFFLE VALUES start ---------
   
   // Note (jteoh): inputIds is int[] because the split is always the same as the split found in
   // outputId. (Not sure why TapLRDD decided to specify long, but that's not the case here)
@@ -109,7 +118,7 @@ object CacheDataTypes {
     override def inputKeys: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
     
-    override def toString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
       s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies
         .mkString(",")}])"
   }
@@ -117,7 +126,8 @@ object CacheDataTypes {
   object TapPreShuffleLRDDValue {
     def fromRecord(r: Any) = {
       val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
-      TapPreShuffleLRDDValue((PackIntIntoLong.apply _).tupled(tuple._1), tuple._2, tuple._3, tuple._4)
+      
+      TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3, tuple._4)
     }
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
@@ -133,7 +143,7 @@ object CacheDataTypes {
   // outputRecordLatency: how long it took within the stage to tap this record. Currently unused
   // (0).
   case class TapPostShuffleLRDDValue(outputId: PartitionWithRecId,
-                                     inputIds: Seq[PartitionWithRecId],
+                                     inputIds: CompactBuffer[Long],
                                      inputKeyHash: Int,
                                      outputTimestamp: Long,
                                      outputRecordLatency: Long
@@ -144,11 +154,10 @@ object CacheDataTypes {
 
     // See comments above - inputIds is only used for partition.
     override def inputKeys: Seq[PartitionWithRecId] =
-      inputIds.map(inp => new PartitionWithRecId(inp.partition, inputKeyHash))
+      // getLeft == partition
+      inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp), inputKeyHash))
   
-    override def toString = s"$outputId => ([${inputIds
-      .mkString(",")
-    }], " +
+    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
       s"$inputKeyHash, ${timestampToDateStr(outputTimestamp)}, $outputRecordLatency)"
   }
   
@@ -160,7 +169,7 @@ object CacheDataTypes {
       // consistent with Titian, but it might be possible to convert this compact buffer to an Int
       // collection.
       val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long, Long)]
-      TapPostShuffleLRDDValue(tuple._1, tuple._2._1.map(PartitionWithRecId), tuple._2._2, tuple._3,
+      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2, tuple._3,
         tuple._4)
     }
     def readableSchema =
@@ -168,5 +177,59 @@ object CacheDataTypes {
         "InputRecId)*], InputKeyHash, OutputTime, OutputLatencyMs)"
   }
   
-  implicit def longToPartitionRec(value: Long): PartitionWithRecId = PartitionWithRecId(value)
+  /** Initial prototype - this is actually an identical copy of [[TapPreShuffleLRDDValue]] */
+  case class TapPreCoGroupLRDDValue(outputId: PartitionWithRecId,
+                                    inputRecIds: Array[Int],
+                                    outputTimestamps: List[Long],
+                                    outputRecordLatencies: List[Long])
+    extends CacheValue {
+  
+    def key = outputId
+  
+    override def inputKeys: Seq[PartitionWithRecId] =
+      inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
+  
+    override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
+      s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies.mkString(",")}])"
+  
+  }
+  // ----------- SHUFFLE VALUES end ---------
+  
+  
+  // ----------- COGROUP VALUES start ---------
+  object TapPreCoGroupLRDDValue {
+    def fromRecord(r: Any) = {
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
+      TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3, tuple._4)
+    }
+    // input partition is always same as output
+    def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
+      "([InputRecId*], [OutputTime*], [OutputLatencyMs*])"
+  }
+  
+  
+  /** Very similar to TapPostShuffleLRDDValue */
+  case class TapPostCoGroupLRDDValue(outputId: PartitionWithRecId,
+                                     inputIds: CompactBuffer[Long],
+                                     inputKeyHash: Int)
+  extends CacheValue {
+    
+    override def key: PartitionWithRecId = outputId
+    // TODO - figure out how the values map to each other and how they should be joined.
+    override def inputKeys: Seq[PartitionWithRecId] = inputIds.map(PartitionWithRecId)
+  
+    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+      s"$inputKeyHash)"
+  }
+  
+  object TapPostCoGroupLRDDValue {
+    def fromRecord(r: Any) = {
+      val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int))]
+      TapPostCoGroupLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2)
+    }
+    def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
+      "InputRecId)*], InputKeyHash, OutputTime, OutputLatencyMs)"
+  }
+  
+  // ----------- COGROUP VALUES end ---------
 }

@@ -3,7 +3,7 @@ package org.apache.spark.lineage.ignite
 import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
 import org.apache.spark.lineage.ignite.CacheDataTypes.{CacheValue, PartitionWithRecId, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
-import org.apache.spark.lineage.rdd.{TapHadoopLRDD, TapLRDD, TapPostShuffleLRDD, TapPreShuffleLRDD}
+import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
@@ -65,11 +65,19 @@ object PerfIgniteCacheStorage {
     println(s"Printing contents for rdd ${rdd.getClass.getSimpleName}[${rdd.id}] in " +
       s"cache ${buildCacheName(appId, rdd)}")
     rdd match {
+      case _ : TapPreCoGroupLRDD[_] =>
+        val values = getValuesIterator[TapPreCoGroupLRDDValue](appId, rdd)
+        println("TapPreCoGroupLRDD Schema: " + TapPreCoGroupLRDDValue.readableSchema)
+        values.take(topN).foreach(v => println("\t" + v))
+      case _ : TapPostCoGroupLRDD[_] =>
+        val values = getValuesIterator[TapPostCoGroupLRDDValue](appId, rdd)
+        println("TapPostCoGroupLRDD Schema: " + TapPostCoGroupLRDDValue.readableSchema)
+        values.take(topN).foreach(v => println("\t" + v))
+        
       case _ : TapPreShuffleLRDD[_] =>
         val values = getValuesIterator[TapPreShuffleLRDDValue](appId, rdd)
         println("TapPreShuffleLRDD Schema: " + TapPreShuffleLRDDValue.readableSchema)
         values.take(topN).foreach(v => println("\t" + v))
-
       case _ : TapPostShuffleLRDD[_] =>
         val values = getValuesIterator[TapPostShuffleLRDDValue](appId, rdd)
         println("TapPostShuffleLRDD Schema: " + TapPostShuffleLRDDValue.readableSchema)
@@ -109,14 +117,22 @@ object PerfIgniteCacheStorage {
   
   private def getStorageConstructor(rdd: RDD[_]) = {
     rdd match {
+      case _: TapPreCoGroupLRDD[_] =>
+        Some(new TapPreCoGroupLRDDIgniteStorage(_))
+      case _: TapPostCoGroupLRDD[_] =>
+        Some(new TapPostCoGroupLRDDIgniteStorage(_))
+
       case _: TapPreShuffleLRDD[_] =>
         Some(new TapPreShuffleLRDDIgniteStorage(_))
       case _: TapPostShuffleLRDD[_] =>
         Some(new TapPostShuffleLRDDIgniteStorage(_))
+
       case _: TapHadoopLRDD[_,_] =>
         Some(new TapHadoopLRDDIgniteStorage(_))
+
       case _: TapLRDD[_] => // needs to be at the end because all others extend from this
         Some(new TapLRDDIgniteStorage(_))
+
       case _ =>
         println(s"Warning: no ignite storage available for non-tapped RDD $rdd")
         None
@@ -151,4 +167,16 @@ final class TapPostShuffleLRDDIgniteStorage(override val cacheArguments: CacheAr
   PerfIgniteCacheStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](
     cacheArguments,
     TapPostShuffleLRDDValue.fromRecord
+  )
+
+final class TapPreCoGroupLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
+  PerfIgniteCacheStorage[TapPreCoGroupLRDDValue, TapPreCoGroupLRDD[_]](
+    cacheArguments,
+    TapPreCoGroupLRDDValue.fromRecord
+  )
+
+final class TapPostCoGroupLRDDIgniteStorage(override val cacheArguments: CacheArguments) extends
+  PerfIgniteCacheStorage[TapPostCoGroupLRDDValue, TapPostCoGroupLRDD[_]](
+    cacheArguments,
+    TapPostCoGroupLRDDValue.fromRecord
   )
