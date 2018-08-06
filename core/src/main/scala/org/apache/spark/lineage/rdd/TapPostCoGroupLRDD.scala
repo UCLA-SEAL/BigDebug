@@ -59,18 +59,22 @@ class TapPostCoGroupLRDD[T: ClassTag](
 
       // We release the buffer here because not needed anymore
       releaseBuffer()
-
-      if(isLast) {
-        set.iterator
-          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r))) //murmurhash, outputRecId
-          .map(r => (PackIntIntoLong(splitId, r._2), (map.getOrElse(r._1, null), r._1))
-          ).toArray // ( OutputLinId(Partition,RecId), (CompactBuf[InpLinIds], murmurHash) )
-      } else {
-        set.iterator
-          .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r)))
-          .map(r => (r._2.toLong, (map.getOrElse(r._1, null), r._1))
-          ).toArray
-      }
+  
+      // jteoh: refactoring ifLast check to make its usage clearer
+      // jteoh: 8/6/18 - external lineage does not make an assumption of shared partitions by
+      // default, so always include the split id in the output.
+      // Unconfirmed: I'm not actually sure why the splitId is required in Titian if the RDD is
+      // the last one in the execution graph...
+      val outputIdFn: Int => Long = //if(isLast) {
+        PackIntIntoLong(splitId, _)
+      //} else {
+      //  Int.int2long
+      //}
+      
+      set.iterator
+      .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r))) //murmurhash, outputRecId
+      .map(r => (outputIdFn(r._2), (map.getOrElse(r._1, null), r._1))
+      ).toArray // ( OutputLinId(Partition,RecId), (CompactBuf[InpLinIds], murmurHash) )
     } else {
       Array()
     }

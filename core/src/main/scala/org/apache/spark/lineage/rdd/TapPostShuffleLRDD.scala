@@ -63,13 +63,18 @@ class TapPostShuffleLRDD[T: ClassTag](
 
           map.changeValue(next._2, update)
         }
-
+  
         // jteoh: refactoring ifLast check to make its usage clearer
-        val outputIdFn: Int => Long = if(isLast) {
+        // jteoh: 8/6/18 - external lineage does not make an assumption of shared partitions by
+        // default, so always include the split id in the output.
+        // Unconfirmed: I'm not actually sure why the splitId is required in Titian if the RDD is
+        // the last one in the execution graph...
+        val outputIdFn: Int => Long = //if(isLast) {
           PackIntIntoLong(splitId, _)
-        } else {
-          Int.int2long
-        }
+        //} else {
+        //  Int.int2long
+        //}
+        
         // jteoh: added timestamp and latency
         buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2), r._3, r._4)).toArray
       } else {
