@@ -247,7 +247,9 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           val part = new LocalityAwarePartitioner(next.get.partitions.size)
           val join = rightJoin[Long, (CompactBuffer[Long], Int)](prev, lineageContext
             .getLastLineageSeen.get.asInstanceOf[Lineage[(Long, (CompactBuffer[Long], Int))]]) //
-          // jt: TapPostShuffle schema
+          // jteoh: this is a TapPostShuffle schema. Also note that the CoGroup RDDs are
+          // subclasses of the Shuffle RDDs. This is done to shuffle/repartition the data
+          // for a zipPartitions operation later, if necessary.
             new ShuffledLRDD[RecordId, Any, Any](join
                 .map(r => (r._2, r._1))
                 .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy, r._2)))), part)
@@ -256,13 +258,15 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
       lineageContext.getCurrentLineagePosition.get match {
         case _: TapPreShuffleLRDD[_] =>
-          rightJoin(shuffled, next.get)
+          rightJoin(shuffled, next.get) // jteoh: note this corresponds to the same TapPreShuffle
+          // case above
             .flatMap(r => r._2.asInstanceOf[Array[Int]].map(b => (r._1, (r._1._1, b))))
             .cache()
         case _: TapParallelCollectionLRDD[_] =>
           rightJoin[Int, Any](shuffled, next.get.map(_.swap).asInstanceOf[Lineage[(Int, Any)]])
           .map(_.swap).cache()
-        case _: TapPostCoGroupLRDD[_] =>
+        case _: TapPostCoGroupLRDD[_] => // jteoh: not sure how this works, it should be a
+          // CompactBuffer[Long]??
           rightJoin[Int, (CompactBuffer[Int], Int)](shuffled.map(_.swap),next.get)
             .flatMap(r => r._2._1.map(c => ((c, r._1), (c, r._2._2))))
             .cache()

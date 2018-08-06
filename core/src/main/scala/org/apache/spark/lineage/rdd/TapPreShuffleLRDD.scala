@@ -61,7 +61,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     releaseBuffer()
 
     map.keySet().toIntArray.map(k =>
-      // jteoh: converted from tuple2 to tuple3 which includes array of times.
+      // jteoh: converted from tuple2 to tuple4 which includes array of latencies and start times
       //new Tuple2(new Tuple2(splitId.toInt, k), map.get(k).toArray)).toArray
       Tuple4(Tuple2(splitId.toInt, k),
              map.get(k).toArray,

@@ -168,6 +168,8 @@ object CacheDataTypes {
       // being created s.t. the left side consists of input splits though. For now we keep this
       // consistent with Titian, but it might be possible to convert this compact buffer to an Int
       // collection.
+      // For exact location: search "jteoh" - it's not explicitly labeled as a
+      // TapPostShuffleLRDD, but the schema is identical.
       val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long, Long)]
       TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2, tuple._3,
         tuple._4)
@@ -208,15 +210,16 @@ object CacheDataTypes {
   }
   
   
-  /** Very similar to TapPostShuffleLRDDValue */
+  /** Essentially identical to TapPostShuffleLRDDValue */
   case class TapPostCoGroupLRDDValue(outputId: PartitionWithRecId,
                                      inputIds: CompactBuffer[Long],
                                      inputKeyHash: Int)
   extends CacheValue {
     
     override def key: PartitionWithRecId = outputId
-    // TODO - figure out how the values map to each other and how they should be joined.
-    override def inputKeys: Seq[PartitionWithRecId] = inputIds.map(PartitionWithRecId)
+  
+    override def inputKeys: Seq[PartitionWithRecId] =
+      inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp),inputKeyHash))
   
     override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
       s"$inputKeyHash)"
