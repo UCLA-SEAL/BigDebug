@@ -45,6 +45,13 @@ object CacheDataTypes {
     
   }
   
+  trait ValueWithMultipleOutputLatencies {
+    /** Returns the input IDs zipped with their measured latencies. This is primarily used for
+     * the pre-CoGroup and pre-Shuffle RDDs.
+     */
+    def inputKeysWithLatencies: Seq[(PartitionWithRecId, Long)]
+  }
+  
   /** TapLRDD cache value */
   case class TapLRDDValue(outputId: PartitionWithRecId,
                           inputId: PartitionWithRecId,
@@ -114,12 +121,14 @@ object CacheDataTypes {
                                     inputRecIds: Array[Int],
                                     outputTimestamps: List[Long],
                                     outputRecordLatencies: List[Long])
-    extends CacheValue {
+    extends CacheValue with ValueWithMultipleOutputLatencies {
     
     def key = outputId
   
     override def inputKeys: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
+  
+    override def inputKeysWithLatencies: Seq[(PartitionWithRecId, Long)] = inputKeys.zip(outputRecordLatencies)
     
     override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
       s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies
@@ -160,7 +169,7 @@ object CacheDataTypes {
       // getLeft == partition
       inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp), inputKeyHash))
   
-    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${inputKeys.mkString(",")}], " +
       s"$inputKeyHash, ${timestampToDateStr(outputTimestamp)}, $outputRecordLatency)"
   }
   
@@ -185,17 +194,20 @@ object CacheDataTypes {
   /** Initial prototype - this is actually an identical copy of [[TapPreShuffleLRDDValue]] */
   case class TapPreCoGroupLRDDValue(outputId: PartitionWithRecId,
                                     inputRecIds: Array[Int],
-                                    outputTimestamps: List[Long],
+                                    //outputTimestamps: List[Long],
                                     outputRecordLatencies: List[Long])
-    extends CacheValue {
+    // jteoh: 8/7/2018 - not using timestamps for cogroup
+    extends CacheValue with ValueWithMultipleOutputLatencies {
   
     def key = outputId
   
     override def inputKeys: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
+    
+    override def inputKeysWithLatencies: Seq[(PartitionWithRecId, Long)] = inputKeys.zip(outputRecordLatencies)
   
     override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
-      s"[${outputTimestamps.map(timestampToDateStr).mkString(",")}], [${outputRecordLatencies.mkString(",")}])"
+      s"[${outputRecordLatencies.mkString(",")}])"
   
   }
   // ----------- SHUFFLE VALUES end ---------
@@ -205,11 +217,13 @@ object CacheDataTypes {
   object TapPreCoGroupLRDDValue {
     def fromRecord(r: Any) = {
       val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
-      TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3, tuple._4)
+      // jteoh: 8/7/2018 - not using latencies for cogroup
+      // TODO - don't even collect tuple._3 in the RDD if this is finalized!
+      TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._4)
     }
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
-      "([InputRecId*], [OutputTime*], [OutputLatencyMs*])"
+      "([InputRecId*], [OutputLatencyMs*])"
   }
   
   
@@ -224,7 +238,7 @@ object CacheDataTypes {
     override def inputKeys: Seq[PartitionWithRecId] =
       inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp),inputKeyHash))
   
-    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${inputKeys.mkString(",")}], " +
       s"$inputKeyHash)"
   }
   
