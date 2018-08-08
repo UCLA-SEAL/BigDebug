@@ -253,6 +253,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
             new ShuffledLRDD[RecordId, Any, Any](join
                 .map(r => (r._2, r._1))
                 .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy, r._2)))), part)
+          // (BufferLong.partition, hashKey)asRecId, (0, Long) - second part gets ignored later anyways
         case _ => prev
       }
 
@@ -261,6 +262,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           rightJoin(shuffled, next.get) // jteoh: note this corresponds to the same TapPreShuffle
           // case above
             .flatMap(r => r._2.asInstanceOf[Array[Int]].map(b => (r._1, (r._1._1, b))))
+          // key, key-split, inpRecId
             .cache()
         case _: TapParallelCollectionLRDD[_] =>
           rightJoin[Int, Any](shuffled, next.get.map(_.swap).asInstanceOf[Lineage[(Int, Any)]])

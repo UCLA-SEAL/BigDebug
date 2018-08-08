@@ -192,6 +192,7 @@ private[spark] class ExternalSorter[K, V, C](
 
     if (shouldCombine) {
       // Combine values in-memory first using our AppendOnlyMap
+      // jteoh - this is where map-side combine happens!
       val mergeValue = aggregator.get.mergeValue
       val createCombiner = aggregator.get.createCombiner
       var kv: Product2[K, V] = null
@@ -227,6 +228,7 @@ private[spark] class ExternalSorter[K, V, C](
 
     if (shouldCombine) {
       // Combine values in-memory first using our AppendOnlyMap
+      // jteoh - this is where map-side combine happens!
       val mergeValue = aggregator.get.mergeValue
       val createCombiner = aggregator.get.createCombiner
       var kv: Product2[K, V] = null

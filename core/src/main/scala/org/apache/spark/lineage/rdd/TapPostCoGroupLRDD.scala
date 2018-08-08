@@ -48,7 +48,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
         map.changeValue( // map: murmurHash -> [outputLineageIds])
         PackIntIntoLong.getLeft(next._1), {
           val tmp = new CompactBuffer[Long]()
-          tmp += next._2
+          tmp += next._2 // unknown input of some sort of Long, perhaps input splits?
           tmp
         },
         (old: CompactBuffer[Long]) => {
@@ -75,6 +75,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
       .map(r => (PackIntIntoLong.getLeft(r), PackIntIntoLong.getRight(r))) //murmurhash, outputRecId
       .map(r => (outputIdFn(r._2), (map.getOrElse(r._1, null), r._1))
       ).toArray // ( OutputLinId(Partition,RecId), (CompactBuf[InpLinIds], murmurHash) )
+      // recId is per distinct key
     } else {
       Array()
     }
@@ -100,6 +101,8 @@ class TapPostCoGroupLRDD[T: ClassTag](
         // come from
         //(murmurHash, outputId), all Longs - I'm guessing lineage IDs but not sure how they're
         // introduced...
+        // 08/07/2018 -r._2 is the only thing changing here - each value has some sort of Long
+        // associated with it. I would expect this to be some sort of split ID...?
         r._1
       })
     }

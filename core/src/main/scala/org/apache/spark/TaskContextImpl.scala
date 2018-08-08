@@ -121,7 +121,7 @@ private[spark] class TaskContextImpl(
   
   // Jason - exposed under assumption that the task context will only contain a linear DAG, which
   // should be the case since any branches/merges should be due to shuffles.
-  def getSummedRddRecordTime(): Long = rddTimeMap.foldLeft(0L)(_+_._2)
+  def getSummedRddRecordTime(): Long = rddTimeMap.valuesIterator.sum
   /**
    * *************************************************************************************
    */

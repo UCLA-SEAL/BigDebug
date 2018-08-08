@@ -95,7 +95,8 @@ class PairRDDFunctions[K, V](self: RDD[(K, V)])
       self.context.clean(mergeCombiners))
     if (self.partitioner == Some(partitioner)) {
       self.mapPartitions(iter => {
-        val context = TaskContext.get()
+        val context = TaskContext.get()// jteoh: this is one optimization when no shuffle is even
+        // required, eg if you did a groupByKey followed by reduceByKey.
         new InterruptibleIterator(context, aggregator.combineValuesByKey(iter, context))
       }, preservesPartitioning = true)
     } else {

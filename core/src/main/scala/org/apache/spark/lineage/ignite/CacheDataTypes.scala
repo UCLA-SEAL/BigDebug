@@ -68,6 +68,9 @@ object CacheDataTypes {
       // slightly suboptimal in that we would ideally directly modify Titian. For the time being,
       // I'm trying to preserve Titian code appearance for reference purposes. Feel free to write
       // this directly into TapLRDD in the future though, to simplify the coupling.
+      // note from 8/7/2018 - the inputRecId.toInt is safe - it's actually an int originally, but
+      // the buffer used in TapLRDD happens to use Long instead (which I've preserved to
+      // minimalize changes)
       val output = PartitionWithRecId(outputLong)
       val split = output.split
       val inputWithSplit = new PartitionWithRecId(split, inputRecId.toInt)
