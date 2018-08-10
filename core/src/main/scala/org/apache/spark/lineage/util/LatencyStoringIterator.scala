@@ -73,8 +73,13 @@ case class LatencyStoringIterator[U] private (storeFn: Long => Unit, cur: Iterat
     if(curFromIterator) {
       udfTime + iteratorTime
     } else {
-      // loss of precision, but this is in ms anyways.
-      (udfTime + iteratorTime + curSizeTime.get) / curSize.get
+      if (curSize.get != 0) {
+        // loss of precision, but this is in ms anyways.
+        (udfTime + iteratorTime + curSizeTime.get) / curSize.get
+      } else {
+        assert(hasNext == false, "curSize cannot be zero if there is a next element")
+        0 // doesn't matter - we should never use this.
+      }
     }
     
   
