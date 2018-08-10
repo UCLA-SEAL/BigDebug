@@ -76,7 +76,10 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
     // Make sure to time the current tap function here too.
     // jteoh later note on 7/23/2018 - I don't think this is being picked up though.
-    firstParent[T].iterator(split, context).map(measureTime(context, tap, this.id))
+    // jteoh 8/8/2018 - removing the time measurement actually - we're primarily concerned with
+    // computation time. Also, it's difficult (impossible) to pick this up for each record
+    // without buffering and reprocessing the results afterwards.
+    firstParent[T].iterator(split, context).map(tap)
   }
 
   override def filter(f: T => Boolean): Lineage[T] = {

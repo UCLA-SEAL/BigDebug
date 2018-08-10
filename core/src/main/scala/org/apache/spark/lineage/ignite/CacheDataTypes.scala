@@ -32,8 +32,7 @@ object CacheDataTypes {
     override def toString: String = asTuple.toString()
   }
 
-  /** Temp base class for easy interpretation of record key in ignite. In practice we might not
-   * want to actually store the key inside the value object, so this is subject to change/removal.
+  /** Base class for easy interpretation of record key in ignite.
    * As of initial implementation, every cache actually has records of (value.key, value)
    */
   abstract class CacheValue {
@@ -45,9 +44,11 @@ object CacheDataTypes {
     
   }
   
-  trait ValueWithMultipleOutputLatencies {
+  trait ValueWithMultipleOutputLatencies extends CacheValue {
     /** Returns the input IDs zipped with their measured latencies. This is primarily used for
      * the pre-CoGroup and pre-Shuffle RDDs.
+     * In general, this is implemented by zipping inputIDs with latencies in the same
+     * corresponding order.
      */
     def inputKeysWithLatencies: Seq[(PartitionWithRecId, Long)]
   }

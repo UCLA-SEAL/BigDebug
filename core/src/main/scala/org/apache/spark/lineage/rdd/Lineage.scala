@@ -5,6 +5,7 @@ import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.util.LatencyStoringIterator
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.collection.CompactBuffer
@@ -15,7 +16,7 @@ import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 trait Lineage[T] extends RDD[T] {
-
+  import Lineage._
   implicit def ttag: ClassTag[T]
 
   @transient def lineageContext: LineageContext
@@ -165,35 +166,6 @@ trait Lineage[T] extends RDD[T] {
   protected[spark] override def firstParent[U: ClassTag]: Lineage[U] =
     dependencies.head.rdd.asInstanceOf[Lineage[U]]
   
-  /** Added by Jason ########################################################################### */
-  
-  // Borrowed and adapted from http://biercoff.com/easily-measuring-code-execution-time-in-scala/
-  /**
-   * Measures the time taken when executing the provided block, in milliseconds. Stores this value
-   * using the current task context.
-   *
-   * This method could be modified to measure in nanoseconds. However, the shuffle-based
-   * performance is inherently limited to millis by clock time measurements and nanosecond
-   * precision can be significantly more costly:
-   * https://stackoverflow.com/questions/351565/system-currenttimemillis-vs-system-nanotime
-   * first comment on question: currentTimeMillis() runs in a few (5-6) cpu clocks, nanoTime depends
-   * on the underlying architecture and can be 100+ cpu clocks.
-   */
-  def measureTime[R](taskContext: TaskContext, block: => R, rddId: Int): R = {
-    val t0 = System.currentTimeMillis()
-    val result = block    // call-by-name
-    val t1 = System.currentTimeMillis()
-    val timeTaken = t1 - t0
-    taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)
-    result
-  }
-  
-  /** Wraps a function to measure how long its calls take */
-  def timedFunction[T,U](taskContext: TaskContext, f: T => U, rddId: Int): T => U =
-    (inp: T) => measureTime(taskContext, {f(inp)}, rddId)
-  
-  /** End added by Jason section ############################################################### */
-  
   /**
    * Return an array that contains all of the elements in this RDD.
    */
@@ -268,7 +240,9 @@ trait Lineage[T] extends RDD[T] {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
-      (context, pid, iter, rddId) => iter.filter(timedFunction(context, cleanF, rddId)),
+      // TODO: jteoh: measuring here is only for the most recent record. While this is
+      // technically correct for record-level latency, the discarded records are never recorded.
+      (context, pid, iter, rddId) => iter.filter(timedFunction(cleanF, context, rddId)),
       preservesPartitioning = true)
   }
 
@@ -277,14 +251,11 @@ trait Lineage[T] extends RDD[T] {
    * Lineage, and then flattening the results.
    */
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =withScope{
-    // TODO add timing
-    // consider: measure each call of cleanF (which returns an iterable) and divide by the total
-    // number returned.
-    // Doesn't this inherently require knowing how many were returned? but the API specifically
-    // only requires a TraversableOnce. Ugly option: buffer.
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[U, T](this,
-      (context, pid, iter, rddId) => iter.flatMap(cleanF))
+      //(context, pid, iter, rddId) => iter.flatMap(cleanF)
+      (context, pid, iter, rddId) => iter.flatMap(v =>
+                                                    LatencyStoringIterator(cleanF(v),context,rddId)))
   }
 
   /**
@@ -328,7 +299,7 @@ trait Lineage[T] extends RDD[T] {
   override def map[U: ClassTag](f: T => U): Lineage[U] = withScope{
     val cleanF = sparkContext.clean(f)
     new MapPartitionsLRDD[U, T](this, (context, pid, iter, rddId) =>
-                                          iter.map(timedFunction(context, cleanF, rddId)))
+                                          iter.map(timedFunction(cleanF, context, rddId)))
   }
 
   /**
@@ -449,7 +420,9 @@ trait Lineage[T] extends RDD[T] {
       }
     }
   }
+  
 }
+
 
 object Lineage {
   implicit def castLineage1(rdd: Lineage[_]): Lineage[(RecordId, Any)] =
@@ -495,4 +468,47 @@ object Lineage {
 
   implicit def castLineage15(rdd: Lineage[_]): Lineage[(RecordId, Array[Int])] =
     rdd.asInstanceOf[Lineage[(RecordId, Array[Int])]]
+  
+  /** Added by Jason ########################################################################### */
+  
+  // Borrowed and adapted from http://biercoff.com/easily-measuring-code-execution-time-in-scala/
+  /**
+   * Measures the time taken when executing the provided block, in milliseconds. Stores this value
+   * using the current task context.
+   *
+   * This method could be modified to measure in nanoseconds. However, the shuffle-based
+   * performance is inherently limited to millis by clock time measurements and nanosecond
+   * precision can be significantly more costly:
+   * https://stackoverflow.com/questions/351565/system-currenttimemillis-vs-system-nanotime
+   * first comment on question: currentTimeMillis() runs in a few (5-6) cpu clocks, nanoTime depends
+   * on the underlying architecture and can be 100+ cpu clocks.
+   */
+  def measureTimeAndStoreInContext[R](taskContext: TaskContext, block: => R, rddId: Int): R = {
+    val (result, timeTaken) = measureTime(block)
+    storeContextRecordTime(taskContext, rddId, timeTaken)
+    result
+  }
+  
+  /** Wraps a function to measure how long its calls take */
+  def timedFunction[T,U](f: T => U, taskContext: TaskContext, rddId: Int): T => U =
+    (inp: T) => timedBlock(taskContext, {f(inp)}, rddId)
+  
+  
+  def timedBlock[U](taskContext: TaskContext, block: =>  U, rddId: Int): U =
+    measureTimeAndStoreInContext(taskContext, block, rddId)
+  
+  /** Executes the provided block and returns a pair of (result, time taken) */
+  def measureTime[R](block: => R): (R, Long) = {
+    val t0 = System.currentTimeMillis()
+    val result = block    // call-by-name: https://docs.scala-lang.org/tour/by-name-parameters.html
+    val t1 = System.currentTimeMillis()
+    val timeTaken = t1 - t0
+    (result, timeTaken)
+  }
+  // Just abstracting away the cast.
+  def storeContextRecordTime(taskContext: TaskContext, rddId: Int, timeTaken: Long) =
+    taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)
+  /** End added by Jason section ############################################################### */
 }
+
+

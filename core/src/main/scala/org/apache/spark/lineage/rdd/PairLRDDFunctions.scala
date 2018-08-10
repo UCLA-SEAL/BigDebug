@@ -27,6 +27,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.executor.OutputMetrics
 import org.apache.spark.lineage.LAggregator
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.util.LatencyStoringIterator
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.util.collection.CompactBuffer
@@ -232,7 +233,11 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def mapValues[U](f: V => U): Lineage[(K, U)] =self.withScope {
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
-      (context, pid, iter, rddId) => iter.map { case (k, v) => (k, self.measureTime(context, cleanF(v), rddId)) },
+      // ... => iter.map { case (k, v) => (k, cleanF(v)) },
+      (context, pid, iter, rddId) => {
+        // jteoh: Add timing of mapValues call.
+        iter.map(Lineage.timedBlock(context, { case (k, v) => (k, cleanF(v))}, rddId))
+      },
       preservesPartitioning = true)
   }
 
@@ -244,7 +249,10 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
       (context, pid, iter, rddId) => iter.flatMap { case (k, v) =>
-        cleanF(v).map(x => (k, x))
+        // jteoh: this is slightly imprecise - we aren't measuring the time to prepend the key,
+        // but analysis is primarily concerned with relative latency and the prepend should be
+        // approximately constant for all values.
+        LatencyStoringIterator(cleanF(v), context, rddId).map(x => (k, x))
       },
       preservesPartitioning = true)
   }
