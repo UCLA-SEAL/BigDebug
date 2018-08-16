@@ -505,6 +505,13 @@ object Lineage {
     val timeTaken = t1 - t0
     (result, timeTaken)
   }
+  
+  def measureTimeWithCallback[R](block: => R, callback: Long => Unit): R = {
+    val (result, time) = measureTime(block)
+    callback(time)
+    result
+  }
+  
   // Just abstracting away the cast.
   def storeContextRecordTime(taskContext: TaskContext, rddId: Int, timeTaken: Long) =
     taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)

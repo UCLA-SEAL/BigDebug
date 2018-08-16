@@ -22,12 +22,14 @@ import java.nio.ByteBuffer
 import java.util.Properties
 
 import scala.language.existentials
-
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.LineageManager
+import org.apache.spark.lineage.ignite.{AggregateLatencyStats, IgniteCacheAggregateStatsRepo}
+import org.apache.spark.lineage.rdd.Lineage
+import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
 
@@ -91,18 +93,28 @@ private[spark] class ShuffleMapTask(
     } else 0L
 
     var writer: ShuffleWriter[Any, Any] = null
+    var trackingInputIterator: CountAndLatencyMeasuringIterator[Product2[Any,Any]] = null
+    var totalLatency: Long = -1 // although shuffle write metrics has write time, it's not clear
+    // how that maps to the data itself (eg across different writers)
+    
     try {
       val manager = SparkEnv.get.shuffleManager
       writer = manager.getWriter[Any, Any](dep.shuffleHandle, partitionId, context)
-      writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]],
-        rdd.isLineageActive) // Youfu
-      // The reduce size requires a certain amount of free heap memory in order to work properly.
-      // If freeMemory is not enough, we call the garbage collector
-      // Matteo
-      if(Runtime.getRuntime.freeMemory() < 9000000000L) {
-        System.gc()
-      }
-      writer.stop(success = true).get
+      // jteoh: wrap input iterator to count number of inputs. Also measure time to get/compute
+      // the iterator and write output, including stopping the writer (because SortShuffleWriter
+      // appears to increment write time metrics within the stop method).
+      Lineage.measureTimeWithCallback({
+        val records = rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]]
+        trackingInputIterator = new CountAndLatencyMeasuringIterator(records)
+        writer.write(trackingInputIterator, rdd.isLineageActive) // Youfu
+        // The reduce size requires a certain amount of free heap memory in order to work properly.
+        // If freeMemory is not enough, we call the garbage collector
+        // Matteo
+        if(Runtime.getRuntime.freeMemory() < 9000000000L) {
+          System.gc()
+        }
+        writer.stop(success = true).get
+      }, totalLatency = _)
     } catch {
       case e: Exception =>
         try {
@@ -116,8 +128,20 @@ private[spark] class ShuffleMapTask(
         throw e
     } finally {
       LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager,
-        appId=appId)
-      // Added by Matteo
+        appId=appId) // Added by Matteo
+      
+      // jteoh: adding aggregate shuffle latency metrics
+      if(trackingInputIterator != null) {
+        val inputCount = trackingInputIterator.count
+        val outputCount = context.taskMetrics().shuffleWriteMetrics.recordsWritten
+        val shuffleLatency = totalLatency - trackingInputIterator.latency
+        val stats = AggregateLatencyStats(inputCount, outputCount, shuffleLatency)
+        IgniteCacheAggregateStatsRepo.getInstance()
+          .saveAggStats(appId.get, rdd.id, partitionId, stats)
+      } else {
+        log.error("Unable to record aggregate shuffle latency statistics for ShuffleMapTask!")
+      }
+      
     }
   }
 
