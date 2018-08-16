@@ -7,10 +7,10 @@ import org.apache.spark.lineage.rdd.Lineage
  * arguments and distribute them accordingly, if required. Additionally, this iterator
  * measures the time to call cur.next() and finally calls the provided storeFn on the
  * resulting latency. */
-case class LatencyStoringIterator[U] private (storeFn: Long => Unit, cur: Iterator[U],
-                                  curFromIterator: Boolean, udfTime: Long,
-                                  iteratorTime: Long,
-                                  curSize: Option[Int], curSizeTime: Option[Long])
+case class LatencyDistributingIterator[U] private(storeFn: Long => Unit, cur: Iterator[U],
+                                                  curFromIterator: Boolean, udfTime: Long,
+                                                  iteratorTime: Long,
+                                                  curSize: Option[Int], curSizeTime: Option[Long])
   extends Iterator[U] {
   // heavily based off iter.flatMap initially, but subject to change later.
   // The flatMap API only requires that the output of the UDF is a TraversableOnce.
@@ -100,7 +100,7 @@ case class LatencyStoringIterator[U] private (storeFn: Long => Unit, cur: Iterat
   }
 }
 
-object LatencyStoringIterator {
+object LatencyDistributingIterator {
   /** Primary entry point for creating a LatencyStoringIterator. This measures various latencies
    * associated with the input block and distributes them across all results if the block results
    * in a traversable. If it results in an iterator instead, any latency overheads are assigned
@@ -108,7 +108,7 @@ object LatencyStoringIterator {
    */
   def apply[T,U](block: => TraversableOnce[U],
                  taskContext: TaskContext,
-                 rddId: Int): LatencyStoringIterator[U] = {
+                 rddId: Int): LatencyDistributingIterator[U] = {
     import org.apache.spark.lineage.rdd.Lineage._
     var curFromIterator = false
     var curSizeIfTraversable: Option[Int] = None
@@ -130,7 +130,7 @@ object LatencyStoringIterator {
         curFromIterator = true
     }
     val (nextCur, iteratorTime) = measureTime(udfResult.toIterator) //  T3: iterator
-    LatencyStoringIterator(storeContextRecordTime(taskContext, rddId, _),
+    LatencyDistributingIterator(storeContextRecordTime(taskContext, rddId, _),
                            nextCur, curFromIterator,
                            udfTime, iteratorTime,
                            curSizeIfTraversable, curSizeTime)

@@ -27,7 +27,7 @@ import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.executor.OutputMetrics
 import org.apache.spark.lineage.LAggregator
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.lineage.util.LatencyStoringIterator
+import org.apache.spark.lineage.util.LatencyDistributingIterator
 import org.apache.spark.rdd._
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.util.collection.CompactBuffer
@@ -252,7 +252,7 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
         // jteoh: this is slightly imprecise - we aren't measuring the time to prepend the key,
         // but analysis is primarily concerned with relative latency and the prepend should be
         // approximately constant for all values.
-        LatencyStoringIterator(cleanF(v), context, rddId).map(x => (k, x))
+        LatencyDistributingIterator(cleanF(v), context, rddId).map(x => (k, x))
       },
       preservesPartitioning = true)
   }

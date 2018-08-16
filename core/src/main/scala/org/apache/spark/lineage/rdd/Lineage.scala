@@ -5,7 +5,7 @@ import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.lineage.util.LatencyStoringIterator
+import org.apache.spark.lineage.util.LatencyDistributingIterator
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.collection.CompactBuffer
@@ -255,7 +255,7 @@ trait Lineage[T] extends RDD[T] {
     new MapPartitionsLRDD[U, T](this,
       //(context, pid, iter, rddId) => iter.flatMap(cleanF)
       (context, pid, iter, rddId) => iter.flatMap(v =>
-                                                    LatencyStoringIterator(cleanF(v),context,rddId)))
+                                                    LatencyDistributingIterator(cleanF(v), context, rddId)))
   }
 
   /**
