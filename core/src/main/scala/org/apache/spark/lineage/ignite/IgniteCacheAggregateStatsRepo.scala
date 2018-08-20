@@ -61,7 +61,7 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
   
   /** Retrieves all partition stats for the given RDD, as a map with key = partition and value =
    * stats for that partition.
-   * // TODO this is probably better suited to usage with TapWithDependencies, once imported.
+   * // TODO this is probably better suited to usage with LineageCacheDependencies, once imported.
    */
   def getAllAggStatsForRDD(rdd: RDD[_],
                            appId: Option[String] = None): Map[PartitionId, AggregateLatencyStats]

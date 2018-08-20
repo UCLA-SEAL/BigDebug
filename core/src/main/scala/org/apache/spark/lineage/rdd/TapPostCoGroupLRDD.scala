@@ -103,6 +103,30 @@ class TapPostCoGroupLRDD[T: ClassTag](
         // introduced...
         // 08/07/2018 -r._2 is the only thing changing here - each value has some sort of Long
         // associated with it. I would expect this to be some sort of split ID...?
+        
+        // 08/17/2018 jteoh: Here's my current understanding of what's happening here:
+        // 1. each cogroup `record` consists of the key (T) and a 2D collection: dependency +
+        // corresponding values from the dependency.
+        // 2. We loop through the 2d collection (ie each dependency) and iterate through the
+        // values, which themselves consist of actual value (from the dependency, for the given
+        // key) and a Long that represents lineage information. Right now it's suspected that
+        // this long is just partition ID - all further discussion will refer to these as some
+        // form of input split.
+        // 3. Before iterating: we generate a unique lineage ID (murmurhash) for the given key.
+        // We also generate a new lineage ID for the output record from the postshuffle phase (ie
+        // the [K, Array[Iter[V]]]. For a given value (from a dependency), both of these are stored
+        // in the buffer along with the input partition that the value comes from.
+        // 4. Later in materializeBuffer, we gather all input splits by the unique key. We then
+        // output (Output id, unique key, inputSplits*). Note that these inputSplits are a union
+        // of all input partitions across every dependency. Eg if dependency 1 only has records
+        // from partition 0 (ie 1-0) but dependency 2 only has records from partition 2 (2-2),
+        // this union would contain both (0, 2). The resulting join is slightly suboptimal
+        // (trying to trace either dependency will result in trying to join/lookup records that
+        // don't exist, eg partition 2 in dependency 1 (1-2) or partition 0 in dependency 2 (2-0)
+        // Final note: I'm not sure why the materializeBuffer method is so complicated.
+        // Based on the above understanding, it would suffice to gather all input splits across
+        // the entire Array of Iterables and write that out to the buffer - effectively avoiding
+        // the map generation above. It might have additional overheads though (not evaluated yet).
         r._1
       })
     }
