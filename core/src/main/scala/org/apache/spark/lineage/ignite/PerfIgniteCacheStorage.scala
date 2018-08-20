@@ -44,11 +44,11 @@ abstract class PerfIgniteCacheStorage[V <: CacheValue,
 }
 
 object PerfIgniteCacheStorage {
-  def store(appId: Option[String], rdd: RDD[_], data: Array[Any]): Unit = {
+  def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
     doWithStorage(appId, rdd)(_.store(data))
   }
   
-  def getValuesIterator[T <: CacheValue](appId: Option[String],
+  def getValuesIterator[T <: CacheValue](appId: String,
                                          rdd: RDD[_]): Iterable[T] = {
     doWithStorage(appId, rdd) {
       storage: PerfIgniteCacheStorage[_,_] =>
@@ -61,7 +61,7 @@ object PerfIgniteCacheStorage {
   /* Utility method to help with printing with schema - in practice, you can also use
   getValuesIterator or the ignite RDD and rely on the default toString for the values
    */
-  def print(appId: Option[String], rdd: RDD[_], topN: Int = 15): Unit = {
+  def print(appId: String, rdd: RDD[_], topN: Int = 15): Unit = {
     println(s"Printing contents for rdd ${rdd.getClass.getSimpleName}[${rdd.id}] in " +
       s"cache ${buildCacheName(appId, rdd)}")
     rdd match {
@@ -103,7 +103,7 @@ object PerfIgniteCacheStorage {
   }
   
   // Template
-  def doWithStorage[T](appId: Option[String],
+  def doWithStorage[T](appId: String,
                             rdd: RDD[_])
                            (fn: PerfIgniteCacheStorage[_,_] => T): Option[T] = {
     val cacheName = buildCacheName(appId, rdd)
@@ -139,9 +139,8 @@ object PerfIgniteCacheStorage {
     }
   }
   
-  def buildCacheName(appId: Option[String], rdd: RDD[_]) = {
-    // TODO set up cache name properly
-    s"${appId.get}_${rdd.id}"
+  def buildCacheName(appId: String, rdd: RDD[_]) = {
+    s"${appId}_${rdd.id}"
   }
 }
 

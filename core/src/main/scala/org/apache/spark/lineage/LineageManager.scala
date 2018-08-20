@@ -67,7 +67,7 @@ object LineageManager{
           try {
             blockManager.putIterator(key, arr.toIterator, tap._4, true)
             
-            PerfIgniteCacheStorage.store(appId, rdd, arr)
+            PerfIgniteCacheStorage.store(appId.get, rdd, arr)
           } catch {
             case e: Exception => {
               println(s"Error storing data for RDD $rdd")
