@@ -31,6 +31,12 @@ object CacheDataTypes {
     
     override def toString: String = asTuple.toString()
   }
+  
+  object PartitionWithRecId {
+    // https://stackoverflow.com/a/19348339/6890456
+    // specifically the end of the accepted solution, 'enterprise'
+    implicit def ordering: Ordering[PartitionWithRecId] = Ordering.by(_.value)
+  }
 
   /** Base class for easy interpretation of record key in ignite.
    * As of initial implementation, every cache actually has records of (value.key, value)
@@ -38,10 +44,24 @@ object CacheDataTypes {
   abstract class CacheValue {
     def key: PartitionWithRecId
     def inputKeys: Seq[PartitionWithRecId]
-    def cacheValueString: String
+    def cacheValueString: String // set up for future serialization perhaps?
     
     override final def toString: String = cacheValueString
-    
+  
+    /** Define hash and equals to avoid any possible clashes with internal data representations
+     * and unnecessary checks - each record within a cache should be uniquely identified by the
+     * key, so that's what we use here. It's possible to have a "wrong" equals
+     * comparison as a result of this definition, but that would imply incorrect usage of these
+     * classes. */
+    override final def hashCode(): Int = key.hashCode()
+  
+    override final def equals(obj: scala.Any): Boolean = obj match {
+      case other: CacheValue =>
+        // oversimplification, but cache values of different classes shouldn't be compared in the
+        // first place. This is primarily a developer class.
+        this.key == other.key
+      case _ => false
+    }
   }
   
   /** Cache values that correspond to tap RDDs at the end of a stage. As of
