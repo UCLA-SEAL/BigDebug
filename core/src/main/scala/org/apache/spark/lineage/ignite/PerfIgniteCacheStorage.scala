@@ -18,6 +18,9 @@ import scala.language.implicitConversions
  * the corresponding [[CacheValue]], and may contain additional logic than that
  * found in the Titian codebase.
  *
+ * This class is strictly concerned with the storage of lineage data + individual record latency.
+ * For approximated latency per partition, see [[IgniteCacheAggregateStatsRepo]].
+ *
  * @param cacheArguments ignite cache configuration arguments
  * @param conversionFn   function to convert records to the corresponding [[CacheValue]]
  * @tparam V type of [[CacheValue]] to store. Should match with [[B]]
