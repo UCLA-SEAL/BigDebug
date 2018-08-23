@@ -19,7 +19,10 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.ignite.AggregateLatencyStats
+import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.rdd._
+import org.apache.spark.util.CompletionIterator
 
 import scala.collection.mutable.Stack
 import scala.language.existentials
@@ -48,7 +51,29 @@ class CoGroupedLRDD[K: ClassTag](var lrdds: Seq[RDD[_ <: Product2[K, _]]], part:
 
   private[spark] def computeTapDependencies() =
     dependencies.foreach(dep => newDeps.push(new OneToOneDependency(dep.rdd)))
-
+  
+  // jteoh: See ShuffledLRDD for discussion.
+  @transient var partitionLatencyStats: AggregateLatencyStats = _
+  
+  override def compute(split: Partition, context: TaskContext): Iterator[(K, Array[Iterable[_]])] = {
+    // Measure:
+    // 1. Number of outputs (iterator count - completion iterator)
+    // 2. Time to acquire iterator (this method)
+    // 3. Time to exhaust/consume outputs (iterator - completion iterator)
+    val (iter, iteratorComputationLatency) = Lineage.measureTime(super.compute(split, context))
+    type Record = (K, Array[Iterable[_]])
+    val measuredIter = new CountAndLatencyMeasuringIterator[Record](iter)
+    CompletionIterator[Record, Iterator[Record]](measuredIter, {
+      // input count - it's difficult to get records read per dependency and the current
+      // estimation does not differentiate anyways.
+      val inputCount = context.taskMetrics().shuffleReadMetrics.recordsRead
+      val outputCountUnused = measuredIter.count
+      val iteratedLatency = measuredIter.latency
+      val totalLatency = iteratedLatency + iteratorComputationLatency
+      partitionLatencyStats = AggregateLatencyStats(inputCount, outputCountUnused, totalLatency)
+    })
+  }
+  
   override def tapRight(): TapLRDD[(K, Array[Iterable[_]])] = {
     val tap = new TapPostCoGroupLRDD[(K, Array[Iterable[_]])](
       lineageContext, Seq(new OneToOneDependency[(K, Array[Iterable[_]])](this)))

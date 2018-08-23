@@ -28,7 +28,7 @@ import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.LineageManager
 import org.apache.spark.lineage.ignite.{AggregateLatencyStats, IgniteCacheAggregateStatsRepo}
-import org.apache.spark.lineage.rdd.Lineage
+import org.apache.spark.lineage.rdd.{Lineage, PreShuffleLatencyStatsTap, TapPreShuffleLRDD}
 import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
@@ -127,21 +127,22 @@ private[spark] class ShuffleMapTask(
         }
         throw e
     } finally {
-      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager,
-        appId=appId) // Added by Matteo
-      
-      // jteoh: adding aggregate shuffle latency metrics
-      if(trackingInputIterator != null) {
-        val inputCount = trackingInputIterator.count
-        val outputCount = context.taskMetrics().shuffleWriteMetrics.recordsWritten
-        val shuffleLatency = totalLatency - trackingInputIterator.latency
-        val stats = AggregateLatencyStats(inputCount, outputCount, shuffleLatency)
-        IgniteCacheAggregateStatsRepo.getInstance()
-          .saveAggStats(appId.get, rdd.id, partitionId, stats)
-      } else {
-        log.error("Unable to record aggregate shuffle latency statistics for ShuffleMapTask!")
+      // jteoh: Before finalizing task cache, compute latency stats for this partition.
+      rdd match {
+        case pre: PreShuffleLatencyStatsTap[_] =>
+          val inputCount = trackingInputIterator.count // NOT USED. oops.
+          val outputCountUnused = context.taskMetrics().shuffleWriteMetrics.recordsWritten
+          val shuffleLatency = totalLatency - trackingInputIterator.latency
+          // assign for upload later.
+          val stats = AggregateLatencyStats(inputCount, outputCountUnused, shuffleLatency)
+          pre.setLatencyStats(stats)
+          log.info(s"Latency stats for $rdd set to $stats")
+        case _ =>
+          log.info(s"Latency stats not applicable for $rdd")
       }
       
+      LineageManager.finalizeTaskCache(rdd, partition.index, context, SparkEnv.get.blockManager,
+        appId=appId) // Added by Matteo
     }
   }
 

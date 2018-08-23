@@ -18,8 +18,11 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
+import org.apache.spark.lineage.ignite.AggregateLatencyStats
+import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.lineage.{LAggregator, LineageContext}
 import org.apache.spark.rdd.ShuffledRDD
+import org.apache.spark.util.CompletionIterator
 
 import scala.reflect._
 
@@ -41,14 +44,41 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
   override def ttag = classTag[(K, C)]
 
   override def lineageContext: LineageContext = previous.lineageContext
-
+  
+  // jteoh: In addition to computing the result, we also measure the time to compute the iterator
+  // and exhaust it so that those numbers can be used for latency approximation.
+  // In practice, it would be better to do so within the TapPostShuffleLRDD.
+  // However, it's theoretically possible for the ShuffledLRDD to have been computed before
+  // (and cached), so the computation is integrated here to ensure one-time (and accurate)
+  // computation.
+  @transient var partitionLatencyStats: AggregateLatencyStats = _
+  
   override def compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
+    // Measure:
+    // 1. Number of outputs (iterator count - completion iterator)
+    // 2. Time to acquire iterator (this method)
+    // 3. Time to exhaust/consume outputs (iterator - completion iterator)
+    val (iter, iteratorComputationLatency) = Lineage.measureTime(_compute(split, context))
+    type Record = (K, C)
+    val measuredIter = new CountAndLatencyMeasuringIterator[Record](iter)
+    CompletionIterator[Record, Iterator[Record]](measuredIter, {
+      // input count
+      val inputCount = context.taskMetrics().shuffleReadMetrics.recordsRead
+      val outputCountUnused = measuredIter.count
+      val iteratedLatency = measuredIter.latency
+      val totalLatency = iteratedLatency + iteratorComputationLatency
+      partitionLatencyStats = AggregateLatencyStats(inputCount, outputCountUnused, totalLatency)
+    })
+  }
+  
+  /** The original compute method, mirroring non-Titian spark as well. */
+  private def _compute(split: Partition, context: TaskContext): Iterator[(K, C)] = {
     // notable differences:
     // using Some(isLineageActive) to getReader
     // passing in (isPreShuffleCache, id) as arguments to read() call.
     val dep = dependencies.head.asInstanceOf[ShuffleDependency[K, V, C]]
     SparkEnv.get.shuffleManager
-    .getReader(dep.shuffleHandle, split.index, split.index + 1, context, Some(isLineageActive))
+      .getReader(dep.shuffleHandle, split.index, split.index + 1, context, Some(isLineageActive))
       .read(isPreShuffleCache, id)
       .asInstanceOf[Iterator[(K, C)]]
   }

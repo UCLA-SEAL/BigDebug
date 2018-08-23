@@ -18,7 +18,8 @@
 package org.apache.spark.lineage
 
 import org.apache.spark._
-import org.apache.spark.lineage.ignite.PerfIgniteCacheStorage
+import org.apache.spark.lineage.ignite.{IgniteCacheAggregateStatsRepo, PerfIgniteCacheStorage}
+import org.apache.spark.lineage.rdd.LatencyStatsTap
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
 
@@ -66,8 +67,14 @@ object LineageManager{
           
           try {
             blockManager.putIterator(key, arr.toIterator, tap._4, true)
-            
-            PerfIgniteCacheStorage.store(appId.get, rdd, arr)
+
+            val appIdValue = appId.get
+            PerfIgniteCacheStorage.store(appIdValue, rdd, arr)
+            rdd match {
+              case aggStatsTap: LatencyStatsTap[_] =>
+                IgniteCacheAggregateStatsRepo.getInstance().saveAggStats(appIdValue, aggStatsTap)
+              case _ =>
+            }
           } catch {
             case e: Exception => {
               println(s"Error storing data for RDD $rdd")
