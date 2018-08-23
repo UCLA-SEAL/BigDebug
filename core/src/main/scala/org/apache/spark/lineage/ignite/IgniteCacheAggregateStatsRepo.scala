@@ -1,10 +1,9 @@
 package org.apache.spark.lineage.ignite
 
-import org.apache.ignite.{Ignite, IgniteCache, Ignition}
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
-import org.apache.spark.TaskContext
-import org.apache.spark.rdd.RDD
+import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.spark.lineage.rdd.LatencyStatsTap
 
 import scala.collection.JavaConverters._
 
@@ -61,15 +60,14 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
   
   /** Retrieves all partition stats for the given RDD, as a map with key = partition and value =
    * stats for that partition.
-   * // TODO this is probably better suited to usage with LineageCacheDependencies, once imported.
    */
-  def getAllAggStatsForRDD(rdd: RDD[_],
-                           appId: Option[String] = None): Map[PartitionId, AggregateLatencyStats]
-  = {
-    getAllAggStats(appId.getOrElse(rdd.context.applicationId), rdd.id, rdd.getNumPartitions)
+  def getAllAggStatsForRDD(appId: String,
+                           aggStatsRdd: LatencyStatsTap[_]
+                           ): Map[PartitionId, AggregateLatencyStats] = {
+    getAllAggStats(appId, aggStatsRdd.id, aggStatsRdd.getNumPartitions)
   }
   
-  /** Retrieves all partition->stats mapping for the provided RDD ID */
+  /** DEBUGGING ONLY Retrieves all partition->stats mapping for the provided RDD ID */
   def getAllAggStats(appId: String,
                      rddId: RddId,
                      numPartitions: Int): Map[PartitionId, AggregateLatencyStats] = {
@@ -77,17 +75,25 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
     val keys = (0 until numPartitions).map {(rddId, _)}
     // Some fun java-scala conversions to match the ignite API. Also use toMap to ensure an
     // immutable map is returned at the end.
-    cache.getAll(keys.toSet.asJava).asScala.toMap.map {
+    val result = cache.getAll(keys.toSet.asJava).asScala.toMap.map {
       case (rddIdAndPartition, value) => (rddIdAndPartition._2, deserializeStats(value))
     }
+    if (result.size != numPartitions) {
+      println("AggStatsRepo WARN: agg partition count is not equal to expected partition count -" +
+                s"${result.size} < $numPartitions")
+    }
+    result
   }
-  // While you could define a simplified method that only relies on RDD instance + stats, this
-  // method is generally used within tasks (where the appID is not readily accessible. To keep
-  // things simple, we explicitly declare all requirements as methods.
+  
   def saveAggStats(appId: String,
-                   rddId: RddId,
-                   partition: PartitionId,
-                   stats: AggregateLatencyStats): Unit = {
+                   aggStatsRdd: LatencyStatsTap[_]): Unit = {
+    saveAggStats(appId, aggStatsRdd.id, aggStatsRdd.splitId.toInt, aggStatsRdd.getLatencyStats)
+  }
+  
+  private def saveAggStats(appId: String,
+                           rddId: RddId,
+                           partition: PartitionId,
+                           stats: AggregateLatencyStats): Unit = {
     val cache = getCache(appId)
     val key = (rddId, partition)
     cache.put(key, serializeStats(stats))

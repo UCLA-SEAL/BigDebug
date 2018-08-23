@@ -19,8 +19,6 @@ package org.apache.spark.shuffle.sort
 
 import org.apache.spark._
 import org.apache.spark.internal.Logging
-import org.apache.spark.lineage.rdd.Lineage
-import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.scheduler.MapStatus
 import org.apache.spark.shuffle.{BaseShuffleHandle, IndexShuffleBlockResolver, ShuffleWriter}
 import org.apache.spark.storage.ShuffleBlockId

@@ -20,6 +20,7 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.ignite.AggregateLatencyStats
 import org.apache.spark.lineage.util.{IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
@@ -30,13 +31,17 @@ import scala.reflect.ClassTag
 private[spark]
 class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
-  ) extends TapLRDD[T](lc, deps) {
-
+  ) extends TapLRDD[T](lc, deps) with PostShuffleLatencyStatsTap[T] {
+  
   @transient private var buffer: IntIntLongLongByteBuffer = _
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
-
+  
+  override def getLatencyStats: AggregateLatencyStats =
+    firstParent.asInstanceOf[ShuffledLRDD[_, _, _]].partitionLatencyStats
+  
+  // TODO update to post shuffle agg stats here and cogroup
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
       val result: Array[Any] = if (tContext.currentBuffer != null) {

@@ -20,6 +20,7 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.ignite.AggregateLatencyStats
 import org.apache.spark.lineage.util.LongLongByteBuffer
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.{CompactBuffer, OpenHashSet, PrimitiveKeyOpenHashMap}
@@ -29,13 +30,16 @@ import scala.reflect.ClassTag
 private[spark]
 class TapPostCoGroupLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
-  ) extends TapPostShuffleLRDD[T](lc, deps)
+  ) extends TapPostShuffleLRDD[T](lc, deps) with PostShuffleLatencyStatsTap[T]
 {
   @transient private var buffer: LongLongByteBuffer = null
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
-
+  
+  override def getLatencyStats: AggregateLatencyStats =
+    firstParent.asInstanceOf[CoGroupedLRDD[_]].partitionLatencyStats
+  
   override def materializeBuffer: Array[Any] = {
     if(buffer != null) {
       val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()

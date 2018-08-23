@@ -19,6 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
+import org.apache.spark.lineage.ignite.AggregateLatencyStats
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
 import org.apache.spark.lineage.util.{IntIntByteBuffer, IntIntLongLongByteBuffer}
 
@@ -29,10 +30,13 @@ import scala.reflect.ClassTag
 private[spark]
 class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
-  ) extends TapLRDD[T](lc, deps) {
+  ) extends TapLRDD[T](lc, deps) with PreShuffleLatencyStatsTap[T] {
 
   @transient private var buffer: IntIntLongLongByteBuffer = _
-
+  @transient private var latencyStats: AggregateLatencyStats = _
+  override def getLatencyStats: AggregateLatencyStats = latencyStats
+  override def setLatencyStats(stats: AggregateLatencyStats): Unit = latencyStats = stats
+  
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
