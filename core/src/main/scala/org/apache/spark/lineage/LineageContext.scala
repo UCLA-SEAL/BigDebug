@@ -22,6 +22,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
+import org.apache.spark.lineage.perfdebug.perftrace.{LineageCacheDependencies, LineageCacheRepository}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 import org.apache.spark.util.SerializableConfiguration
@@ -258,7 +259,15 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       visit(waitingForVisit.pop())
     }
 
-    rdd.tapRight()
+    val result = rdd.tapRight()
+  
+    /** jteoh: After we've tapped the job, go ahead and save its dependencies to the external
+     * storage system for later retrieval, eg with external queries.
+     */
+    val dependencies = LineageCacheDependencies.buildLineageCacheDependencyTree(rdd.getTap.get)
+    LineageCacheRepository.saveCacheDependencies(sparkContext.applicationId, dependencies)
+    
+    result
   }
 
   private def tapJobWithId[T](rdd: Lineage[T]): RDD[(T, Long)] = {

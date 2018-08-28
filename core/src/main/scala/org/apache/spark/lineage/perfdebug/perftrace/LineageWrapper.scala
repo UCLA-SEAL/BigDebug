@@ -267,12 +267,10 @@ object LineageWrapper {
         "recorded!")
       val dependencies = LineageCacheDependencies.buildLineageCacheDependencyTree(rdd.getTap.get)
       
-      // TODO need to integrate this saving process somewhere in the lineage context runJob process
       val appId = rdd.context.applicationId
       println("-" * 100)
       println("APP ID: " + appId)
       println("-" * 100)
-      LineageCacheRepository.saveCacheDependencies(appId, dependencies)
       
       LineageWrapper(dependencies)
     }

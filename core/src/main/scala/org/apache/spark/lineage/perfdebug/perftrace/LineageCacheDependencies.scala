@@ -14,7 +14,8 @@ import scala.collection.mutable.ListBuffer
 private[spark]
 case class LineageCacheDependencies(appId: String, // jteoh: added later to support shuffle agg stats
                                     cacheName: String,
-                                    tap: TapLRDD[_],
+                                    tap: TapLRDD[_], //TODO jteoh: consider changing to string -
+                                    // this isn't storage-friendly.
                                     dependencies: Seq[LineageCacheDependencies]) {
   
   /** Uses the [[org.apache.spark.lineage.perfdebug.perftrace.LineageCacheRepository]] to
