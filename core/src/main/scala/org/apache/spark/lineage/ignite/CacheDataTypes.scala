@@ -167,9 +167,8 @@ object CacheDataTypes {
   
   object TapPreShuffleLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
-      // TODO: Removed tuple._3 from case class, because that's the timestamp no longer used.
-      TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._4)
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long])]
+      TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
@@ -210,9 +209,8 @@ object CacheDataTypes {
       // collection.
       // For exact location: search "jteoh" - it's not explicitly labeled as a
       // TapPostShuffleLRDD, but the schema is identical.
-      val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long, Long)]
-      // TODO removed tuple._3 because timestamp is no longer used. Clean up the buffer.
-      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2, tuple._4)
+      val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long)]
+      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2, tuple._3)
     }
     def readableSchema =
       s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
@@ -241,10 +239,9 @@ object CacheDataTypes {
   // ----------- COGROUP VALUES start ---------
   object TapPreCoGroupLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long], List[Long])]
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long])]
       // jteoh: 8/7/2018 - not using latencies for cogroup
-      // TODO - don't even collect tuple._3 in the RDD if this is finalized!
-      TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._4)
+      TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +

@@ -21,7 +21,7 @@ import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.ignite.AggregateLatencyStats
-import org.apache.spark.lineage.util.{IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
+import org.apache.spark.lineage.util.{IntIntLongByteBuffer, IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
@@ -33,7 +33,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) with PostShuffleLatencyStatsTap[T] {
   
-  @transient private var buffer: IntIntLongLongByteBuffer = _
+  @transient private var buffer: IntIntLongByteBuffer = _
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
@@ -41,7 +41,6 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def getLatencyStats: AggregateLatencyStats =
     firstParent.asInstanceOf[ShuffledLRDD[_, _, _]].partitionLatencyStats
   
-  // TODO update to post shuffle agg stats here and cogroup
   override def materializeBuffer: Array[Any] = {
     tContext synchronized {
       val result: Array[Any] = if (tContext.currentBuffer != null) {
@@ -80,8 +79,8 @@ class TapPostShuffleLRDD[T: ClassTag](
         //  Int.int2long
         //}
         
-        // jteoh: added timestamp and latency
-        buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2), r._3, r._4)).toArray
+        // jteoh: added latency
+        buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2), r._3)).toArray
       } else {
         Array()
       }
@@ -92,7 +91,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     }
   }
 
-  override def initializeBuffer() = buffer = new IntIntLongLongByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer = {
     if(tContext.currentBuffer != null) {
@@ -110,12 +109,10 @@ class TapPostShuffleLRDD[T: ClassTag](
   override def tap(record: T) = {
     val timeTaken = 0L // TODO - anything useful to measure here? using the extra value bc of
     // buffer implementations (no IntIntLong) and possibility of extension.
-    val postShuffleTime = System.currentTimeMillis()
     
     tContext.currentInputId = record.asInstanceOf[(_, _)]._1.hashCode()
     buffer.put(tContext.currentInputId,
       Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt(),
-      postShuffleTime,
       timeTaken
     )
     if(isLast) {
