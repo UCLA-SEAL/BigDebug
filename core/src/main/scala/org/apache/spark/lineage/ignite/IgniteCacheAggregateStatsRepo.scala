@@ -14,7 +14,7 @@ import scala.collection.JavaConverters._
  * In practice, this cache is expected to be fairly small, at least in comparison to the amount
  * of data. We expect one entry in the cache per RDD id + partition.
  */
-class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
+class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) extends AggregateStatsRepo {
   private val RESERVED_AGG_STATS_CACHE_BASE_NAME = "__PERF_IGNITE_AGG_STATS_CACHE"
   private val CACHE_PARTITION_COUNT = 1
   
@@ -37,13 +37,12 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
     AggregateLatencyStats(split(0).toLong, split(1).toLong, split(2).toLong)
   }
   
-  def buildAggStatsCacheName(appId: String) = {
+  private def buildAggStatsCacheName(appId: String) = {
     // TODO set up cache name properly
     s"${RESERVED_AGG_STATS_CACHE_BASE_NAME}_${appId}"
   }
   
-  // TODO MAKE THIS PRIVATE METHOD AFTER DEBUGGING
-  def getCache(appId: String): IgniteCache[CacheKey, CacheValue] = {
+  private def getCache(appId: String): IgniteCache[CacheKey, CacheValue] = {
     val cacheName = buildAggStatsCacheName(appId)
     ignite.getOrCreateCache(
       new CacheConfiguration[CacheKey, CacheValue](cacheName)
@@ -61,9 +60,9 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
   /** Retrieves all partition stats for the given RDD, as a map with key = partition and value =
    * stats for that partition.
    */
-  def getAllAggStatsForRDD(appId: String,
-                           aggStatsRdd: LatencyStatsTap[_]
-                           ): Map[PartitionId, AggregateLatencyStats] = {
+  override def getAllAggStatsForRDD(appId: String,
+                                    aggStatsRdd: LatencyStatsTap[_]
+                                   ): Map[PartitionId, AggregateLatencyStats] = {
     getAllAggStats(appId, aggStatsRdd.id, aggStatsRdd.getNumPartitions)
   }
   
@@ -85,8 +84,8 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) {
     result
   }
   
-  def saveAggStats(appId: String,
-                   aggStatsRdd: LatencyStatsTap[_]): Unit = {
+  override def saveAggStats(appId: String,
+                            aggStatsRdd: LatencyStatsTap[_]): Unit = {
     saveAggStats(appId, aggStatsRdd.id, aggStatsRdd.splitId.toInt, aggStatsRdd.getLatencyStats)
   }
   
