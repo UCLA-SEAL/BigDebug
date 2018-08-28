@@ -1,7 +1,7 @@
 package org.apache.spark.lineage.perfdebug.storage
 
 import org.apache.spark.lineage.perfdebug.ignite.PerfIgniteCacheStorage
-import org.apache.spark.lineage.perfdebug.storage.CacheDataTypes._
+import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes._
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
 

@@ -44,61 +44,29 @@
 
     <dependency>
       <groupId>org.apache.ignite</groupId>
-      <artifactId>ignite-core</artifactId>
+      <artifactId>ignite-spark</artifactId>
       <version>${ignite.version}</version>
-      <!-- <exclusion>
-        <groupId>org.apache.spark</groupId>
-        <artifactId>spark-unsafe_2.10</artifactId>
-      </exclusion> -->
-
-      <!-- 
-      7/12/2018 jteoh 
-      I think these were made when I attempted to use ignite-spark isntead of ignite-core.
-      Unfortunately, ignite-spark seems to use some 2.10 versions.
-      See https://issues.apache.org/jira/browse/IGNITE-6369
-      which is claimed to be fixed in https://issues.apache.org/jira/browse/IGNITE-3084
-      -->
-
-      <!--<exclusions>
-        &lt;!&ndash;Added exclusions to bypass enforcer, which will flag any 2.10 item&ndash;&gt;
+      <exclusions>
+          <!--exclude all transitive dependencies because of ugly conflicts,
+          eg spark_unsafe is required in both 2.11 and 2.10 there-->
         <exclusion>
-          <groupId>com.twitter</groupId>
-          <artifactId>chill_2.10</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.spark</groupId>
-          <artifactId>spark-unsafe_2.10</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.scalatest</groupId>
-          <artifactId>scalatest_2.10</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.spark</groupId>
-          <artifactId>spark-tags_2.10</artifactId>
-        </exclusion>
-        &lt;!&ndash; Added exclusions to bypass compilation issues &ndash;&gt;
-        &lt;!&ndash; See maven repo for dependencies https://mvnrepository.com/artifact/org.apache.ignite/ignite-spark_2.10/2.3.0 &ndash;&gt;
-
-        &lt;!&ndash; Seems Spark might use 2.10, which is incompatible with 2.11 &ndash;&gt;
-        <exclusion>
-          <groupId>org.json4s</groupId>
-          <artifactId>json4s-core_2.11</artifactId>
-        </exclusion>
-
-        &lt;!&ndash; Getting errors in spark-ui that suggest conflict  &ndash;&gt;
-        <exclusion>
-          <groupId>org.apache.spark</groupId>
+          <groupId>*</groupId>
           <artifactId>*</artifactId>
         </exclusion>
-      </exclusions>-->
+      </exclusions>
     </dependency>
 
-      <dependency>
-          <groupId>it.unimi.dsi</groupId>
-          <artifactId>fastutil</artifactId>
-          <version>7.0.13</version>
-      </dependency>
+    <dependency>
+      <groupId>org.apache.ignite</groupId>
+      <artifactId>ignite-core</artifactId>
+      <version>${ignite.version}</version>
+    </dependency>
+      
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>7.0.13</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.avro</groupId>

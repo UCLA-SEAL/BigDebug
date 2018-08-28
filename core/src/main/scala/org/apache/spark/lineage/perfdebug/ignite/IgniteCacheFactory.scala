@@ -4,7 +4,7 @@ import org.apache.ignite.cache.affinity.AffinityKeyMapper
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
-import org.apache.spark.lineage.perfdebug.storage.CacheDataTypes.PartitionWithRecId
+import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecId
 import org.apache.spark.lineage.perfdebug.storage.CacheArguments
 
 
