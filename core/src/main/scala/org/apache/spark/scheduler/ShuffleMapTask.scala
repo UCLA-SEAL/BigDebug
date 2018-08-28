@@ -21,17 +21,18 @@ import java.lang.management.ManagementFactory
 import java.nio.ByteBuffer
 import java.util.Properties
 
-import scala.language.existentials
 import org.apache.spark._
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.LineageManager
-import org.apache.spark.lineage.ignite.{AggregateLatencyStats, IgniteCacheAggregateStatsRepo}
-import org.apache.spark.lineage.rdd.{Lineage, PreShuffleLatencyStatsTap, TapPreShuffleLRDD}
+import org.apache.spark.lineage.perfdebug.storage.AggregateLatencyStats
+import org.apache.spark.lineage.rdd.{Lineage, PreShuffleLatencyStatsTap}
 import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.rdd.RDD
 import org.apache.spark.shuffle.ShuffleWriter
+
+import scala.language.existentials
 
 /**
  * A ShuffleMapTask divides the elements of an RDD into multiple buckets (based on a partitioner

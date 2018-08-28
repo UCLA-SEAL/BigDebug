@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.ignite.AggregateLatencyStats
+import org.apache.spark.lineage.perfdebug.storage.AggregateLatencyStats
 import org.apache.spark.lineage.util.{IntIntLongByteBuffer, IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer

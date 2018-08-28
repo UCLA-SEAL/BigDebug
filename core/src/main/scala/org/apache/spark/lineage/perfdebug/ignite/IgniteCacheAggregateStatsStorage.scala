@@ -1,20 +1,22 @@
-package org.apache.spark.lineage.ignite
+package org.apache.spark.lineage.perfdebug.ignite
 
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.spark.lineage.perfdebug.storage.AggregateStatsStorage
+import org.apache.spark.lineage.perfdebug.storage.{AggregateLatencyStats, AggregateStatsStorage}
 import org.apache.spark.lineage.rdd.LatencyStatsTap
 
 import scala.collection.JavaConverters._
 
-/** TODO merge with LineageCacheRepo once that is integrated.
+/**
  * This builds one cache per app. The cache is keyed by both RDD and partition ID. If all entries
  * for a given RDD are desired, one should leverage the number of partitions for that RDD (0 to
  * numPartitions - 1) or use the getAll* method provided.
  * In practice, this cache is expected to be fairly small, at least in comparison to the amount
  * of data. We expect one entry in the cache per RDD id + partition.
  */
-class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) extends AggregateStatsRepo {
+class IgniteCacheAggregateStatsStorage(ignite: Ignite = Ignition.ignite()) extends AggregateStatsStorage {
   private val RESERVED_AGG_STATS_CACHE_BASE_NAME = "__PERF_IGNITE_AGG_STATS_CACHE"
   private val CACHE_PARTITION_COUNT = 1
   
@@ -57,17 +59,13 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) extends 
     deserializeStats(tuple)
   }
   
-  /** Retrieves all partition stats for the given RDD, as a map with key = partition and value =
-   * stats for that partition.
-   */
   override def getAllAggStatsForRDD(appId: String,
                                     aggStatsRdd: LatencyStatsTap[_]
                                    ): Map[PartitionId, AggregateLatencyStats] = {
     getAllAggStats(appId, aggStatsRdd.id, aggStatsRdd.getNumPartitions)
   }
   
-  /** DEBUGGING ONLY Retrieves all partition->stats mapping for the provided RDD ID */
-  def getAllAggStats(appId: String,
+  override def getAllAggStats(appId: String,
                      rddId: RddId,
                      numPartitions: Int): Map[PartitionId, AggregateLatencyStats] = {
     val cache = getCache(appId)
@@ -97,11 +95,4 @@ class IgniteCacheAggregateStatsRepo(ignite: Ignite = Ignition.ignite()) extends 
     val key = (rddId, partition)
     cache.put(key, serializeStats(stats))
   }
-}
-
-// TODO: merge into LineageCacheRepository eventually
-object IgniteCacheAggregateStatsRepo {
-  val _instance = new IgniteCacheAggregateStatsRepo()
-  
-  def getInstance(): IgniteCacheAggregateStatsRepo = _instance
 }

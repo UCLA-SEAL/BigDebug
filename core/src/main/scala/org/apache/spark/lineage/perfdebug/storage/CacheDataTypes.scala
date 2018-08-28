@@ -1,22 +1,12 @@
-package org.apache.spark.lineage.ignite
-
-import java.text.SimpleDateFormat
-import java.util.TimeZone
+package org.apache.spark.lineage.perfdebug.storage
 
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
-import scala.language.implicitConversions
-
-/** Global class to define PartitionWithRecId and the valid ignite cache values (corresponding to
- *  tapped lineage data
+/** Global class to define PartitionWithRecId and the valid cache values. These classes are
+ * intended to provide an external-friendly storage format for various storage/tracing solutions.
  */
 object CacheDataTypes {
-  val dateFormat = new SimpleDateFormat("HH:mm:ss:SSS")
-  def timestampToDateStr(millis: Long) = dateFormat.format(millis)
-  def setDisplayTimeZone(timeZone: TimeZone): Unit = dateFormat.setTimeZone(timeZone)
-  def setDisplayTimeZone(tz: String): Unit = setDisplayTimeZone(TimeZone.getTimeZone(tz))
-  setDisplayTimeZone("America/Los_Angeles") // default value
   
   /** PartitionWithRecId is a common format used throughout Titian - I've simply created a
     * wrapper to abstract out the details

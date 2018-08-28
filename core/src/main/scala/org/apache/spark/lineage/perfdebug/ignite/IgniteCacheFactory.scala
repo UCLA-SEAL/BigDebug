@@ -1,10 +1,11 @@
-package org.apache.spark.lineage.ignite
+package org.apache.spark.lineage.perfdebug.ignite
 
 import org.apache.ignite.cache.affinity.AffinityKeyMapper
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
-import org.apache.spark.lineage.ignite.CacheDataTypes.PartitionWithRecId
+import org.apache.spark.lineage.perfdebug.storage.CacheDataTypes.PartitionWithRecId
+import org.apache.spark.lineage.perfdebug.storage.CacheArguments
 
 
 
@@ -48,8 +49,4 @@ object IgniteCacheFactory {
   }
 }
 
-// TODO number of cache partitions is currently fixed because the default 1024
-// cannot be overridden globally or changed after creation, but is too high for local
-// development. Using IgniteRDDs will result in one RDD partition per cache
-// partition, and simple operations will end up spawning 1024 tasks.
-case class CacheArguments(cacheName: String, numPartitionsPerCache: Int = 2)
+
