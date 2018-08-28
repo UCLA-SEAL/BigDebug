@@ -1,13 +1,10 @@
-package org.apache.spark.lineage.perfdebug.ignite
+package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 
-import org.apache.ignite.cache.affinity.AffinityKeyMapper
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.spark.lineage.perfdebug.lineageV2.CacheArguments
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecId
-import org.apache.spark.lineage.perfdebug.storage.CacheArguments
-
-
 
 // Not quite an actual factory pattern, but useful for instantiating different KV cache types
 object IgniteCacheFactory {
@@ -48,5 +45,3 @@ object IgniteCacheFactory {
     cache
   }
 }
-
-

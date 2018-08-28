@@ -1,6 +1,6 @@
-package org.apache.spark.lineage.perfdebug.storage
+package org.apache.spark.lineage.perfdebug.perftrace
 
-import org.apache.spark.lineage.perfdebug.ignite.IgniteCacheAggregateStatsStorage
+import org.apache.spark.lineage.perfdebug.ignite.perftrace.IgniteCacheAggregateStatsStorage
 import org.apache.spark.lineage.rdd.LatencyStatsTap
 
 /**

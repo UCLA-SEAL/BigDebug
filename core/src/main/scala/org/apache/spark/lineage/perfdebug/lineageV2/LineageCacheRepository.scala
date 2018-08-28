@@ -1,15 +1,15 @@
-package org.apache.spark.lineage.perfdebug.perftrace
+package org.apache.spark.lineage.perfdebug.lineageV2
 
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.spark.IgniteContext
-import org.apache.spark.lineage.perfdebug.ignite.IgniteLineageCacheRepository
 import org.apache.spark.SparkContext
-import org.apache.spark.lineage.perfdebug.storage.PerfLineageCacheStorage
+import org.apache.spark.lineage.perfdebug.ignite.lineageV2.IgniteLineageCacheRepository
 import org.apache.spark.lineage.rdd.TapLRDD
 
 /**
  * Unlike AggregateStatsStorage or PerfLineageCacheStorage, this class is only used from the
- * driver (as opposed to executors/tasks) and is thus more easily configured.
+ * driver (as opposed to executors/tasks) and is thus more easily configured. It is used to
+ * retrieve LineageCache instances (essentially Lineage RDDs) and also save LineageCacheDependencies
  */
 trait LineageCacheRepository {
   
@@ -39,7 +39,7 @@ object LineageCacheRepository {
   def getCache(tap: TapLRDD[_]): LineageCache = {
     // this will be lost after the session, and thus this method is discouraged
     val appId = tap.lineageContext.sparkContext.applicationId
-    val name = PerfLineageCacheStorage.getInstance().buildCacheName(appId, tap)
+    val name = PerfLineageRecordsStorage.getInstance().buildCacheName(appId, tap)
     getCache(name)
   }
   

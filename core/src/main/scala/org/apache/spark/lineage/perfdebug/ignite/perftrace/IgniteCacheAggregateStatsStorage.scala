@@ -1,10 +1,9 @@
-package org.apache.spark.lineage.perfdebug.ignite
+package org.apache.spark.lineage.perfdebug.ignite.perftrace
 
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
-import org.apache.spark.lineage.perfdebug.storage.AggregateStatsStorage
-import org.apache.spark.lineage.perfdebug.storage.{AggregateLatencyStats, AggregateStatsStorage}
+import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage}
 import org.apache.spark.lineage.rdd.LatencyStatsTap
 
 import scala.collection.JavaConverters._

@@ -1,10 +1,10 @@
-package org.apache.spark.lineage.perfdebug.ignite
+package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 
 import org.apache.ignite.IgniteCache
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.spark.IgniteContext
-import org.apache.spark.lineage.perfdebug.perftrace.{LineageCache, LineageCacheDependencies, LineageCacheRepository}
+import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCache, LineageCacheDependencies, LineageCacheRepository}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId}
 
 class IgniteLineageCacheRepository(igniteContext: IgniteContext)

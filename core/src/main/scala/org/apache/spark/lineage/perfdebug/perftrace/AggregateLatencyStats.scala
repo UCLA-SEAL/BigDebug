@@ -1,4 +1,4 @@
-package org.apache.spark.lineage.perfdebug.storage
+package org.apache.spark.lineage.perfdebug.perftrace
 
 /** Class used to help approximate shuffle-based latency at a partition level. The metrics
  *  involved represent metrics per partition.

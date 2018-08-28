@@ -18,7 +18,8 @@
 package org.apache.spark.lineage
 
 import org.apache.spark._
-import org.apache.spark.lineage.perfdebug.storage.{AggregateStatsStorage, PerfLineageCacheStorage}
+import org.apache.spark.lineage.perfdebug.lineageV2.PerfLineageRecordsStorage
+import org.apache.spark.lineage.perfdebug.perftrace.AggregateStatsStorage
 import org.apache.spark.lineage.rdd.LatencyStatsTap
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
@@ -69,7 +70,7 @@ object LineageManager{
             blockManager.putIterator(key, arr.toIterator, tap._4, true)
 
             val appIdValue = appId.get
-            PerfLineageCacheStorage.getInstance().store(appIdValue, rdd, arr)
+            PerfLineageRecordsStorage.getInstance().store(appIdValue, rdd, arr)
             rdd match {
               case aggStatsTap: LatencyStatsTap[_] =>
                 AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap)

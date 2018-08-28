@@ -1,4 +1,4 @@
-package org.apache.spark.lineage.perfdebug.storage
+package org.apache.spark.lineage.perfdebug.lineageV2
 
 // TODO number of cache partitions is currently fixed because the default 1024
 // cannot be overridden globally or changed after creation, but is too high for local

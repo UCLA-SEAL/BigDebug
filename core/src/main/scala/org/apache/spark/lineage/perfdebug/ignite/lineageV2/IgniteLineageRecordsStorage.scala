@@ -1,10 +1,11 @@
-package org.apache.spark.lineage.perfdebug.ignite
+package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 
 import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
+import org.apache.spark.lineage.perfdebug.ignite._
+import org.apache.spark.lineage.perfdebug.ignite.perftrace.IgniteCacheAggregateStatsStorage
+import org.apache.spark.lineage.perfdebug.lineageV2.{CacheArguments, PerfLineageRecordsStorage}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
-import org.apache.spark.lineage.perfdebug.storage.PerfLineageCacheStorage
-import org.apache.spark.lineage.perfdebug.storage.{CacheArguments, PerfLineageCacheStorage}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
 
@@ -45,7 +46,7 @@ abstract class PerfIgniteCacheStorage[V <: CacheValue,
   def getAll = cache.getAll _
 }
 
-object PerfIgniteCacheStorage extends PerfLineageCacheStorage {
+object PerfIgniteCacheStorage extends PerfLineageRecordsStorage {
   override def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
     doWithStorage(appId, rdd)(_.store(data))
   }

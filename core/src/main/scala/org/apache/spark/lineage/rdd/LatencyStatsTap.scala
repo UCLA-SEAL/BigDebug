@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.rdd
 
-import org.apache.spark.lineage.perfdebug.storage.AggregateLatencyStats
+import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
 
 trait LatencyStatsTap[T] extends TapLRDD[T] {
   def getLatencyStats: AggregateLatencyStats

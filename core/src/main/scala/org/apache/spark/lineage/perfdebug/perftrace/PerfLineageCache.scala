@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
+import org.apache.spark.lineage.perfdebug.lineageV2.LineageCache
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId}
 import org.apache.spark.rdd.RDD
 

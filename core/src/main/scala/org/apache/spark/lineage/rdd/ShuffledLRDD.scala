@@ -18,7 +18,7 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.perfdebug.storage.AggregateLatencyStats
+import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
 import org.apache.spark.lineage.util.CountAndLatencyMeasuringIterator
 import org.apache.spark.lineage.{LAggregator, LineageContext}
 import org.apache.spark.rdd.ShuffledRDD

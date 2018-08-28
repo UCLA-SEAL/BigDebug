@@ -1,6 +1,5 @@
-package org.apache.spark.lineage.perfdebug.perftrace
+package org.apache.spark.lineage.perfdebug.lineageV2
 
-import org.apache.spark.lineage.perfdebug.storage.PerfLineageCacheStorage
 import org.apache.spark.lineage.rdd.TapLRDD
 import org.apache.spark.rdd.RDD
 
@@ -18,7 +17,7 @@ case class LineageCacheDependencies(appId: String, // jteoh: added later to supp
                                     // this isn't storage-friendly.
                                     dependencies: Seq[LineageCacheDependencies]) {
   
-  /** Uses the [[org.apache.spark.lineage.perfdebug.perftrace.LineageCacheRepository]] to
+  /** Uses the [[org.apache.spark.lineage.perfdebug.lineageV2.LineageCacheRepository]] to
    * retrieve the entire lineage cache, without any pre-filtering/joining.
    */
   def fullLineageCache: LineageCache = LineageCacheRepository.getCache(cacheName)
@@ -66,7 +65,7 @@ object LineageCacheDependencies {
     val appId = lastTap.context.applicationId
     def convertToLineageCacheDependencies(tap: TapLRDD[_]): LineageCacheDependencies = {
       // assumption: application ID should be the same for all RDDs in dependency tree
-      val cacheName = PerfLineageCacheStorage.getInstance().buildCacheName(appId, tap)
+      val cacheName = PerfLineageRecordsStorage.getInstance().buildCacheName(appId, tap)
       LineageCacheDependencies(appId, cacheName, tap,
                                result.getOrElse(tap, Seq.empty).map(convertToLineageCacheDependencies))
     }

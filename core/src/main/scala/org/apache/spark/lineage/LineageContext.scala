@@ -22,7 +22,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
-import org.apache.spark.lineage.perfdebug.perftrace.{LineageCacheDependencies, LineageCacheRepository}
+import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheDependencies, LineageCacheRepository}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
 import org.apache.spark.util.SerializableConfiguration

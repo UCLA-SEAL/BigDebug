@@ -1,8 +1,10 @@
-package org.apache.spark.lineage.perfdebug.perftrace
+package org.apache.spark.lineage.perfdebug.lineageV2
 
 import org.apache.hadoop.io.{LongWritable, Text}
+import org.apache.spark.lineage.perfdebug.perftrace.{PerfLineageCache, PerfLineageWrapper, PerfTraceCalculator}
 import org.apache.spark.{Partitioner, SparkContext}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{PartitionWithRecId, TapHadoopLRDDValue}
+import org.apache.spark.lineage.perfdebug.utils.PartitionWithRecIdPartitioner
 import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD._
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
@@ -90,6 +92,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   
   /** Creates an instance of [[org.apache.spark.lineage.perfdebug.perftrace.PerfLineageWrapper]]
    * using the provided cache and the current wrapper's dependencies.
+   * TODO jteoh: remove this coupling/move it to PerfLineageWrapper
    */
   def asPerfLineageWrapper(perfCache: PerfLineageCache): PerfLineageWrapper = {
     PerfLineageWrapper(lineageDependencies, perfCache)

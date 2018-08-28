@@ -1,6 +1,6 @@
-package org.apache.spark.lineage.perfdebug.storage
+package org.apache.spark.lineage.perfdebug.lineageV2
 
-import org.apache.spark.lineage.perfdebug.ignite.PerfIgniteCacheStorage
+import org.apache.spark.lineage.perfdebug.ignite.lineageV2.PerfIgniteCacheStorage
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes._
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
@@ -9,9 +9,11 @@ import org.apache.spark.rdd.RDD
  * Storage object designed to support storing and retrieving lineage + performance data with a
  * configured storage system, e.g. Ignite. Note that the getValuesIterator method is provided
  * more for validation than optimized performance - in practice, it's more efficient to utilize
- * RDDs via a separate API.
+ * RDDs via a separate API. This overlaps a fair amount with [[org.apache.spark.lineage.perfdebug
+ * .perftrace.LineageCacheRepository]] but is primarily focused with individual records, rather
+ * than whole RDDs. (This is for functionality within LineageManager/tasks/executors)
  */
-trait PerfLineageCacheStorage {
+trait PerfLineageRecordsStorage {
   def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit
   def getValuesIterator[T <: CacheValue](appId: String,
                                          rdd: RDD[_]): Iterable[T]
@@ -64,16 +66,16 @@ trait PerfLineageCacheStorage {
   }
 }
 
-object PerfLineageCacheStorage {
+object PerfLineageRecordsStorage {
   // TODO make this configurable via conf in the future. Also consider integrating with SparkEnv
-  private var _instance: Option[PerfLineageCacheStorage] =
+  private var _instance: Option[PerfLineageRecordsStorage] =
     Some(PerfIgniteCacheStorage)
-  def getInstance(): PerfLineageCacheStorage = {
+  def getInstance(): PerfLineageRecordsStorage = {
     _instance.getOrElse(
       throw new IllegalStateException("No PerfLineageCacheStorage instance has been set. Did you " +
                                         "mean to call PerfLineageCacheStorage.setInstance(...)?")
     )
   }
-  def setInstance(instance: PerfLineageCacheStorage) =
+  def setInstance(instance: PerfLineageRecordsStorage) =
     _instance = Option(instance)
 }

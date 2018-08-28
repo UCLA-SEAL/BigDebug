@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.perfdebug.utils
 
-import org.apache.spark.lineage.perfdebug.perftrace.LineageWrapper._
+import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes._
 import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.rdd.RDD

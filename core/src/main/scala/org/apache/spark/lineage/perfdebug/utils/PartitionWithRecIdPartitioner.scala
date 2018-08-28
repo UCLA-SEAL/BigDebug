@@ -1,4 +1,4 @@
-package org.apache.spark.lineage.perfdebug.perftrace
+package org.apache.spark.lineage.perfdebug.utils
 
 import org.apache.spark.Partitioner
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecId
