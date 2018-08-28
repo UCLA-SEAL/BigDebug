@@ -86,5 +86,10 @@ class CoGroupedLRDD[K: ClassTag](var lrdds: Seq[RDD[_ <: Product2[K, _]]], part:
     if(newDeps.isEmpty) computeTapDependencies
     new TapPreCoGroupLRDD[(K, Array[Iterable[_]])](lineageContext, Seq(newDeps.pop()))
       .setCached(this)
+      .combinerEnabled(false)
+    // jteoh: CoGroup never does mapside combine (always false), so set appropriate flag. Not sure
+    // if this will break any existing Titian code, but it's required for performance lineage which
+    // largely rewrites the Titian tracing functionality in less coupled API.
+    
   }
 }
