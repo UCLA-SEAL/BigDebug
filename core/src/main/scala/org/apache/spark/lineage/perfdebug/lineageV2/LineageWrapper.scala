@@ -2,13 +2,14 @@ package org.apache.spark.lineage.perfdebug.lineageV2
 
 import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark.lineage.perfdebug.perftrace.{PerfLineageCache, PerfLineageWrapper, PerfTraceCalculator}
-import org.apache.spark.{Partitioner, SparkContext}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{PartitionWithRecId, TapHadoopLRDDValue}
 import org.apache.spark.lineage.perfdebug.utils.PartitionWithRecIdPartitioner
+import org.apache.spark.lineage.perfdebug.utils.TapUtils._
 import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD._
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 import org.apache.spark.util.collection.CompactBuffer
+import org.apache.spark.{Partitioner, SparkContext}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -34,7 +35,14 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
       throw new UnsupportedOperationException(s"No parent at position $pos to trace to")
     }
     val parent = dependencies(pos)
-    val tracedParentCache = lineageCache.lineageJoinToRight(parent.fullLineageCache)
+    // start = postshuffle/postcogroup (and also sources, but lineage is not applicable there)
+    // end = preshuffle, precogroup, tapLRDD - all retain the same partitioning.
+    val useShuffle = parent.tap.isStartOfStageTap
+  
+    // Since the first RDD is keyed by identity, the key and value's first element are identical.
+    val tracedParentCache = LineageWrapper.joinLineageKeyedRDDs(lineageCache.inputIds.keyBy(identity),
+                                                        parent.fullLineageCache.rdd,
+                                                        useShuffle).values
     LineageWrapper(parent, tracedParentCache)
   }
   
@@ -207,14 +215,16 @@ object LineageWrapper {
     LineageWrapper(deps)
   }
   
-  /** Placeholder for future optimization. partitioner is optional but specifies output
-   * partitioning */
-  def joinLineageDataRDDs[V1, V2](a: RDD[(PartitionWithRecId, V1)],
-                                  b: RDD[(PartitionWithRecId, V2)],
-                                  useShuffle: Boolean,
-                                  partitioner: Option[Partitioner] = None)
+  /** Central join method for joining two RDDs keyed by [[PartitionWithRecId]]. This
+   * class is currently a placeholder for future optimization, but will hopefully be
+   * be able to execute partition-based joins in the future. as well as potential broadcast
+   * optimizations for small RDDs. */
+  def joinLineageKeyedRDDs[V1, V2](a: RDD[(PartitionWithRecId, V1)],
+                                   b: RDD[(PartitionWithRecId, V2)],
+                                   useShuffle: Boolean,
+                                   partitioner: Option[Partitioner] = None)
                                   // need implicit classtags for automatic pairRDD conversion.
-                                 (implicit vt1: ClassTag[V1],
+                                  (implicit vt1: ClassTag[V1],
                                   vt2: ClassTag[V2]
                                  ): RDD[(PartitionWithRecId, (V1, V2))] = {
     // TODO: future optimization

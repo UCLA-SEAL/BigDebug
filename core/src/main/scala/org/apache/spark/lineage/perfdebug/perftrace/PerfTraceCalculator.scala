@@ -144,7 +144,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
     // which has no exploitable correlation. Thus, we don't get any benefit from specifying a
     // partitioner here (though we will partition later when reducing by key=OutputId).
     val firstJoin: RDD[((OutputId, CacheValue), InputLatency)] =
-      LineageWrapper.joinLineageDataRDDs(inpToOutputMapping, first, useShuffle = true).values
+      LineageWrapper.joinLineageKeyedRDDs(inpToOutputMapping, first, useShuffle = true).values
     val firstAggLatenciesWithCounts: RDD[((OutputId, CacheValue), AggResultWithCount)] =
       firstJoin.reduceByKeyWithCount(partitioner, aggFn)
     
@@ -152,7 +152,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
     match {
       case Some(second) =>
         val secondJoin: RDD[((OutputId, CacheValue), InputLatency)] =
-          LineageWrapper.joinLineageDataRDDs(inpToOutputMapping, second, useShuffle = true).values
+          LineageWrapper.joinLineageKeyedRDDs(inpToOutputMapping, second, useShuffle = true).values
         val secondAggLatenciesWithCounts: RDD[((OutputId, CacheValue), AggResultWithCount)] =
           secondJoin.reduceByKeyWithCount(partitioner, aggFn)
       
@@ -244,7 +244,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
           }))
         val joinResult: RDD[(InputId, (InputLatency, ((OutputId, OutputValue), UnAccumulatedLatency)))] =
         // TODO placeholder for future optimization - TapLRDDs should have 1-1 dependency on parents
-          LineageWrapper.joinLineageDataRDDs(prevLatencyRdd, inpToOutputWithPartialLatency, useShuffle = false)
+          LineageWrapper.joinLineageKeyedRDDs(prevLatencyRdd, inpToOutputWithPartialLatency, useShuffle = false)
         
         // For TapLRDD, it's a 1-1 mapping so we only need to sum or otherwise accumulate latency.
         // No need to use the agg function.

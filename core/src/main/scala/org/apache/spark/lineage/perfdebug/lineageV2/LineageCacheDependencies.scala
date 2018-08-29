@@ -15,6 +15,12 @@ case class LineageCacheDependencies(appId: String, // jteoh: added later to supp
                                     cacheName: String,
                                     tap: TapLRDD[_], //TODO jteoh: consider changing to string -
                                     // this isn't storage-friendly.
+                                    // TODO jteoh: knowing the taps might be insufficient for
+                                    // performance purposes, eg if we the external storage system
+                                    // retains partitioning and an operation such as reduce or
+                                    // cogroup does not result in a shuffle, we'll need to
+                                    // explicitly store knowledge about the dependency (shuffle
+                                    // vs one to one) rather than only the tap instance.
                                     dependencies: Seq[LineageCacheDependencies]) {
   
   /** Uses the [[org.apache.spark.lineage.perfdebug.lineageV2.LineageCacheRepository]] to
