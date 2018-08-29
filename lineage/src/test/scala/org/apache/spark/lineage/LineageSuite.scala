@@ -8,6 +8,7 @@ import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.util.collection.CompactBuffer
 import org.scalatest.{FunSuite, Matchers}
 
+// jteoh: no longer supported
 class LineageSuite extends FunSuite with LocalLineageContext with Matchers {
   test("Grep") {
     val logFile = "lineage/src/test/resources/README.md"
