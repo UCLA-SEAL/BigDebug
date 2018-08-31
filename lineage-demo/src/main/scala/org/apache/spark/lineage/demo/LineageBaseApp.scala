@@ -26,22 +26,26 @@ abstract class LineageBaseApp(lineageEnabled: Boolean = true,
   lazy val appId: String = lc.sparkContext.applicationId
   
   final def main(args: Array[String]): Unit = {
-    lc = initContext()
+    lc = initContext(args)
     try {
       run(lc, args)
     }
     finally {
+      lc.sparkContext.stop()
       if(useIgnite) {
-        Thread.sleep(1000) // not sure why, but this appears to close before jobs are submitted...
+        // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
+        // has run, so sleep a few seconds to allow that lineage to be uploaded.
+        Thread.sleep(3000)
         LineageCacheRepository.close()
       }
+      
     }
   }
   
   def run(lc: LineageContext, args: Array[String]): Unit
   
-  private def initContext(): LineageContext = {
-    val conf = new SparkConf().setAppName(appName).setMaster(s"local[${threadNum.getOrElse("*")}]")
+  private def initContext(args: Array[String]): LineageContext = {
+    val conf = initConf(args, buildDefaultConfiguration())
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineageEnabled)
@@ -55,6 +59,17 @@ abstract class LineageBaseApp(lineageEnabled: Boolean = true,
       sc.setLogLevel("ERROR") // for cleaner logs
     }
     lc
+  }
+  
+  /**
+   * Endpoint to override the typical spark configuration.
+   */
+  def initConf(args: Array[String], defaultConf: SparkConf): SparkConf = {
+    defaultConf // by default, this does nothing. Users can override if they have arg-specific confs
+  }
+  
+  private def buildDefaultConfiguration(): SparkConf = {
+    new SparkConf().setAppName(appName).setMaster(s"local[${threadNum.getOrElse("*")}]")
   }
   
   /** You can optionally use the LineageBaseApp rewriteAllHadoopFiles to avoid setting overwrite

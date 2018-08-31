@@ -1,7 +1,8 @@
-package org.apache.spark.lineage.demo
+package org.apache.spark.lineage.demo.sampledemos
 
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
 import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage}
 import org.apache.spark.lineage.rdd.Lineage
