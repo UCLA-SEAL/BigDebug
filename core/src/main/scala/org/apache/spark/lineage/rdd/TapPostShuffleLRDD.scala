@@ -21,7 +21,7 @@ import com.google.common.hash.Hashing
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
-import org.apache.spark.lineage.util.{IntIntLongByteBuffer, IntIntLongLongByteBuffer, IntKeyAppendOnlyMap}
+import org.apache.spark.lineage.util.{IntIntByteBuffer, IntKeyAppendOnlyMap}
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
@@ -33,7 +33,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) with PostShuffleLatencyStatsTap[T] {
   
-  @transient private var buffer: IntIntLongByteBuffer = _
+  @transient private var buffer: IntIntByteBuffer = _
 
   override def getCachedData: Lineage[T] =
     shuffledData.setIsPostShuffleCache().asInstanceOf[Lineage[T]]
@@ -80,7 +80,7 @@ class TapPostShuffleLRDD[T: ClassTag](
         //}
         
         // jteoh: added latency
-        buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2), r._3)).toArray
+        buffer.iterator.map(r => (outputIdFn(r._1), (map(r._2), r._2))).toArray
       } else {
         Array()
       }
@@ -91,7 +91,7 @@ class TapPostShuffleLRDD[T: ClassTag](
     }
   }
 
-  override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer() = buffer = new IntIntByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer = {
     if(tContext.currentBuffer != null) {
@@ -107,13 +107,9 @@ class TapPostShuffleLRDD[T: ClassTag](
   }
 
   override def tap(record: T) = {
-    val timeTaken = 0L // TODO - anything useful to measure here? using the extra value bc of
-    // buffer implementations (no IntIntLong) and possibility of extension.
-    
     tContext.currentInputId = record.asInstanceOf[(_, _)]._1.hashCode()
     buffer.put(tContext.currentInputId,
-      Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt(),
-      timeTaken
+      Hashing.murmur3_32().hashString(record.asInstanceOf[(_, _)]._1.toString).asInt()
     )
     if(isLast) {
       (record, PackIntIntoLong(splitId, tContext.currentInputId)).asInstanceOf[T]
