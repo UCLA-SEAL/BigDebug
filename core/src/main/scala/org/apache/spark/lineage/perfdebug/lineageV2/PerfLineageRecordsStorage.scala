@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.perfdebug.lineageV2
 
-import org.apache.spark.lineage.perfdebug.ignite.lineageV2.PerfIgniteCacheStorage
+import org.apache.spark.lineage.perfdebug.ignite.lineageV2.PerfIgniteRecordsStorage
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes._
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
@@ -52,7 +52,7 @@ trait PerfLineageRecordsStorage {
         val values = getValuesIterator[TapLRDDValue](appId, rdd)
         // inefficient materialization to list and sort by descending time, then take top few tuples
         println("TapLRDD Schema: " + TapLRDDValue.readableSchema)
-        values.toList.sortBy(-_.latency)
+        values.toList.sortBy(-_.partialLatencies.head)
         .take(topN)
         .foreach(v => println("\t" + v))
     
@@ -69,7 +69,7 @@ trait PerfLineageRecordsStorage {
 object PerfLineageRecordsStorage {
   // TODO make this configurable via conf in the future. Also consider integrating with SparkEnv
   private var _instance: Option[PerfLineageRecordsStorage] =
-    Some(PerfIgniteCacheStorage)
+    Some(PerfIgniteRecordsStorage)
   def getInstance(): PerfLineageRecordsStorage = {
     _instance.getOrElse(
       throw new IllegalStateException("No PerfLineageCacheStorage instance has been set. Did you " +
