@@ -497,7 +497,7 @@ object Lineage {
   def timedBlock[U](taskContext: TaskContext, block: =>  U, rddId: Int): U =
     measureTimeAndStoreInContext(taskContext, block, rddId)
   
-  /** Executes the provided block and returns a pair of (result, time taken) */
+  /** Executes the provided block and returns a pair of (result, time taken) where time is in ms*/
   def measureTime[R](block: => R): (R, Long) = {
     val t0 = System.currentTimeMillis()
     val result = block    // call-by-name: https://docs.scala-lang.org/tour/by-name-parameters.html

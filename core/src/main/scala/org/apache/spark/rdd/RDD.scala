@@ -115,8 +115,14 @@ abstract class RDD[T: ClassTag](
   private[spark] var captureLineage: Boolean = false
 
   def isLineageActive: Boolean = captureLineage
-
-  def materializeBuffer: Array[Any] = Array[Any]()
+  
+  /** Create the lineage results to store in LineageManager.materialize. For TapRDDs, the output
+   * format will generally conform to the [TapRDDValue].fromRecord method (replace with appropriate
+   * value instance.
+   *
+   * For non-TapRDDs (and most RDDs in general), this method is not used and returns an empty array.
+   */
+  def materializeBuffer: Array[Any] = Array[Any]() // jteoh added doc
 
   def releaseBuffer(): Unit = throw new UnsupportedOperationException("No buffer to release")
 
