@@ -141,7 +141,7 @@ object CacheDataTypes {
   // These names might not be the most appropriate and are subject to change.
   case class TapPreShuffleLRDDValue(outputId: PartitionWithRecId,
                                     inputRecIds: Array[Int],
-                                    outputRecordLatencies: List[Long])
+                                    outputRecordLatencies: Array[Long])
     extends EndOfStageCacheValue {
   
     override def key: PartitionWithRecId = outputId
@@ -157,7 +157,7 @@ object CacheDataTypes {
   
   object TapPreShuffleLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long])]
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Long])]
       TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
     // input partition is always same as output
@@ -209,7 +209,7 @@ object CacheDataTypes {
   
   case class TapPreCoGroupLRDDValue(outputId: PartitionWithRecId,
                                     inputRecIds: Array[Int],
-                                    outputRecordLatencies: List[Long])
+                                    outputRecordLatencies: Array[Long])
     extends EndOfStageCacheValue {
   
     override def key = outputId
@@ -229,7 +229,7 @@ object CacheDataTypes {
   // ----------- COGROUP VALUES start ---------
   object TapPreCoGroupLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], List[Long])]
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Long])]
       // jteoh: 8/7/2018 - not using latencies for cogroup
       TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
@@ -239,7 +239,10 @@ object CacheDataTypes {
   }
   
   
-  /** Essentially identical to TapPostShuffleLRDDValue */
+  /**
+   * Essentially identical to TapPostShuffleLRDDValue. It should, however, be noted that the
+   * inputIds are a union all (ie with dups) of the input partitions across all dependencies.
+   */
   case class TapPostCoGroupLRDDValue(outputId: PartitionWithRecId,
                                      inputIds: CompactBuffer[Long],
                                      inputKeyHash: Int)

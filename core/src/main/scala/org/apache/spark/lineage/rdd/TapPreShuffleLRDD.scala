@@ -68,7 +68,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
       Tuple3(Tuple2(splitId.toInt, k),
              map.get(k).toArray, // all input partitions, with potential duplicates depending on
              // the original dependency.
-             recordTimeMap(k).toList)).toArray
+             recordTimeMap(k).toArray)).toArray
     // final output = list of:
     /*(split, murmurhash of record key(?)),
     titian-labeled inputs for that particular key (from tap method/task context)
