@@ -32,8 +32,10 @@ object CacheDataTypes {
    * As of initial implementation, every cache actually has records of (value.key, value)
    */
   abstract class CacheValue {
-    def key: PartitionWithRecId
-    def inputKeys: Seq[PartitionWithRecId]
+    val outputId: PartitionWithRecId
+    /** Alias for outputId, used for k-v storage */
+    final val key: PartitionWithRecId = outputId
+    def inputIds: Seq[PartitionWithRecId]
     def cacheValueString: String // set up for future serialization perhaps?
     
     override final def toString: String = cacheValueString
@@ -61,7 +63,7 @@ object CacheDataTypes {
     def partialLatencies: Seq[Long]
     /** Returns input IDs zipped with partial latencies. */
     def inputKeysWithPartialLatencies: Seq[(PartitionWithRecId, Long)] =
-      inputKeys.zip(partialLatencies)
+      inputIds.zip(partialLatencies)
   }
   trait ValueWithMultipleOutputLatencies extends CacheValue {
     /** Returns the input IDs zipped with their measured latencies. This is primarily used for
@@ -73,14 +75,12 @@ object CacheDataTypes {
   }
   
   /** TapLRDD cache value */
-  case class TapLRDDValue(outputId: PartitionWithRecId,
-                          inputId: PartitionWithRecId,
-                          latency: Long)
+  case class TapLRDDValue(override val outputId: PartitionWithRecId,
+                          private  val inputId: PartitionWithRecId,
+                          private  val latency: Long)
     extends EndOfStageCacheValue {
     
-    override def key = outputId
-  
-    override def inputKeys: Seq[PartitionWithRecId] = Seq(inputId)
+    override def inputIds: Seq[PartitionWithRecId] = Seq(inputId)
   
     override def partialLatencies: Seq[Long] = Seq(latency)
     
@@ -109,14 +109,12 @@ object CacheDataTypes {
       "=> ((InputPartitionId,InputRecId), LatencyMs)"
   }
   
-  case class TapHadoopLRDDValue(outputId: PartitionWithRecId,
+  case class TapHadoopLRDDValue(override val outputId: PartitionWithRecId,
                                 byteOffset: Long, // in hadoop file
                                 latency: Long)
     extends CacheValue {
     
-    override def key = outputId
-  
-    override def inputKeys: Seq[PartitionWithRecId] =
+    override def inputIds: Seq[PartitionWithRecId] =
       throw new UnsupportedOperationException("TapHadoopLRDDs represent the start of an execution tree and do not have other lineage input")
     
     override def cacheValueString = s"($outputId => $byteOffset, $latency)"
@@ -139,14 +137,12 @@ object CacheDataTypes {
   // Note (jteoh): inputIds is int[] because the split is always the same as the split found in
   // outputId. (Not sure why TapLRDD decided to specify long, but that's not the case here)
   // These names might not be the most appropriate and are subject to change.
-  case class TapPreShuffleLRDDValue(outputId: PartitionWithRecId,
-                                    inputRecIds: Array[Int],
-                                    outputRecordLatencies: Array[Long])
+  case class TapPreShuffleLRDDValue(override val outputId: PartitionWithRecId,
+                                    private  val inputRecIds: Array[Int],
+                                    private  val outputRecordLatencies: Array[Long])
     extends EndOfStageCacheValue {
   
-    override def key: PartitionWithRecId = outputId
-  
-    override def inputKeys: Seq[PartitionWithRecId] =
+    override def inputIds: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
   
     override def partialLatencies: Seq[Long] = outputRecordLatencies
@@ -166,28 +162,26 @@ object CacheDataTypes {
   }
   
   // outputId: split + hashcode for key (not murmur!)
-  // inputIds: inputIDs that mapped to the same key. Tentative, depending on ext sorter.
+  // inputPartitionLongs: inputIDs that mapped to the same key. Tentative, depending on ext sorter.
   //  7/12/2018 jteoh - these only appear to be used for their partitions right now, but it used
   // to be a long.
   // inputKeyHash: murmur hash (ideally unique) of the corresponding key
   // outputRecordLatency: how long it took within the stage to tap this record. Currently unused
   // (0).
-  case class TapPostShuffleLRDDValue(outputId: PartitionWithRecId,
-                                     inputIds: CompactBuffer[Long],
-                                     inputKeyHash: Int,
-                                     outputRecordLatency: Long
+  case class TapPostShuffleLRDDValue(override val outputId: PartitionWithRecId,
+                                     private  val inputPartitionLongs: CompactBuffer[Long],
+                                     private  val inputKeyHash: Int
                                     )
     extends CacheValue {
     
-    override def key = outputId
-
     // See comments above - inputIds is only used for partition.
-    override def inputKeys: Seq[PartitionWithRecId] =
+    override def inputIds: Seq[PartitionWithRecId] =
       // getLeft == partition
-      inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp), inputKeyHash))
+      inputPartitionLongs.map(inp =>
+                                new PartitionWithRecId(PackIntIntoLong.getLeft(inp), inputKeyHash))
   
-    override def cacheValueString = s"$outputId => ([${inputKeys.mkString(",")}], " +
-      s"$inputKeyHash, $outputRecordLatency)"
+    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+      s"$inputKeyHash)"
   }
   
   object TapPostShuffleLRDDValue {
@@ -199,22 +193,20 @@ object CacheDataTypes {
       // collection.
       // For exact location: search "jteoh" - it's not explicitly labeled as a
       // TapPostShuffleLRDD, but the schema is identical.
-      val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int), Long)]
-      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2, tuple._3)
+      val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int))]
+      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2)
     }
     def readableSchema =
       s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
-        "InputRecId)*], InputKeyHash, OutputLatencyMs)"
+        "InputRecId)*], InputKeyHash)"
   }
   
-  case class TapPreCoGroupLRDDValue(outputId: PartitionWithRecId,
-                                    inputRecIds: Array[Int],
-                                    outputRecordLatencies: Array[Long])
+  case class TapPreCoGroupLRDDValue(override val outputId: PartitionWithRecId,
+                                    private  val inputRecIds: Array[Int],
+                                    private  val outputRecordLatencies: Array[Long])
     extends EndOfStageCacheValue {
   
-    override def key = outputId
-  
-    override def inputKeys: Seq[PartitionWithRecId] =
+    override def inputIds: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
     
     override def partialLatencies: Seq[Long] = outputRecordLatencies
@@ -243,17 +235,15 @@ object CacheDataTypes {
    * Essentially identical to TapPostShuffleLRDDValue. It should, however, be noted that the
    * inputIds are a union all (ie with dups) of the input partitions across all dependencies.
    */
-  case class TapPostCoGroupLRDDValue(outputId: PartitionWithRecId,
-                                     inputIds: CompactBuffer[Long],
-                                     inputKeyHash: Int)
+  case class TapPostCoGroupLRDDValue(override val outputId: PartitionWithRecId,
+                                     private  val inputPartitionLongs: CompactBuffer[Long],
+                                     private  val inputKeyHash: Int)
   extends CacheValue {
     
-    override def key: PartitionWithRecId = outputId
+    override def inputIds: Seq[PartitionWithRecId] =
+      inputPartitionLongs.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp),inputKeyHash))
   
-    override def inputKeys: Seq[PartitionWithRecId] =
-      inputIds.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp),inputKeyHash))
-  
-    override def cacheValueString = s"$outputId => ([${inputKeys.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
       s"$inputKeyHash)"
   }
   
@@ -263,7 +253,7 @@ object CacheDataTypes {
       TapPostCoGroupLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2)
     }
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
-      "InputRecId)*], InputKeyHash, OutputTime, OutputLatencyMs)"
+      "InputRecId)*], InputKeyHash)"
   }
   
   // ----------- COGROUP VALUES end ---------

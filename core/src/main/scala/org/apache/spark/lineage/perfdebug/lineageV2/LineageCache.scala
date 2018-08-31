@@ -11,7 +11,7 @@ case class LineageCache(rdd: RDD[(PartitionWithRecId, CacheValue)]) {
   def values: RDD[CacheValue] = rdd.values
   
   def inputIds: RDD[PartitionWithRecId] = {
-    this.values.flatMap(_.inputKeys).distinct() // distinct to avoid duplicates
+    this.values.flatMap(_.inputIds).distinct() // distinct to avoid duplicates
   }
 }
 // In practice, the class instance is just another RDD.

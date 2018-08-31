@@ -138,7 +138,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
     // The key here is inherently not unique, eg an output may come from multiple input
     // partitions. After joining to input latencies, we have to reduce by the output key.
     val inpToOutputMapping: RDD[(InputId, (OutputId, CacheValue))] =
-    base.flatMap(r => r._2.inputKeys.map((_, r)))
+    base.flatMap(r => r._2.inputIds.map((_, r)))
     
     // Note: Although join can use a partitioner, the output of the join is keyed by InputId
     // which has no exploitable correlation. Thus, we don't get any benefit from specifying a
