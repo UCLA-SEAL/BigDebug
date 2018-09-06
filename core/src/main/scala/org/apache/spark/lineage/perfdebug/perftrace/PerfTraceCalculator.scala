@@ -20,7 +20,8 @@ import scala.reflect.ClassTag
 case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
                                accFn: (Long, Long) => Long = _ + _,
                                aggFn: (Long, Long) => Long = Math.max,
-                               printDebugging: Boolean = false) {
+                               printDebugging: Boolean = false,
+                               printLimit: Option[Int] = None) {
   import PerfTraceCalculator._
   /** Entry point for public use */
   def calculate(): PerfLineageWrapper = {
@@ -46,8 +47,11 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
   // ---------- START DEBUG PRINT HELPERS ----------
   def debugPrint(rdd: => RDD[_], msg: => String): Unit = {
     if(printDebugging)
-      PerfLineageUtils.printRDDWithMessage(rdd, "[DEBUG PERFORMANCE TRACING] " + msg)
+      PerfLineageUtils.printRDDWithMessage(rdd,
+                                           "[DEBUG PERFORMANCE TRACING] " + msg,
+                                           limit = printLimit)
   }
+
   def debugPrintStr(msg: => String): Unit = {
     if(printDebugging) println(msg)
   }
@@ -324,6 +328,8 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
                                  numPartitions: Int
                                 ): RDD[(OutputId, (OutputValue, UnAccumulatedLatency))] = {
     val shuffleAggStats = getRDDAggStats(aggTap, numPartitions)
+    debugPrintStr(s"Shuffle agg stats for $aggTap: (input/output/latency)" +
+                    s"\n\t${shuffleAggStats.mkString("\n\t")}")
     val shuffleAggStatsBroadcast: Broadcast[Map[PartitionId, AggregateLatencyStats]] =
       initWrapper.context.broadcast(shuffleAggStats)
   

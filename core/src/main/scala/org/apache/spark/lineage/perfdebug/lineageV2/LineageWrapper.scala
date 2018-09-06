@@ -91,8 +91,9 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   
   def tracePerformance(accFn: (Long, Long) => Long = _ +_,
                        aggFn: (Long, Long) => Long = Math.max,
-                       printDebugging: Boolean = false): PerfLineageWrapper = {
-    PerfTraceCalculator(this, accFn, aggFn, printDebugging).calculate()
+                       printDebugging: Boolean = false,
+                       printLimit: Option[Int] = None): PerfLineageWrapper = {
+    PerfTraceCalculator(this, accFn, aggFn, printDebugging, printLimit).calculate()
   }
   
   def printDependencies(showBefore: Boolean = false): Unit = lineageDependencies.print(showBefore)

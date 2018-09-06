@@ -13,12 +13,12 @@ import org.apache.spark.rdd.RDD
 import scala.reflect.ClassTag
 
 
-abstract class LineageBaseApp(lineageEnabled: Boolean = true,
-                              threadNum: Option[Int] = None,
-                              sparkLogsEnabled: Boolean = false,
-                              useIgnite: Boolean = true,
-                              rewriteAllHadoopFiles: Boolean = true,
-                              defaultPrintLimit: Option[Int] = Some(25)) {
+abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
+                              val threadNum: Option[Int] = None,
+                              val sparkLogsEnabled: Boolean = false,
+                              val useIgnite: Boolean = true,
+                              val rewriteAllHadoopFiles: Boolean = true,
+                              val defaultPrintLimit: Option[Int] = Some(25)) {
   
   val appName: String = getClass.getSimpleName.dropRight(1) // drop the $ at the end for the
   // corresponding object
@@ -86,7 +86,7 @@ abstract class LineageBaseApp(lineageEnabled: Boolean = true,
     val fs = FileSystem.get(lc.sparkContext.hadoopConfiguration)
     val filePath = new Path(tmpFileName)
     if(rewriteAllHadoopFiles || overwriteIfExists || !fs.exists(filePath)) {
-      if(fs.exists(filePath)) fs.delete(filePath)
+      if(fs.exists(filePath)) fs.delete(filePath, true)
       val data = dataBlock // call by-name to only evaluate once
       val msgString = "hadoop file consisting of inputs (up to 5 shown) " + data.take(5)
       val sc = lc.sparkContext // use sc because we definitely don't need lineage or anything

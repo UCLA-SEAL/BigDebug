@@ -31,7 +31,9 @@ object ExternalQueryDemo extends LineageBaseApp(sparkLogsEnabled = false) {
     
     lineage.printDependencies()
     
-    val slowestRecord = lineage.tracePerformance(printDebugging = true).take(1)
+    val slowestRecord = lineage.tracePerformance(printDebugging = true,
+                                                 printLimit = defaultPrintLimit)
+                               .take(1)
     printHadoopSources(slowestRecord, hadoopFiles.map(sc.textFile(_)): _*)
   }
   
