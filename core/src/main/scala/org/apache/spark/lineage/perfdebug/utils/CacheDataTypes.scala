@@ -34,7 +34,7 @@ object CacheDataTypes {
   abstract class CacheValue {
     val outputId: PartitionWithRecId
     /** Alias for outputId, used for k-v storage */
-    final val key: PartitionWithRecId = outputId
+    final lazy val key: PartitionWithRecId = outputId
     def inputIds: Seq[PartitionWithRecId]
     def cacheValueString: String // set up for future serialization perhaps?
     
@@ -45,7 +45,7 @@ object CacheDataTypes {
      * key, so that's what we use here. It's possible to have a "wrong" equals
      * comparison as a result of this definition, but that would imply incorrect usage of these
      * classes. */
-    override final def hashCode(): Int = key.hashCode()
+    override final def hashCode(): Int = if (key == null) 0 else key.hashCode()
   
     override final def equals(obj: scala.Any): Boolean = obj match {
       case other: CacheValue =>
