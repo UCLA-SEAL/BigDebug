@@ -11,7 +11,8 @@ import scala.collection.mutable.ListBuffer
  * RDD is made available, it is primarily there for class matching and is actually near useless
  * outside of the original session as both context and dependencies are lost. */
 private[spark]
-case class LineageCacheDependencies(appId: String, // jteoh: added later to support shuffle agg stats
+case class LineageCacheDependencies(
+                                    appId: String, // jteoh: added later to support shuffle agg stats
                                     cacheName: String,
                                     tap: TapLRDD[_], //TODO jteoh: consider changing to string -
                                     // this isn't storage-friendly.
@@ -21,7 +22,11 @@ case class LineageCacheDependencies(appId: String, // jteoh: added later to supp
                                     // cogroup does not result in a shuffle, we'll need to
                                     // explicitly store knowledge about the dependency (shuffle
                                     // vs one to one) rather than only the tap instance.
-                                    dependencies: Seq[LineageCacheDependencies]) {
+                                    dependencies: Seq[LineageCacheDependencies],
+                                    /** To avoid potential issues with post-serialization dependency inspection,
+                                     *  also save the number of partitions.
+                                     */
+                                    numPartitions: Int) {
   
   /** Uses the [[org.apache.spark.lineage.perfdebug.lineageV2.LineageCacheRepository]] to
    * retrieve the entire lineage cache, without any pre-filtering/joining.
@@ -73,7 +78,8 @@ object LineageCacheDependencies {
       // assumption: application ID should be the same for all RDDs in dependency tree
       val cacheName = PerfLineageRecordsStorage.getInstance().buildCacheName(appId, tap)
       LineageCacheDependencies(appId, cacheName, tap,
-                               result.getOrElse(tap, Seq.empty).map(convertToLineageCacheDependencies))
+                               result.getOrElse(tap, Seq.empty).map
+                               (convertToLineageCacheDependencies), tap.getNumPartitions)
     }
     
     

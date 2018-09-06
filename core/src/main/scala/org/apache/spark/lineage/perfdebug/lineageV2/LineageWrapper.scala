@@ -25,6 +25,8 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   def tap: TapLRDD[_] = lineageDependencies.tap
   def lineageAppId: String = lineageDependencies.appId
   def context: SparkContext = lineageCache.sparkContext
+  // used to avoid post-serialization issues, eg hadoop RDD's job conf being inaccessible
+  def numPartitions: Int = lineageDependencies.numPartitions
   
   def dependencies: Seq[LineageCacheDependencies] = lineageDependencies.dependencies
   

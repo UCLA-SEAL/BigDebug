@@ -59,10 +59,15 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
   private val aggStatsRepo = AggregateStatsStorage.getInstance()
   
   // Only for use with shuffle-based RDDs
-  def getRDDAggStats(latencyStatsTap: LatencyStatsTap[_]): Map[PartitionId, AggregateLatencyStats] = {
+  def getRDDAggStats(latencyStatsTap: LatencyStatsTap[_]): Map[PartitionId, AggregateLatencyStats] =
     aggStatsRepo.getAllAggStatsForRDD(initWrapper.lineageAppId, latencyStatsTap)
-  }
   
+  
+  def getRDDAggStats(
+                     latencyStatsTap: LatencyStatsTap[_],
+                     numPartitions: Int
+                    ): Map[PartitionId, AggregateLatencyStats] =
+    aggStatsRepo.getAllAggStats(initWrapper.lineageAppId, latencyStatsTap.id, numPartitions)
   // ---------- END AGG STATS REPO HELPERS ----------
   
   // ---------- START PERF TRACE HELPERS ----------
@@ -96,6 +101,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
    *  input RDDs but no partial latency. This will also automatically incorporate the shuffle agg
    *  stats. */
   def joinInputRddsWithAgg(aggTap: LatencyStatsTap[_],
+                           aggTapPartitionCount: Int,
                            base: RDD[(OutputId, CacheValue)],
                            first: RDD[(InputId, InputLatency)],
                            secondOption: Option[RDD[(InputId, InputLatency)]] = None
@@ -184,7 +190,9 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
         // RDDs, we expect no partial latency for accumulation purposes.
         firstAggLatenciesWithCounts
     }
-    val result = addLatencyStats(resultWithoutShuffleStats, aggTap)
+    // Use aggTapPartitionCount to avoid calling aggTap.getNumPartitions, which might rely on a
+    // getPartitions implementation that is broken post-session and serialization
+    val result = addLatencyStats(resultWithoutShuffleStats, aggTap, aggTapPartitionCount)
     result
   }
   
@@ -227,7 +235,13 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
         
         // Generalized method to handle case when either one or two dependencies are present.
         val aggTap = currTap.asInstanceOf[LatencyStatsTap[_]]
-        val result = joinInputRddsWithAgg(aggTap, currCache, prevRdds.head, prevRdds.lift(1))
+        val result = joinInputRddsWithAgg(
+                                          aggTap,
+                                          curr.numPartitions,
+                                          currCache,
+                                          prevRdds.head,
+                                          prevRdds.lift(1)
+        )
         PerfLineageCache.toPerfLineageCache(result)
       case _ if currTap.isEndOfStageTap =>
         // eg TapLRDD, PreShuffle, PreCoGroup
@@ -274,7 +288,9 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
               // partition latency, but the titian 'combined' lineage record will misleadingly
               // indicate otherwise.
               val result: RDD[(OutputId, (OutputValue, OutputLatency))] =
-                addLatencyStats(aggregatedLatenciesWithCounts, aggTap)
+              // use curr.numPartitions because that's precomputed and saved, so no
+              // post-serialization issues occur (vs using aggTap.getNumPartitions)
+                addLatencyStats(aggregatedLatenciesWithCounts, aggTap, curr.numPartitions)
               result
             case _ =>
               // There's no need to aggregate latencies (ie reduce), since TapLRDDValues have a strict
@@ -302,12 +318,14 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
     result
   }
   
-  private def addLatencyStats[OutputValue <: CacheValue]
-                                (rdd: RDD[((OutputId, OutputValue), AggResultWithCount)],
-                                 aggTap: LatencyStatsTap[_]
+  private def addLatencyStats[OutputValue <: CacheValue](
+                                 rdd: RDD[((OutputId, OutputValue), AggResultWithCount)],
+                                 aggTap: LatencyStatsTap[_],
+                                 numPartitions: Int
                                 ): RDD[(OutputId, (OutputValue, UnAccumulatedLatency))] = {
+    val shuffleAggStats = getRDDAggStats(aggTap, numPartitions)
     val shuffleAggStatsBroadcast: Broadcast[Map[PartitionId, AggregateLatencyStats]] =
-      initWrapper.context.broadcast(getRDDAggStats(aggTap))
+      initWrapper.context.broadcast(shuffleAggStats)
   
     
     // Check if the aggTap is a preshuffle Tap where map-side combine is not enabled - if that's
