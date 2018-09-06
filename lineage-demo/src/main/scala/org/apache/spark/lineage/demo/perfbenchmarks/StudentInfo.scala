@@ -9,6 +9,7 @@ package org.apache.spark.lineage.demo.perfbenchmarks
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
+import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
 import org.apache.spark.{SparkConf, SparkContext}
 
 
@@ -46,7 +47,8 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
      **************************/
     //spark program starts here
     val logFile = args.headOption.getOrElse("studentData.txt")
-    val records = lc.textFile(logFile, 1)
+    println(s"Using logFile $logFile")
+    val records = lc.textFile(logFile)
     // records.persist()
     val grade_age_pair = records.map(line => {
       val list = line.split(" ")
@@ -82,6 +84,14 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
     }
     println(average_age_by_grade.toDebugString)
     
+    // Equivalent, but some sort of boxing issue where Spark is getting a Tuple2 but
+    // expecing a Long. This is probably caching issue in Titian?
+    // grade_age_pair.countByKey()
+    grade_age_pair.mapValues(_ => 1L).reduceByKey(_ + _).collect().toMap.foreach(println)
+    
+    val slowestRec = average_age_by_grade.lineageWrapper.tracePerformance().take(1)
+    printHadoopSources(slowestRec, records)
+    slowestRec.traceBackAll().joinInputTextRDD(records)
     /**************************
         Time Logging
      **************************/
