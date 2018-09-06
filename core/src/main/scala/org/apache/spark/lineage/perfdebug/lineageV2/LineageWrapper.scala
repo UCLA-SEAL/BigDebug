@@ -49,7 +49,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   /** Major assumption: only supported data source is hadoop. In the future,
    * we might be able to extend this to return InputLineageWrapper instead.
    * If there are multiple sources, this returns the leftmost one as defined by the first
-   * dependency wherever applicable..*/
+   * dependency wherever applicable. This is essentially equivalent to [[traceBackAllSources().head]].*/
   def traceBackAll(): HadoopLineageWrapper = {
     var current = this
     while(current.hasParent()) {

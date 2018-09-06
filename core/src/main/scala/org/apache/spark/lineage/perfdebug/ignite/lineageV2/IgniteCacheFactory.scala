@@ -8,6 +8,8 @@ import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecI
 
 // Not quite an actual factory pattern, but useful for instantiating different KV cache types
 object IgniteCacheFactory {
+  // TODO figure out how to distribute this ignition across tasks
+  Ignition.setClientMode(true)
   val ignite: Ignite = Ignition.ignite()
 
   def createIgniteCache[K, V](cacheArguments: CacheArguments): IgniteCache[K, V] = {

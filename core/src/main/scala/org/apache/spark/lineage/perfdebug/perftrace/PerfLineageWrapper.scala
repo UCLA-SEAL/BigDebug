@@ -26,7 +26,10 @@ class PerfLineageWrapper(private val lineageDependencies: LineageCacheDependenci
     this.take(num, ascending=ascending)
   }
   
-  /** Warning: don't use this with large numbers! */
+  /**
+   * Takes the provided number of records, sorted by latency.
+   * Warning: don't use this with large numbers!
+   */
   def take(num: Int, ascending: Boolean = false): PerfLineageWrapper = {
     // impl note: you could also do a sortBy followed by zipWithIndex and filter to preserve the
     // RDD abstraction. However, this also results in a full sort of the data, whereas I assume

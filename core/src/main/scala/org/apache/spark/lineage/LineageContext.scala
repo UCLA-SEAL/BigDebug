@@ -265,8 +265,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
      * storage system for later retrieval, eg with external queries.
      */
     val dependencies = LineageCacheDependencies.buildLineageCacheDependencyTree(rdd.getTap.get)
-    LineageCacheRepository.saveCacheDependencies(sparkContext.applicationId, dependencies)
-    
+    val appId = sparkContext.applicationId
+    LineageCacheRepository.saveCacheDependencies(appId, dependencies)
     result
   }
 

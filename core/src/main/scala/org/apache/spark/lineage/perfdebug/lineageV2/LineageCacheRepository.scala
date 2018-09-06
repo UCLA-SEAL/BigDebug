@@ -46,13 +46,18 @@ object LineageCacheRepository {
   def getCache(name: String): LineageCache =
     withCacheCheck { _.getCache(name) }
   
-  
+  // TODO jteoh - is appId enough? shouldn't we need something to distinguish the particular job?
   def getCacheDependencies(appId: String): LineageCacheDependencies =
     withCacheCheck { _.getCacheDependencies(appId) }
   
   
   def saveCacheDependencies(appId: String, deps: LineageCacheDependencies): Unit =
-    withCacheCheck { _.saveCacheDependencies(appId, deps) }
+    withCacheCheck {
+      println("-" * 100)
+      println("SAVING APP " + appId + " LINEAGE DEPENDENCIES")
+      println("-" * 100)
+      _.saveCacheDependencies(appId, deps)
+    }
   
   def close(): Unit = {
     if(cacheRepository.isDefined)

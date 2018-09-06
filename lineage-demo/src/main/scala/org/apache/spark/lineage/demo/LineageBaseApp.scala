@@ -136,7 +136,7 @@ abstract class LineageBaseApp(lineageEnabled: Boolean = true,
   
   /** Traces back this lineage wrapper to all input sources and outputs the original inputs. */
   def printHadoopSources(lineageWrapper: LineageWrapper,
-                         rawRdds: Lineage[String]*
+                         rawRdds: RDD[String]*
                         ): Unit = withPrintLimitWarning(defaultPrintLimit){
     val hadoopSourceLineageWrappers = lineageWrapper.traceBackAllSources()
     assert(hadoopSourceLineageWrappers.length == rawRdds.length, "Must have equal number of " +
