@@ -68,9 +68,12 @@ trait PerfLineageRecordsStorage {
 
 object PerfLineageRecordsStorage {
   // TODO make this configurable via conf in the future. Also consider integrating with SparkEnv
-  private var _instance: Option[PerfLineageRecordsStorage] =
-    Some(PerfIgniteRecordsStorage)
+  private var _instance: Option[PerfLineageRecordsStorage] = None
   def getInstance(): PerfLineageRecordsStorage = {
+    if(_instance.isEmpty) {
+      // TODO remove default instantiation eventually
+      _instance = Some(PerfIgniteRecordsStorage)
+    }
     _instance.getOrElse(
       throw new IllegalStateException("No PerfLineageCacheStorage instance has been set. Did you " +
                                         "mean to call PerfLineageCacheStorage.setInstance(...)?")

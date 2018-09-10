@@ -27,9 +27,12 @@ trait AggregateStatsStorage {
 
 object AggregateStatsStorage {
   // TODO make this configurable via conf in the future. Also consider integrating with SparkEnv
-  private var _instance: Option[AggregateStatsStorage] =
-    Some(new IgniteCacheAggregateStatsStorage())
+  private var _instance: Option[AggregateStatsStorage] = None
   def getInstance(): AggregateStatsStorage = {
+    if(_instance.isEmpty) {
+      // TODO remove default instantiation eventually
+      _instance = Some(new IgniteCacheAggregateStatsStorage())
+    }
     _instance.getOrElse(
       throw new IllegalStateException("No AggregateStatsRepo instance has been set. Did you " +
                                         "mean to call AggregateStatsRepo.setInstance(...)?")
