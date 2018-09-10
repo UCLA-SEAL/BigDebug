@@ -16,30 +16,35 @@ import scala.reflect.ClassTag
 abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
                               val threadNum: Option[Int] = None,
                               val sparkLogsEnabled: Boolean = false,
-                              val useIgnite: Boolean = true,
+                              val withIgnite: Boolean = true,
                               val rewriteAllHadoopFiles: Boolean = true,
                               val defaultPrintLimit: Option[Int] = Some(25)) {
   
   val appName: String = getClass.getSimpleName.dropRight(1) // drop the $ at the end for the
+  private val useIgnite = lineageEnabled && withIgnite
   // corresponding object
   private var lc: LineageContext = _
   lazy val appId: String = lc.sparkContext.applicationId
   
   final def main(args: Array[String]): Unit = {
-    lc = initContext(args)
-    try {
-      run(lc, args)
-    }
-    finally {
-      lc.sparkContext.stop()
-      if(useIgnite) {
-        // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
-        // has run, so sleep a few seconds to allow that lineage to be uploaded.
-        Thread.sleep(3000)
-        LineageCacheRepository.close()
+    Lineage.measureTimeWithCallback({
+      lc = initContext(args)
+      try {
+        Lineage.measureTimeWithCallback({
+          run(lc, args)
+        }, x=> println(s"run() time: $x ms"))
       }
-      
-    }
+      finally {
+        lc.sparkContext.stop()
+        if (useIgnite) {
+          // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
+          // has run, so sleep a few seconds to allow that lineage to be uploaded.
+          Thread.sleep(10000)
+          LineageCacheRepository.close()
+        }
+    
+      }
+    }, x => println(s"Total time: $x ms"))
   }
   
   def run(lc: LineageContext, args: Array[String]): Unit
