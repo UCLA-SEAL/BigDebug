@@ -195,8 +195,12 @@ abstract class AbstractCommandBuilder {
     String jarsDir = findJarsDir(getSparkHome(), getScalaVersion(), !isTesting && !isTestingSql);
     if (jarsDir != null) {
       addToClassPath(cp, join(File.separator, jarsDir, "*"));
+      // jteoh: The spark-core jar is generally kept separate due to dependency hacks, so
+      // include that explicitly as well.
+      // note that there's a related change in bin/spark-class
+      addToClassPath(cp, String.format("%s/core/target/spark-core_%s-2.1.1-SNAPSHOT.jar",
+              sparkHome, getScalaVersion()));
     }
-
     addToClassPath(cp, getenv("HADOOP_CONF_DIR"));
     addToClassPath(cp, getenv("YARN_CONF_DIR"));
     addToClassPath(cp, getenv("SPARK_DIST_CLASSPATH"));

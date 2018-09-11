@@ -47,7 +47,10 @@ if [ ! -d "$SPARK_JARS_DIR" ] && [ -z "$SPARK_TESTING$SPARK_SQL_TESTING" ]; then
   echo "You need to build Spark with the target \"package\" before running this program." 1>&2
   exit 1
 else
-  LAUNCH_CLASSPATH="$SPARK_JARS_DIR/*"
+  #LAUNCH_CLASSPATH="$SPARK_JARS_DIR/*"
+  # jteoh: The spark-core jar is generally kept separate due to dependency hacks, so include that explicitly
+  # Note that there's also a related change in launcher package, AbstractCommandBuilder.java
+  LAUNCH_CLASSPATH="${SPARK_JARS_DIR}/*:${SPARK_HOME}/core/target/spark-core_${SPARK_SCALA_VERSION}-2.1.1-SNAPSHOT.jar"
 fi
 
 # Add the launcher build dir to the classpath if requested.
