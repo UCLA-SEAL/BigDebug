@@ -67,7 +67,8 @@ object LineageManager{
           val arr = rdd.materializeBuffer
           
           try {
-            blockManager.putIterator(key, arr.toIterator, tap._4, true)
+            // jteoh: remove block manager since we don't store there anymore
+            // blockManager.putIterator(key, arr.toIterator, tap._4, true)
 
             val appIdValue = appId.get
             PerfLineageRecordsStorage.getInstance().store(appIdValue, rdd, arr)

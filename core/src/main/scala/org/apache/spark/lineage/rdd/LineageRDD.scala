@@ -250,6 +250,12 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           // jteoh: this is a TapPostShuffle schema. Also note that the CoGroup RDDs are
           // subclasses of the Shuffle RDDs. This is done to shuffle/repartition the data
           // for a zipPartitions operation later, if necessary.
+          // jteoh: in case it's unclear, this join appears to:
+          // 1. Use a custom partitioner which reads partitions from RecordId
+          // 2. get the left-numbers (partitions) of each element in the compact buffer (r._1._1),
+          // coupled with the hash key (r._1._2) for that particular output record.
+          // Notably, my assumption is that we do NOT use the right side of the input.
+          // The below shuffled RDD is essentially rdd.partitionBy(part), but with a ShuffledLRDD.
             new ShuffledLRDD[RecordId, Any, Any](join
                 .map(r => (r._2, r._1))
                 .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy, r._2)))), part)

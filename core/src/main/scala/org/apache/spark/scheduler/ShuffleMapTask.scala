@@ -104,6 +104,8 @@ private[spark] class ShuffleMapTask(
       // jteoh: wrap input iterator to count number of inputs. Also measure time to get/compute
       // the iterator and write output, including stopping the writer (because SortShuffleWriter
       // appears to increment write time metrics within the stop method).
+      // TODO jteoh configure both this time measurement and the internal iterator wrapping based
+      // on lineage flag.
       Lineage.measureTimeWithCallback({
         val records = rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]]
         trackingInputIterator = new CountAndLatencyMeasuringIterator(records)
