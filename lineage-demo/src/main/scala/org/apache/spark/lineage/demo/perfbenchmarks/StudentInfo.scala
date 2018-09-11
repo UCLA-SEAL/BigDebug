@@ -10,18 +10,26 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
+import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.{SparkConf, SparkContext}
 
 
 
-object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained from original
+object StudentInfo extends LineageBaseApp(
+                                          threadNum = Some(6), // jteoh retained from original
+                                          lineageEnabled = true,
+                                          sparkLogsEnabled = false,
+                                          sparkEventLogsEnabled = true
                                          ){
+  
+  var logFile: String = _
   //  private val exhaustive = 0
   override def initConf(args: Array[String], defaultConf: SparkConf): SparkConf = {
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
     //defaultConf.set("spark.executor.memory", "2g")
-    defaultConf
+    logFile = args.headOption.getOrElse("studentData.txt")
+    defaultConf.setAppName(s"${appName}-${logFile}")
   }
   
   def run(lc: LineageContext, args: Array[String]): Unit = {
@@ -46,7 +54,6 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
         Time Logging
      **************************/
     //spark program starts here
-    val logFile = args.headOption.getOrElse("studentData.txt")
     println(s"Using logFile $logFile")
     val records = lc.textFile(logFile)
     // records.persist()
@@ -66,7 +73,9 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
                                  (pair._1, moving_average)
                                })
     
-    val out = average_age_by_grade.collect()
+    val out = Lineage.measureTimeWithCallback({
+      average_age_by_grade.collect()
+    }, x => println(s"Collect time: $x ms"))
     /**************************
         Time Logging
      **************************/
@@ -82,18 +91,13 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
     for (o <- out) {
       println( o._1 + " - " + o._2)
     }
+    
     println(average_age_by_grade.toDebugString)
     
-    // Equivalent, but some sort of boxing issue where Spark is getting a Tuple2 but
-    // expecing a Long. This is probably caching issue in Titian?
-    // grade_age_pair.countByKey()
-    grade_age_pair.mapValues(_ => 1L).reduceByKey(_ + _).collect().toMap.foreach(println)
-    
-    val slowestRec = average_age_by_grade.lineageWrapper.tracePerformance().take(1)
-    printHadoopSources(slowestRec, records)
-    slowestRec.traceBackAll().joinInputTextRDD(records)
+    // runPerformanceTrace(records, grade_age_pair, average_age_by_grade)
+  
     /**************************
-        Time Logging
+        *Time Logging
      **************************/
     //    val DeltaDebuggingStartTimestamp = new java.sql.Timestamp(Calendar.getInstance.getTime.getTime)
     //    val DeltaDebuggingStartTime = System.nanoTime()
@@ -119,5 +123,21 @@ object StudentInfo extends LineageBaseApp(threadNum = Some(6) // jteoh retained 
         Time Logging
      **************************/
     println("Job's DONE!")
+  }
+  
+  private def runPerformanceTrace(records: Lineage[String], grade_age_pair: Lineage[(Int, Int)],
+                                  average_age_by_grade: Lineage[(Int, Double)]) = {
+    println(average_age_by_grade.toDebugString)
+    
+    // Equivalent, but some sort of boxing issue where Spark is getting a Tuple2 but
+    // expecting a Long. This is probably caching issue in Titian?
+    // grade_age_pair.countByKey()
+    grade_age_pair.mapValues(_ => 1L).reduceByKey(_ + _).collect().toMap.foreach(println)
+    
+    val slowestRec = average_age_by_grade.lineageWrapper
+                     .tracePerformance(printDebugging = true)
+                     .take(1)
+    printHadoopSources(slowestRec, records)
+    slowestRec.traceBackAll().joinInputTextRDD(records)
   }
 }

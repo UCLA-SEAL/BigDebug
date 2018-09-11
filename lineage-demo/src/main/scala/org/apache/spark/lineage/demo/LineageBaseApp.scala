@@ -4,7 +4,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.ignite.Ignition
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheRepository, LineageWrapper}
+import org.apache.spark.lineage.perfdebug.lineageV2.{HadoopLineageWrapper, LineageCacheRepository, LineageWrapper}
 import org.apache.spark.lineage.perfdebug.perftrace.PerfLineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.PerfLineageUtils
 import org.apache.spark.lineage.rdd.Lineage
@@ -13,16 +13,19 @@ import org.apache.spark.rdd.RDD
 import scala.reflect.ClassTag
 
 
-abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
-                              val threadNum: Option[Int] = None,
-                              val sparkLogsEnabled: Boolean = false,
-                              val withIgnite: Boolean = true,
-                              val rewriteAllHadoopFiles: Boolean = true,
-                              val defaultPrintLimit: Option[Int] = Some(25)) {
+abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
+                              var threadNum: Option[Int] = None,
+                              var sparkLogsEnabled: Boolean = false,
+                              var sparkEventLogsEnabled: Boolean = true, // History Server
+                              var withIgnite: Boolean = true,
+                              var rewriteAllHadoopFiles: Boolean = true,
+                              var defaultPrintLimit: Option[Int] = Some(25)) {
   
-  val appName: String = getClass.getSimpleName.dropRight(1) // drop the $ at the end for the
-  private val useIgnite = lineageEnabled && withIgnite
-  // corresponding object
+  // drop the $ at the end for the corresponding object
+  val appName: String = getClass.getSimpleName.dropRight(1)
+  // if Ignite is being used to store lineage data
+  private val useIgniteForLineageStorage = lineageEnabled && withIgnite
+  
   private var lc: LineageContext = _
   lazy val appId: String = lc.sparkContext.applicationId
   
@@ -36,10 +39,12 @@ abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
       }
       finally {
         lc.sparkContext.stop()
-        if (useIgnite) {
+        if (useIgniteForLineageStorage) {
           // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
           // has run, so sleep a few seconds to allow that lineage to be uploaded.
           Thread.sleep(10000)
+        }
+        if(withIgnite) {
           LineageCacheRepository.close()
         }
     
@@ -55,7 +60,7 @@ abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineageEnabled)
     
-    if(useIgnite) {
+    if(withIgnite) {
       Ignition.setClientMode(true)
       LineageCacheRepository.useSimpleIgniteCacheRepository(sc)
     }
@@ -74,7 +79,10 @@ abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
   }
   
   private def buildDefaultConfiguration(): SparkConf = {
-    new SparkConf().setAppName(appName).setMaster(s"local[${threadNum.getOrElse("*")}]")
+    new SparkConf()
+      .setAppName(appName)
+      .setMaster(s"local[${threadNum.getOrElse("*")}]")
+      .set("spark.eventLog.enabled", sparkEventLogsEnabled.toString)
   }
   
   /** You can optionally use the LineageBaseApp rewriteAllHadoopFiles to avoid setting overwrite
@@ -144,23 +152,26 @@ abstract class LineageBaseApp(val lineageEnabled: Boolean = true,
                          rawRdds: RDD[String]*
                         ): Unit = withPrintLimitWarning(defaultPrintLimit){
     val hadoopSourceLineageWrappers = lineageWrapper.traceBackAllSources()
-    assert(hadoopSourceLineageWrappers.length == rawRdds.length, "Must have equal number of " +
-      "sources and raw input RDDs")
-    //hadoopSourceLineageWrappers.foreach(println)
+    
     hadoopSourceLineageWrappers.zipWithIndex.foreach(
       { case (lin, index) =>
         printRDDWithMessage(lin.lineageCache.sortBy(_._1),
                             s"Hadoop source Lineage for #$index")
       })
     
-    
-    val rawInputs = hadoopSourceLineageWrappers.zip(rawRdds).map(
-      { case (lin, hadoop) => lin.joinInputTextRDD(hadoop) })
+    val rawInputs = joinHadoopWrappersAndInputs(hadoopSourceLineageWrappers, rawRdds)
     rawInputs.zipWithIndex.foreach(
       { case (input, index) =>
         //printRDDWithMessage(rawRdds(index), s"Raw hadoop dataset for RDD #$index")
         printRDDWithMessage(input, s"Raw inputs from RDD #$index")
       })
+  }
+  
+  def joinHadoopWrappersAndInputs(hadoopSourceLineageWrappers: Seq[HadoopLineageWrapper], rawRdds: Seq[RDD[String]]): Seq[RDD[(Long, String)]] = {
+    assert(hadoopSourceLineageWrappers.length == rawRdds.length, "Must have equal number of " +
+      "sources and raw input RDDs")
+    hadoopSourceLineageWrappers.zip(rawRdds).map(
+      { case (lin, hadoop) => lin.joinInputTextRDD(hadoop) })
   }
   
   def printLineageWrapperWithMessage(lineageWrapper: LineageWrapper, msg: String,
