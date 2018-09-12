@@ -35,7 +35,7 @@ object CacheDataTypes {
     val outputId: PartitionWithRecId
     /** Alias for outputId, used for k-v storage */
     final lazy val key: PartitionWithRecId = outputId
-    def inputIds: Seq[PartitionWithRecId]
+    def inputIds: Iterable[PartitionWithRecId]
     def cacheValueString: String // set up for future serialization perhaps?
     
     override final def toString: String = cacheValueString
@@ -60,18 +60,10 @@ object CacheDataTypes {
    * 8/17/2018, these are TapLRDD, TapPreShuffleLRDD, TapPreCoGroupLRDD.
    */
   abstract class EndOfStageCacheValue extends CacheValue {
-    def partialLatencies: Seq[Long]
+    def partialLatencies: Iterable[Long]
     /** Returns input IDs zipped with partial latencies. */
-    def inputKeysWithPartialLatencies: Seq[(PartitionWithRecId, Long)] =
+    def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Long)] =
       inputIds.zip(partialLatencies)
-  }
-  trait ValueWithMultipleOutputLatencies extends CacheValue {
-    /** Returns the input IDs zipped with their measured latencies. This is primarily used for
-     * the pre-CoGroup and pre-Shuffle RDDs.
-     * In general, this is implemented by zipping inputIDs with latencies in the same
-     * corresponding order.
-     */
-    def inputKeysWithLatencies: Seq[(PartitionWithRecId, Long)]
   }
   
   /** TapLRDD cache value */
@@ -162,23 +154,16 @@ object CacheDataTypes {
   }
   
   // outputId: split + hashcode for key (not murmur!)
-  // inputPartitionLongs: inputIDs that mapped to the same key. Tentative, depending on ext sorter.
-  //  7/12/2018 jteoh - these only appear to be used for their partitions right now, but it used
-  // to be a long.
+  // inputPartitions: partition IDs that map to this value. To be combined with the key hash.
   // inputKeyHash: murmur hash (ideally unique) of the corresponding key
-  // outputRecordLatency: how long it took within the stage to tap this record. Currently unused
-  // (0).
   case class TapPostShuffleLRDDValue(override val outputId: PartitionWithRecId,
-                                     private  val inputPartitionLongs: CompactBuffer[Long],
+                                     private  val inputPartitions: Iterable[Int],
                                      private  val inputKeyHash: Int
                                     )
     extends CacheValue {
     
-    // See comments above - inputIds is only used for partition.
-    override def inputIds: Seq[PartitionWithRecId] =
-      // getLeft == partition
-      inputPartitionLongs.map(inp =>
-                                new PartitionWithRecId(PackIntIntoLong.getLeft(inp), inputKeyHash))
+    override def inputIds: Iterable[PartitionWithRecId] =
+      inputPartitions.map(new PartitionWithRecId(_, inputKeyHash))
   
     override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
       s"$inputKeyHash)"
@@ -194,7 +179,11 @@ object CacheDataTypes {
       // For exact location: search "jteoh" - it's not explicitly labeled as a
       // TapPostShuffleLRDD, but the schema is identical.
       val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int))]
-      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2)
+      // jteoh 9/11/2018: Based on understanding of lineage trace, the cross-shuffle joins rely on
+      // partition id + key hash. While other info is stored in the TapRDDs, it's not necessary
+      // since we only ever use the left side.
+      val inpPartitions = tuple._2._1.map(PackIntIntoLong.getLeft).toSet
+      TapPostShuffleLRDDValue(PartitionWithRecId(tuple._1), inpPartitions, tuple._2._2)
     }
     def readableSchema =
       s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
@@ -236,12 +225,12 @@ object CacheDataTypes {
    * inputIds are a union all (ie with dups) of the input partitions across all dependencies.
    */
   case class TapPostCoGroupLRDDValue(override val outputId: PartitionWithRecId,
-                                     private  val inputPartitionLongs: CompactBuffer[Long],
+                                     private  val inputPartitions: Iterable[Int],
                                      private  val inputKeyHash: Int)
   extends CacheValue {
     
-    override def inputIds: Seq[PartitionWithRecId] =
-      inputPartitionLongs.map(inp => new PartitionWithRecId(PackIntIntoLong.getLeft(inp),inputKeyHash))
+    override def inputIds: Iterable[PartitionWithRecId] =
+      inputPartitions.map(new PartitionWithRecId(_, inputKeyHash))
   
     override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
       s"$inputKeyHash)"
@@ -250,7 +239,11 @@ object CacheDataTypes {
   object TapPostCoGroupLRDDValue {
     def fromRecord(r: Any) = {
       val tuple = r.asInstanceOf[(Long, (CompactBuffer[Long], Int))]
-      TapPostCoGroupLRDDValue(PartitionWithRecId(tuple._1), tuple._2._1, tuple._2._2)
+      // jteoh 9/11/2018: Based on understanding of lineage trace, the cross-shuffle joins rely on
+      // partition id + key hash. While other info is stored in the TapRDDs, it's not necessary
+      // since we only ever use the left side.
+      val inpPartitions = tuple._2._1.map(PackIntIntoLong.getLeft).toSet
+      TapPostCoGroupLRDDValue(PartitionWithRecId(tuple._1), inpPartitions, tuple._2._2)
     }
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => ([(InputPartitionId, " +
       "InputRecId)*], InputKeyHash)"
