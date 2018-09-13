@@ -25,8 +25,12 @@ class IgniteLineageCacheRepository(igniteContext: IgniteContext)
     )
   
   
-  override def getCacheDependencies(jobId: String): LineageCacheDependencies =
-    DEPENDENCIES_CACHE.get(jobId)
+  override def getCacheDependencies(jobId: String): LineageCacheDependencies = {
+    val result = DEPENDENCIES_CACHE.get(jobId)
+    if (result == null)
+      throw new IllegalArgumentException(s"ID $jobId does not have any cache dependencies!")
+    result
+  }
   
   override def saveCacheDependencies(jobId: String,
                                      lineageCacheDependencies: LineageCacheDependencies): Unit = {
