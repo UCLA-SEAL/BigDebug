@@ -39,7 +39,7 @@ object LineageCacheRepository {
   def getCache(tap: TapLRDD[_]): LineageCache = {
     // this will be lost after the session, and thus this method is discouraged
     val appId = tap.lineageContext.sparkContext.applicationId
-    val name = PerfLineageRecordsStorage.getInstance().buildCacheName(appId, tap)
+    val name = LineageRecordsStorage.getInstance().buildCacheName(appId, tap)
     getCache(name)
   }
   

@@ -4,7 +4,7 @@ import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
 import org.apache.spark.lineage.perfdebug.ignite._
 import org.apache.spark.lineage.perfdebug.ignite.perftrace.IgniteCacheAggregateStatsStorage
-import org.apache.spark.lineage.perfdebug.lineageV2.{CacheArguments, PerfLineageRecordsStorage}
+import org.apache.spark.lineage.perfdebug.lineageV2.{CacheArguments, LineageRecordsStorage}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId, TapLRDDValue, TapPostShuffleLRDDValue, TapPreShuffleLRDDValue, _}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd.RDD
@@ -27,7 +27,7 @@ import scala.language.implicitConversions
  * @tparam B type of [[TapLRDD]] that this cache should be used with. While not explicitly
  *           utilized in code, this is included for a clearer dependence mapping.
  */
-abstract class PerfIgniteRecordsStorage[V <: CacheValue,
+abstract class IgniteLineageRecordsStorage[V <: CacheValue,
                                       B <: TapLRDD[_]] ( // B used for tracking code, but not
                                                          // required at runtime
                                             val cacheArguments: CacheArguments,
@@ -46,7 +46,7 @@ abstract class PerfIgniteRecordsStorage[V <: CacheValue,
   def getAll = cache.getAll _
 }
 
-object PerfIgniteRecordsStorage extends PerfLineageRecordsStorage {
+object IgniteLineageRecordsStorage extends LineageRecordsStorage {
   override def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
     doWithStorage(appId, rdd)(_.store(data))
   }
@@ -54,7 +54,7 @@ object PerfIgniteRecordsStorage extends PerfLineageRecordsStorage {
   override def getValuesIterator[T <: CacheValue](appId: String,
                                          rdd: RDD[_]): Iterable[T] = {
     doWithStorage(appId, rdd) {
-      storage: PerfIgniteRecordsStorage[_,_] =>
+      storage: IgniteLineageRecordsStorage[_,_] =>
         val cache = storage.cache
         val cursor = cache.query[Cache.Entry[PartitionWithRecId, T]](new ScanQuery(null))
         cursor.asScala.map(_.getValue)
@@ -64,10 +64,10 @@ object PerfIgniteRecordsStorage extends PerfLineageRecordsStorage {
   // Template
   private def doWithStorage[T](appId: String,
                                rdd: RDD[_])
-                              (fn: PerfIgniteRecordsStorage[_,_] => T): Option[T] = {
+                              (fn: IgniteLineageRecordsStorage[_,_] => T): Option[T] = {
     val cacheName = buildCacheName(appId, rdd)
     val cacheArgs = CacheArguments(cacheName, rdd.getNumPartitions)
-    val storageConstructor: Option[CacheArguments => PerfIgniteRecordsStorage[_,_]] =
+    val storageConstructor: Option[CacheArguments => IgniteLineageRecordsStorage[_,_]] =
       getStorageConstructor(rdd)
     
     // Returns none if no storage constructor defined
@@ -75,7 +75,7 @@ object PerfIgniteRecordsStorage extends PerfLineageRecordsStorage {
   }
   
   private def getStorageConstructor(rdd: RDD[_]
-                                   ): Option[CacheArguments => PerfIgniteRecordsStorage[_,_]] = {
+                                   ): Option[CacheArguments => IgniteLineageRecordsStorage[_,_]] = {
     rdd match {
       case _: TapPreCoGroupLRDD[_] =>
         Some(new TapPreCoGroupLRDDIgniteStorage(_))
@@ -101,37 +101,37 @@ object PerfIgniteRecordsStorage extends PerfLineageRecordsStorage {
 }
 
 private final class TapLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapLRDDValue, TapLRDD[_]](
+  extends IgniteLineageRecordsStorage[TapLRDDValue, TapLRDD[_]](
     cacheArguments,
     TapLRDDValue.fromRecord
   )
 
 private final class TapHadoopLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapHadoopLRDDValue, TapHadoopLRDD[_,_]](
+  extends IgniteLineageRecordsStorage[TapHadoopLRDDValue, TapHadoopLRDD[_,_]](
     cacheArguments,
     TapHadoopLRDDValue.fromRecord
   )
 
 private final class TapPreShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapPreShuffleLRDDValue, TapPreShuffleLRDD[_]](
+  extends IgniteLineageRecordsStorage[TapPreShuffleLRDDValue, TapPreShuffleLRDD[_]](
     cacheArguments,
     TapPreShuffleLRDDValue.fromRecord
   )
 
 private final class TapPostShuffleLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](
+  extends IgniteLineageRecordsStorage[TapPostShuffleLRDDValue, TapPostShuffleLRDD[_]](
     cacheArguments,
     TapPostShuffleLRDDValue.fromRecord
   )
 
 private final class TapPreCoGroupLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapPreCoGroupLRDDValue, TapPreCoGroupLRDD[_]](
+  extends IgniteLineageRecordsStorage[TapPreCoGroupLRDDValue, TapPreCoGroupLRDD[_]](
     cacheArguments,
     TapPreCoGroupLRDDValue.fromRecord
   )
 
 private final class TapPostCoGroupLRDDIgniteStorage(override val cacheArguments: CacheArguments)
-  extends PerfIgniteRecordsStorage[TapPostCoGroupLRDDValue, TapPostCoGroupLRDD[_]](
+  extends IgniteLineageRecordsStorage[TapPostCoGroupLRDDValue, TapPostCoGroupLRDD[_]](
     cacheArguments,
     TapPostCoGroupLRDDValue.fromRecord
   )
