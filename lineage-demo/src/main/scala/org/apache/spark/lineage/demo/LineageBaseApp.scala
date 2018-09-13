@@ -19,7 +19,8 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
                               var sparkEventLogsEnabled: Boolean = true, // History Server
                               var withIgnite: Boolean = true,
                               var rewriteAllHadoopFiles: Boolean = true,
-                              var defaultPrintLimit: Option[Int] = Some(25)) {
+                              var defaultPrintLimit: Option[Int] = Some(25),
+                              var igniteLineageCloseDelay: Long = 5000L) {
   
   // drop the $ at the end for the corresponding object
   val appName: String = getClass.getSimpleName.dropRight(1)
@@ -42,7 +43,7 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
         if (useIgniteForLineageStorage) {
           // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
           // has run, so sleep a few seconds to allow that lineage to be uploaded.
-          Thread.sleep(10000)
+          Thread.sleep(igniteLineageCloseDelay)
         }
         if(withIgnite) {
           LineageCacheRepository.close()

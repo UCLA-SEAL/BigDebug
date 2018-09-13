@@ -19,7 +19,8 @@ object StudentInfo extends LineageBaseApp(
                                           threadNum = Some(6), // jteoh retained from original
                                           lineageEnabled = true,
                                           sparkLogsEnabled = false,
-                                          sparkEventLogsEnabled = true
+                                          sparkEventLogsEnabled = true,
+                                          igniteLineageCloseDelay = 10000
                                          ){
   
   var logFile: String = _
