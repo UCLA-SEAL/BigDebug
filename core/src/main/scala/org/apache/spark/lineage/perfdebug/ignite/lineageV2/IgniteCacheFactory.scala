@@ -2,7 +2,7 @@ package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
-import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.ignite.{Ignite, IgniteCache, IgniteDataStreamer, Ignition}
 import org.apache.spark.lineage.perfdebug.lineageV2.CacheArguments
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecId
 
@@ -23,9 +23,10 @@ object IgniteCacheFactory {
     cache
   }
   
-  def createIgniteCacheWithPRKey[V](cacheArguments: CacheArguments, keepPartitions: Boolean = false)
-  : IgniteCache[PartitionWithRecId, V]
-  = {
+  def createIgniteCacheWithPRKey[V](
+                                    cacheArguments: CacheArguments,
+                                    keepPartitions: Boolean = false
+                                   ): IgniteCache[PartitionWithRecId, V] = {
     val cacheConf = new CacheConfiguration[PartitionWithRecId, V](cacheArguments.cacheName)
       .setAffinity(
         new RendezvousAffinityFunction(false, cacheArguments.numPartitionsPerCache)
@@ -45,5 +46,14 @@ object IgniteCacheFactory {
     // Split statements for ease of debugging and clarity with getOrCreateCache
     val cache: IgniteCache[PartitionWithRecId, V] = ignite.getOrCreateCache(cacheConf)
     cache
+  }
+  
+  def createIgniteDataStreamer[V](
+                                     cacheArguments: CacheArguments,
+                                     keepPartitions: Boolean = false
+                                 ): IgniteDataStreamer[PartitionWithRecId, V] = {
+    // Create the cache if it doesn't already exist.
+    val cache = createIgniteCacheWithPRKey(cacheArguments, keepPartitions)
+    ignite.dataStreamer(cache.getName)
   }
 }

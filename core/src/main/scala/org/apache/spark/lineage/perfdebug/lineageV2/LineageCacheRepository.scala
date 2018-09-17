@@ -33,7 +33,7 @@ object LineageCacheRepository {
   def useSimpleIgniteCacheRepository(sc: SparkContext): Unit = {
     setCacheRepository(
       new IgniteLineageCacheRepository(
-        new IgniteContext(sc,() => new IgniteConfiguration())))
+        new IgniteContext(sc,() => new IgniteConfiguration(), true))) // client mode
   }
   
   def getCache(tap: TapLRDD[_]): LineageCache = {
@@ -55,6 +55,7 @@ object LineageCacheRepository {
     withCacheCheck {
       println("-" * 100)
       println("SAVING APP " + appId + " LINEAGE DEPENDENCIES")
+      deps.print()
       println("-" * 100)
       _.saveCacheDependencies(appId, deps)
     }

@@ -1,13 +1,10 @@
 package org.apache.spark.lineage.demo.sampledemos
 
-import org.apache.ignite.Ignition
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkConf
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.demo.LineageBaseApp
-import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheRepository, LineageWrapper}
-import org.apache.spark.lineage.perfdebug.utils.PerfLineageUtils.printRDDWithMessage
+import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
 import org.apache.spark.lineage.rdd.Lineage
-import org.apache.spark.rdd.RDD
 
 /**
  * Demo of querying after execution, relying on external cache (in this case, Ignite). It takes in two parameters:
@@ -61,7 +58,9 @@ object ExternalQueryDemo extends LineageBaseApp(
     
     val hadoopSourceRDDs = hadoopFilePaths.map(sc.textFile(_))
     
-    Lineage.measureTimeWithCallback({
+    Lineage.measureTimeWithCallback({ // wrap the whole thing because some internal calls (eg
+      // perfWrapper.take(1)) actually execute a spark job and wrap the result in an RDD.
+      // Wrapping the whole block ensures that all required jobs are measured together.
       val lineage = LineageWrapper.fromAppId(testId)
       // lineage.printDependencies()
       execMode match {
@@ -89,7 +88,7 @@ object ExternalQueryDemo extends LineageBaseApp(
           val slowestRecord = perf.take(1)
           val hadoopSourceLineageWrappers = slowestRecord.traceBackAllSources()
           val counts = hadoopSourceLineageWrappers.map(_.lineageCache.count())
-          println(s"Lineage trace counts: $counts")
+          println(s"Forward Sum and Lineage trace counts: $counts")
         case FORWARD_SUM_AND_LINEAGE_INPUT_JOIN =>
           val perf = lineage.tracePerformance(printDebugging = false,
                                               printLimit = defaultPrintLimit)
@@ -99,7 +98,7 @@ object ExternalQueryDemo extends LineageBaseApp(
           val joinedResults =
             joinHadoopWrappersAndInputs(hadoopSourceLineageWrappers, hadoopSourceRDDs)
           val counts = joinedResults.map(_.count())
-          println(s"Perf trace + hadoop join counts: $counts")
+          println(s"Forward Sum + Lineage Trace + join counts: $counts")
         case DEFAULT =>
           val perf = lineage.tracePerformance(printDebugging = true,
                                               printLimit = defaultPrintLimit)

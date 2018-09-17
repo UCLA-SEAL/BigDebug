@@ -15,7 +15,11 @@ import scala.collection.JavaConverters._
  * In practice, this cache is expected to be fairly small, at least in comparison to the amount
  * of data. We expect one entry in the cache per RDD id + partition.
  */
-class IgniteCacheAggregateStatsStorage(ignite: Ignite = Ignition.ignite()) extends AggregateStatsStorage {
+class IgniteCacheAggregateStatsStorage(ignite: Ignite = {
+                                        Ignition.setClientMode(true)
+                                        Ignition.ignite()
+                                      }) extends
+  AggregateStatsStorage {
   private val RESERVED_AGG_STATS_CACHE_BASE_NAME = "__PERF_IGNITE_AGG_STATS_CACHE"
   private val CACHE_PARTITION_COUNT = 1
   

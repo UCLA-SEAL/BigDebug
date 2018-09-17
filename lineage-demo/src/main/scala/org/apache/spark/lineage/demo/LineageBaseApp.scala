@@ -41,9 +41,21 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
       finally {
         lc.sparkContext.stop()
         if (useIgniteForLineageStorage) {
+          println(s"Waiting $igniteLineageCloseDelay ms to ensure data is uploaded to ignite")
           // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
           // has run, so sleep a few seconds to allow that lineage to be uploaded.
-          Thread.sleep(igniteLineageCloseDelay)
+          var sleepCounter = 0L
+          val sleepPeriod = 5000L
+          while(sleepCounter < igniteLineageCloseDelay) {
+            // Break into 5s intervals in case of user interrupt.
+            Thread.sleep(sleepPeriod)
+            sleepCounter += sleepPeriod
+            println(s"Progress to ignite close delay completion: " +
+                      s"${sleepCounter* 100.0 / igniteLineageCloseDelay }% " +
+                      s"(${igniteLineageCloseDelay - sleepCounter} ms remaining)")
+          }
+          println("Ignite close delay has finished")
+          // Thread.sleep(igniteLineageCloseDelay)
         }
         if(withIgnite) {
           LineageCacheRepository.close()

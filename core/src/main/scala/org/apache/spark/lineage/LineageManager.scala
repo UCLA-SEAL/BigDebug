@@ -20,7 +20,7 @@ package org.apache.spark.lineage
 import org.apache.spark._
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageRecordsStorage
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateStatsStorage
-import org.apache.spark.lineage.rdd.LatencyStatsTap
+import org.apache.spark.lineage.rdd.{LatencyStatsTap, Lineage}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage._
 
@@ -63,15 +63,24 @@ object LineageManager{
       val t = new Runnable() {
         override def run() {
           val rdd = tap._1.asInstanceOf[RDD[_]]
-          val key = RDDBlockId(rdd.id, split)
-          val arr = rdd.materializeBuffer
+          // val key = RDDBlockId(rdd.id, split) // jteoh: no longer used.
+  
+          val linMgrStr = s"$rdd partition $split"
+          val arr = debugPrintTimeCallback(
+             rdd.materializeBuffer,
+             time => println(s"$linMgrStr: Took $time ms to materialize buffer")
+          )
+          debugPrint(s"$linMgrStr: Attempting to store ${arr.length} entries in record storage")
           
           try {
             // jteoh: remove block manager since we don't store there anymore
             // blockManager.putIterator(key, arr.toIterator, tap._4, true)
 
             val appIdValue = appId.get
-            LineageRecordsStorage.getInstance().store(appIdValue, rdd, arr)
+            debugPrintTimeCallback(
+              LineageRecordsStorage.getInstance().store(appIdValue, rdd, arr),
+              time => println(s"$linMgrStr: Storing lineage data took $time ms")
+            )
             rdd match {
               case aggStatsTap: LatencyStatsTap[_] =>
                 AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap)
@@ -79,7 +88,7 @@ object LineageManager{
             }
           } catch {
             case e: Exception => {
-              println(s"Error storing data for RDD $rdd")
+              println(s"Error storing data for $linMgrStr")
               e.printStackTrace()
             }
           } finally {
@@ -106,4 +115,21 @@ object LineageManager{
     blockManager = _blockManager
     materialize(split, context, effectiveStorageLevel, appId)
   }
+  
+  val PRINT_DEBUG = false
+  private def debugPrintTimeCallback[R](block: => R, fn: Long => Unit): R = {
+    if(PRINT_DEBUG) {
+      Lineage.measureTimeWithCallback(block, fn)
+    } else {
+      block
+    }
+  }
+  
+  private def debugPrint(str: String): Unit = {
+    if(PRINT_DEBUG) {
+      println(str)
+    }
+  }
+  
+  
 }

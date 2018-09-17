@@ -33,13 +33,42 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
                                             val cacheArguments: CacheArguments,
                                             val conversionFn: Any => V) {
   // Possible optimization later - look into comment for keepPartitions
-  val cache = IgniteCacheFactory.createIgniteCacheWithPRKey[V](cacheArguments,keepPartitions=false)
-  def store(buffer: Array[Any]): Unit = {
+  val cache = IgniteCacheFactory.createIgniteCacheWithPRKey[V](cacheArguments,keepPartitions=true)
+  
+  
+  @deprecated
+  def storeBatch(buffer: Array[Any]): Unit = {
     val data = buffer.map(r => {
       val rec = conversionFn(r)
       (rec.key, rec)
     }).toMap.asJava
     cache.putAll(data)
+  }
+  
+  def storeMiniBatch(buffer: Array[Any]): Unit = {
+    val batchSize = 100000
+    buffer.grouped(batchSize).foreach(batch => {
+      val data = batch.map( r => {
+        val rec = conversionFn(r)
+        (rec.key, rec)
+      }).toMap.asJava
+      cache.putAll(data)
+    })
+  }
+  
+  /**
+   * This is the ideal way to store data according to Ignite docs... but for some reason threads
+   * seem to hang or otherwise die out.
+   */
+  def storeStream(data: TraversableOnce[Any]): Unit = {
+    val streamer =
+      IgniteCacheFactory.createIgniteDataStreamer[V](cacheArguments, keepPartitions = true)
+    data.foreach(r => {
+      // upstream is optimized.
+      val rec = conversionFn(r)
+      streamer.addData(rec.key, rec)
+    })
+    streamer.close()
   }
   
   def get = cache.get _
@@ -48,7 +77,20 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
 
 object IgniteLineageRecordsStorage extends LineageRecordsStorage {
   override def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
-    doWithStorage(appId, rdd)(_.store(data))
+    storeMiniBatch(appId, rdd, data)
+  }
+  
+  def storeStream(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
+    doWithStorage(appId, rdd)(_.storeStream(data))
+  }
+  
+  def storeMiniBatch(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
+    doWithStorage(appId, rdd)(_.storeMiniBatch(data))
+  }
+  
+  @deprecated
+  def storeBatch(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
+    doWithStorage(appId, rdd)(_.storeBatch(data))
   }
   
   override def getValuesIterator[T <: CacheValue](appId: String,
@@ -76,6 +118,7 @@ object IgniteLineageRecordsStorage extends LineageRecordsStorage {
   
   private def getStorageConstructor(rdd: RDD[_]
                                    ): Option[CacheArguments => IgniteLineageRecordsStorage[_,_]] = {
+    // TODO jteoh: migrate the RDD -> CacheValue mappings to non-ignite code
     rdd match {
       case _: TapPreCoGroupLRDD[_] =>
         Some(new TapPreCoGroupLRDDIgniteStorage(_))

@@ -11,7 +11,7 @@ object WordCount extends LineageBaseApp(
                                         lineageEnabled = true,
                                         sparkLogsEnabled = false,
                                         sparkEventLogsEnabled = true,
-                                        igniteLineageCloseDelay = 60000
+                                        igniteLineageCloseDelay = 30 * 1000
                                       )  {
   var logFile: String = _
   val WITH_ARTIFICIAL_DELAY  = false
@@ -20,7 +20,7 @@ object WordCount extends LineageBaseApp(
     // execution.
     defaultConf.set("spark.executor.memory", "2g")
     logFile = args.headOption.getOrElse("/Users/jteoh/Documents/datasets/wikipedia_50GB_subset/file100096k")
-    defaultConf.setAppName(s"${appName}-${logFile}")
+    defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${logFile}")
   }
   override def run(lc: LineageContext, args: Array[String]): Unit = {
     //set up logging
@@ -47,6 +47,14 @@ object WordCount extends LineageBaseApp(
       s.split(" ").map(w => returnTuple(s, w))
     }).reduceByKey(_ + _)//.filter(s => failure(s))
   
+    if(true) {
+      // TODO JTEOH DEBUGGING
+      val count = Lineage.measureTimeWithCallback({
+        sequence.count()
+      }, x => println(s"Collect time: $x ms"))
+      println("Count: " + count)
+      return
+    }
     /** Annotating bugs on cluster **/
     val out: Array[(String, Int)] = Lineage.measureTimeWithCallback({
       sequence.collect()
@@ -89,9 +97,10 @@ object WordCount extends LineageBaseApp(
      * Time Logging
      * *************************/
     //To print out the result
-    for (tuple <- out) {
+    for (tuple <- out.take(25)) {
       println(tuple._1 + ": " + tuple._2)
     }
+    println(s"Only 25 results shown (out of ${out.length})")
     println("JOB'S DONE")
   }
   
@@ -107,7 +116,7 @@ object WordCount extends LineageBaseApp(
   
   val returnTuple: (String, String) => (String, Int) = if(WITH_ARTIFICIAL_DELAY) {
     (str: String, key: String) => {
-      // Thread.sleep(5000)
+      Thread.sleep(5000) // TODO jteoh: this is way too high, but was present from original source
       Tuple2(key, 1)
     }
   } else {
