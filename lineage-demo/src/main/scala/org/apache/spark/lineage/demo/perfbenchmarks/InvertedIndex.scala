@@ -62,6 +62,8 @@ object InvertedIndex extends LineageBaseApp(
         val wordList = content.trim.split(" ")
         for (w <- wordList) {
           // Thread.sleep(500) jteoh: disabled for performance testing in baseline
+          // the above is far too high too. Perhaps something smaller?
+          // Thread.sleep(20)
           wordDocList += Tuple2(w, docName)
         }
         wordDocList.toList

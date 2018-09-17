@@ -269,6 +269,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
             case aggTap: LatencyStatsTap[_] =>
               // There are multiple latencies (computed from inputs) for each output record. We
               // have to aggregate over all of them after accumulating partial latencies.
+              // TODO jteoh - this is the slowest part of perf trace as of 9/17/2018
               val nonAggregatedLatencies: RDD[((OutputId, OutputValue), UnAccumulatedLatency)] =
                 joinResult.values.map {
                   case((outputRecord, partialOutputLatency), inputLatency) =>

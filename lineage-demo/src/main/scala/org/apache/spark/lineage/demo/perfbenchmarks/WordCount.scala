@@ -116,7 +116,9 @@ object WordCount extends LineageBaseApp(
   
   val returnTuple: (String, String) => (String, Int) = if(WITH_ARTIFICIAL_DELAY) {
     (str: String, key: String) => {
-      Thread.sleep(5000) // TODO jteoh: this is way too high, but was present from original source
+      // Thread.sleep(5000) // TODO jteoh: this is way too high, but was present from original
+      // source
+      Thread.sleep(20)
       Tuple2(key, 1)
     }
   } else {
