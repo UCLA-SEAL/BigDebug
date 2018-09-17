@@ -90,10 +90,10 @@ object LineageCacheDependencies {
   }
   
   // Variant with depth
-  def visit(fn: (String, TapLRDD[_], Int) => Unit, initDepth: Int = 0)
+  def visit(fn: (LineageCacheDependencies, Int) => Unit, initDepth: Int = 0)
            (current: LineageCacheDependencies): Unit = {
     def visitor(node: LineageCacheDependencies, depth: Int): Unit = {
-      fn(node.cacheName, node.tap, depth)
+      fn(node, depth)
       node.dependencies.foreach(visitor(_, depth + 1))
     }
     
@@ -112,10 +112,10 @@ object LineageCacheDependencies {
       visitPrint(deps.tap)
       println("----------Tap dependencies---------")
     }
-    visit((cacheName, tapRDD, depth) => println(" " * depth + tapRDD + s"[$cacheName]"))(deps)
+    visit((node, depth) =>
+             println(s"${" " * depth}${node.tap}[${node.cacheName}[${node.numPartitions}]]"))(deps)
     if(showBefore) {
       println("----------Done----------")
     }
   }
-  
 }
