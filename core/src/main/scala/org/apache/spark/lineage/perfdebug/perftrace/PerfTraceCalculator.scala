@@ -4,7 +4,7 @@ import org.apache.spark.Partitioner
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, EndOfStageCacheValue, PartitionWithRecId, TapHadoopLRDDValue}
-import org.apache.spark.lineage.perfdebug.utils.{PartitionWithRecIdPartitioner, PerfLineageUtils}
+import org.apache.spark.lineage.perfdebug.utils.{PRIdTuplePartitioner, PartitionWithRecIdPartitioner, PerfLineageUtils}
 import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.RDD._
@@ -123,21 +123,16 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
     // partitioning when the entire record (PartitionRecWithId + CacheValue) is the key.
     val partitioner = secondOption match {
       case Some(_) =>
+        
         // We're going to do a 3-way join eventually after some reduceByKeys, so use a
         // consistent scheme to improve performance.
+        // TODO jteoh the number of partitions might not be optimized here. Also, we need to
+        // ensure we have enough partitions for each of the inputs against which we join. There's
+        // technically no strict requirement (yet) that the output Partition ids match
+        // appropriately, we're only using this for efficiency.
         val numPartitions = Partitioner.defaultPartitioner(base, first, secondOption.get).numPartitions
-        
-        // insufficient by itself, because partition key is a (OutputId, CacheValue) rather than
-        // just OutputId
-        val inner = new PartitionWithRecIdPartitioner(base.getNumPartitions)
-        
-        val wrapperPartitioner = new Partitioner() {
-          override def numPartitions: PartitionId = inner.numPartitions
-  
-          override def getPartition(key: Any): PartitionId =
-            inner.getPartition(key.asInstanceOf[(PartitionWithRecId, _)]._1)
-        }
-        wrapperPartitioner
+        val resultPartitioner = new PRIdTuplePartitioner(numPartitions)
+        resultPartitioner
       case None =>
         // In the future, we might still want to partition based on number in base, as base
         // tends to be the start of a stage (so the end-of-stage tap could have a 1-1 partition
@@ -260,13 +255,13 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
           currRdd.flatMap(r => r._2.inputKeysWithPartialLatencies.map({
             case (inputId, partialLatency) => (inputId, (r, partialLatency))
           }))
-        val joinResult: RDD[(InputId, (InputLatency, ((OutputId, OutputValue), UnAccumulatedLatency)))] =
+        val joinResult: RDD[(InputId, (((OutputId, OutputValue), UnAccumulatedLatency), InputLatency))] =
         // TODO placeholder for future optimization - TapLRDDs should have 1-1 dependency on parents
-          LineageWrapper.joinLineageKeyedRDDs(prevLatencyRdd, inpToOutputWithPartialLatency, useShuffle = false)
+          LineageWrapper.joinLineageKeyedRDDs(inpToOutputWithPartialLatency, prevLatencyRdd, useShuffle = false)
         
         // For TapLRDD, it's a 1-1 mapping so we only need to sum or otherwise accumulate latency.
         // No need to use the agg function.
-        debugPrint(joinResult.sortBy(_._2._2._1._1), "EndOfStage join result (pre-accumulation, " +
+        debugPrint(joinResult.sortBy(_._2._1._1._1), "EndOfStage join result (pre-accumulation, " +
           "may contain duplicates for shuffle-based RDDs) " + currTap)
         
         val accumulatedLatencies: RDD[(OutputId, (OutputValue, OutputLatency))] =
@@ -276,12 +271,13 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
               // have to aggregate over all of them after accumulating partial latencies.
               val nonAggregatedLatencies: RDD[((OutputId, OutputValue), UnAccumulatedLatency)] =
                 joinResult.values.map {
-                  case(inputLatency, (outputRecord, partialOutputLatency)) =>
+                  case((outputRecord, partialOutputLatency), inputLatency) =>
                     (outputRecord, accFn(inputLatency, partialOutputLatency))
                 }
     
+              val reducePartitioner = new PRIdTuplePartitioner(nonAggregatedLatencies.getNumPartitions)
               val aggregatedLatenciesWithCounts: RDD[((OutputId, OutputValue), AggResultWithCount)] =
-                nonAggregatedLatencies.reduceByKeyWithCount(aggFn)
+                nonAggregatedLatencies.reduceByKeyWithCount(reducePartitioner, aggFn)
               debugPrint(aggregatedLatenciesWithCounts, "EndOfStage LatencyStatsTap computed " +
                           "latencies post-aggregation, pre-shuffleStats: " + currTap)
               // TODO: In cases when there is no map-side combine, it is misleading to attribute
@@ -300,7 +296,7 @@ case class PerfTraceCalculator(@transient initWrapper: LineageWrapper,
               // There's no need to aggregate latencies (ie reduce), since TapLRDDValues have a strict
               // single input (1-1) mapping. Simply rearrange the records to the right schema.
               joinResult.values.map {
-                case (inputLatency, ((outputId, outputValue), partialOutputLatency)) =>
+                case (((outputId, outputValue), partialOutputLatency), inputLatency) =>
                   (outputId, (outputValue, accFn(inputLatency, partialOutputLatency)))
               }
           }

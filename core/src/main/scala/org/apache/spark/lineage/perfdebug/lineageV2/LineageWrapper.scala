@@ -222,8 +222,8 @@ object LineageWrapper {
    * class is currently a placeholder for future optimization, but will hopefully be
    * be able to execute partition-based joins in the future. as well as potential broadcast
    * optimizations for small RDDs. */
-  def joinLineageKeyedRDDs[V1, V2](a: RDD[(PartitionWithRecId, V1)],
-                                   b: RDD[(PartitionWithRecId, V2)],
+  def joinLineageKeyedRDDs[V1, V2](child: RDD[(PartitionWithRecId, V1)],
+                                   parent: RDD[(PartitionWithRecId, V2)],
                                    useShuffle: Boolean,
                                    partitioner: Option[Partitioner] = None)
                                   // need implicit classtags for automatic pairRDD conversion.
@@ -232,18 +232,19 @@ object LineageWrapper {
                                  ): RDD[(PartitionWithRecId, (V1, V2))] = {
     // TODO: future optimization
     if(!useShuffle && false) {
-      assert(a.partitioner.isDefined && a.partitioner == b.partitioner, "non-shuffle joins " +
-        "require predefined and identical partitioners on both rdds")
+      assert(child.partitioner.isDefined && child.partitioner == parent.partitioner,
+             "non-shuffle joins require predefined and identical partitioners on both rdds")
       // TODO - zipPartitions-based join? problem here is that some of the igniteRDDs won't come
       // out with a partitioner defined at the beginning. If it were defined, a normal join would
       // actually be pretty efficient thanks to the one to one dependencies.
       throw new UnsupportedOperationException("derp")
     } else {
       if(partitioner.isDefined) {
-        a.join(b, partitioner.get)
+        child.join(parent, partitioner.get)
       }
       else {
-        a.join(b)
+        val p = new PartitionWithRecIdPartitioner(parent.getNumPartitions)
+        child.join(parent, p)
       }
     }
   }
