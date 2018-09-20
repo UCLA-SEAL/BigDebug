@@ -38,7 +38,7 @@ object ExternalQueryDemo extends LineageBaseApp(
    */
   override def initConf(args: Array[String], defaultConf: SparkConf): SparkConf = {
     var conf = execMode match {
-      case FORWARD_SUM if args.lift(1).contains("/Users/jteoh/Code/Performance-Debug-Benchmarks/StudentInfo/studentData_1M_bias0_0.30.txt") =>
+      case FORWARD_SUM if false && args.lift(1).contains("/Users/jteoh/Code/Performance-Debug-Benchmarks/StudentInfo/studentData_1M_bias0_0.30.txt") =>
         val mem = "5g"
         println(s"WARNING: ATTEMPTING DIFFERENT DRIVER MEMORY SETTING OF $mem")
         defaultConf.set("spark.driver.memory", mem)
@@ -79,7 +79,7 @@ object ExternalQueryDemo extends LineageBaseApp(
           val perf = lineage.tracePerformance(printDebugging = false,
                                               printLimit = defaultPrintLimit)
           // Count to force a low-impact RDD action
-          val count = perf.perfCache.count()
+          val count = perf.count()
           println(s"Forward sum count: $count")
         case FORWARD_SUM_AND_LINEAGE_TRACE =>
           val perf = lineage.tracePerformance(printDebugging = false,

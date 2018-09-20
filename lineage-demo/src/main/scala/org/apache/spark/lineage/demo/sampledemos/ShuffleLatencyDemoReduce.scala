@@ -4,7 +4,7 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
-import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage}
+import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage, DefaultPerfLineageWrapper}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId}
 import org.apache.spark.lineage.rdd.Lineage
 
@@ -42,7 +42,7 @@ object ShuffleLatencyDemoReduce extends LineageBaseApp(rewriteAllHadoopFiles = t
     lineageWrapper.printDependencies(showBefore = true)
     
     val perfWrapper = lineageWrapper.tracePerformance(printDebugging = traceLineagePerformance)
-    printRDDWithMessage(perfWrapper.perfCache.sortBy(_._1),
+    printRDDWithMessage(perfWrapper.dataRdd.sortBy(_._1),
                         "Performance data", limit = None)
     
     val slowestRecordWrapper = perfWrapper.take(1)
@@ -74,7 +74,7 @@ object ShuffleLatencyDemoReduce extends LineageBaseApp(rewriteAllHadoopFiles = t
     assert(rawRecords.forall(_._2 == specialKey)) // #1
     assert(rawRecords.length == (1 * partitionSize) + (numPartitions-1) * 1) // #2
     
-    val perfRecords: Array[(PartitionWithRecId, (CacheValue, Long))] = perfWrapper.perfCache.collect()
+    val perfRecords: Array[(PartitionWithRecId, (CacheValue, Long))] = perfWrapper.dataRdd.collect()
     val preShuffleAggStats: Map[Int, AggregateLatencyStats] = getAggStats(7, numPartitions)
     val postShuffleAggStats: Map[Int, AggregateLatencyStats] = getAggStats(8, counts.getNumPartitions)
     val (specialPreShufflePartitions, regularPreShufflePartitions) =

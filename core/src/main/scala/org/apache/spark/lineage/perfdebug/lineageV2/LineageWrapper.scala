@@ -1,9 +1,9 @@
 package org.apache.spark.lineage.perfdebug.lineageV2
 
 import org.apache.hadoop.io.{LongWritable, Text}
-import org.apache.spark.lineage.perfdebug.perftrace.{PerfLineageCache, PerfLineageWrapper, PerfTraceCalculator}
+import org.apache.spark.lineage.perfdebug.perftrace._
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{PartitionWithRecId, TapHadoopLRDDValue}
-import org.apache.spark.lineage.perfdebug.utils.PartitionWithRecIdPartitioner
+import org.apache.spark.lineage.perfdebug.utils.{CacheDataTypes, PartitionWithRecIdPartitioner}
 import org.apache.spark.lineage.perfdebug.utils.TapUtils._
 import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD._
@@ -92,8 +92,14 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   def tracePerformance(accFn: (Long, Long) => Long = _ +_,
                        aggFn: (Long, Long) => Long = Math.max,
                        printDebugging: Boolean = false,
-                       printLimit: Option[Int] = None): PerfLineageWrapper = {
-    PerfTraceCalculator(this, accFn, aggFn, printDebugging, printLimit).calculate()
+                       printLimit: Option[Int] = None,
+                       usePerfTraceCalculatorV2: Boolean = false): PerfLineageWrapper = {
+    // TODO jteoh: Make this flag clearer/more easily customized.
+    val calc: PerfTraceCalculator = usePerfTraceCalculatorV2 match {
+      case true  => PerfTraceCalculatorV2(this, accFn, aggFn, printDebugging, printLimit)
+      case false => PerfTraceCalculatorV1(this, accFn, aggFn, printDebugging, printLimit)
+    }
+    calc.calculate()
   }
   
   def printDependencies(showBefore: Boolean = false): Unit = lineageDependencies.print(showBefore)
@@ -101,12 +107,16 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   override def toString: String = s"${getClass.getSimpleName}($lineageDependencies," +
     s"$lineageCache)"
   
-  /** Creates an instance of [[org.apache.spark.lineage.perfdebug.perftrace.PerfLineageWrapper]]
+  /** Creates an instance of [[org.apache.spark.lineage.perfdebug.perftrace.DefaultPerfLineageWrapper]]
    * using the provided cache and the current wrapper's dependencies.
-   * TODO jteoh: remove this coupling/move it to PerfLineageWrapper
+   * TODO jteoh: remove this coupling/move it to PerfLineageWrapper (need to scope the deps)
    */
-  def asPerfLineageWrapper(perfCache: PerfLineageCache): PerfLineageWrapper = {
-    PerfLineageWrapper(lineageDependencies, perfCache)
+  def asPerfLineageWrapper(perfCache: PerfLineageCache): DefaultPerfLineageWrapper = {
+    DefaultPerfLineageWrapper(lineageDependencies, perfCache)
+  }
+  
+  def asPerfLineageWrapper(idLatencyRDD: RDD[(PartitionWithRecId, Long)]): IdOnlyPerfLineageWrapper = {
+    IdOnlyPerfLineageWrapper(lineageDependencies, idLatencyRDD, lineageCache)
   }
 }
 

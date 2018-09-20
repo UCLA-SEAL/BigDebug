@@ -4,7 +4,7 @@ import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
-import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage}
+import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage, DefaultPerfLineageWrapper}
 import org.apache.spark.lineage.rdd.Lineage
 
 /** Intended to illustrate shuffle agg latency statistics in use. This is similar to
@@ -46,7 +46,7 @@ object ShuffleLatencyDemoCoGroup extends LineageBaseApp(rewriteAllHadoopFiles = 
     lineageWrapper.printDependencies(showBefore = false)
     
     val perfWrapper = lineageWrapper.tracePerformance(printDebugging = traceLineagePerformance)
-    printRDDWithMessage(perfWrapper.perfCache.sortBy(_._1),
+    printRDDWithMessage(perfWrapper.dataRdd.sortBy(_._1),
                         "Performance data", limit = None)
     
     val slowestRecordWrapper = perfWrapper.take(1)
