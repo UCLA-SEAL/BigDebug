@@ -93,7 +93,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
                        aggFn: (Long, Long) => Long = Math.max,
                        printDebugging: Boolean = false,
                        printLimit: Option[Int] = None,
-                       usePerfTraceCalculatorV2: Boolean = false): PerfLineageWrapper = {
+                       usePerfTraceCalculatorV2: Boolean = true): PerfLineageWrapper = {
     // TODO jteoh: Make this flag clearer/more easily customized.
     val calc: PerfTraceCalculator = usePerfTraceCalculatorV2 match {
       case true  => PerfTraceCalculatorV2(this, accFn, aggFn, printDebugging, printLimit)
