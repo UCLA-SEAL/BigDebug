@@ -36,11 +36,13 @@ import org.apache.spark.rdd.RDD._
  *
  * @jteoh 10/16/2018
  */
-case class PerfTraceCalculatorV3(@transient initWrapper: LineageWrapper,
-                                 val accFn: (Long, Long) => Long = _ + _,
-                                 val aggFn: (Long, Long) => Long = Math.max,
-                                 printDebugging: Boolean = true,
-                                 printLimit: Option[Int] = None) extends PerfTraceCalculator {
+case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
+                                   printDebugging: Boolean = true,
+                                   printLimit: Option[Int] = None) extends PerfTraceCalculator {
+  // These are fixed and final.
+  val accFn: (Long, Long) => Long = _ + _,
+  val aggFn: (Long, Long) => Long = Math.max,
+  
   /** Entry point for public use */
   override def calculate(): SlowestInputQueryWrapper = {
     val outputLatencies: RDD[(OutputId, UnAccumulatedLatency)] =

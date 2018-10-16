@@ -10,7 +10,7 @@ import LineageCache._
  * that it is not an instance of [[PerfLineageWrapper]]. However, it does provide special methods
  * for querying slowest inputs. This class specifically assumes use of hadoop input.
  *
- * This implementation is primarily used with [[PerfTraceCalculatorV3]].
+ * This implementation is primarily used with [[SlowestInputsCalculator]].
  */
 class SlowestInputQueryWrapper(override val lineageDependencies: LineageCacheDependencies,
                                // the list of base input values (primarily used as IDs) and
