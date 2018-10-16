@@ -28,7 +28,7 @@ object ExternalQueryDemo extends LineageBaseApp(
   }
   import ExecutionMode._
   
-  private val execMode= FORWARD_SUM_AND_LINEAGE_INPUT_JOIN
+  private val execMode= DEFAULT
   private var testId: String = _
   private var hadoopFilePaths: Array[String] = _
   
