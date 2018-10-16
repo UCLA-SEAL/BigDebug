@@ -69,6 +69,9 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
   
   private def initContext(args: Array[String]): LineageContext = {
     val conf = initConf(args, buildDefaultConfiguration())
+    /*print("-" * 100)
+    print(conf.get("spark.driver.memory"))
+    print("-" * 100)*/
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineageEnabled)

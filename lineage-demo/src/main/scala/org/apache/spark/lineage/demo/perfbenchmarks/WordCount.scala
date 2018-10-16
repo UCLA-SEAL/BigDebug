@@ -11,7 +11,7 @@ object WordCount extends LineageBaseApp(
                                         lineageEnabled = true,
                                         sparkLogsEnabled = false,
                                         sparkEventLogsEnabled = true,
-                                        igniteLineageCloseDelay = 30 * 1000
+                                        igniteLineageCloseDelay = 60 * 1000
                                       )  {
   var logFile: String = _
   val WITH_ARTIFICIAL_DELAY  = false
@@ -19,6 +19,7 @@ object WordCount extends LineageBaseApp(
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
     defaultConf.set("spark.executor.memory", "2g")
+    // defaultConf.set("spark.driver.memory", "2g")
     logFile = args.headOption.getOrElse("/Users/jteoh/Documents/datasets/wikipedia_50GB_subset/file100096k")
     defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${logFile}")
   }

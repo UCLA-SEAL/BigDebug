@@ -87,3 +87,7 @@ spark-warehouse/
 *.Rproj.*
 
 .Rproj.user
+
+
+# jteoh: add scala version
+.scala-version
