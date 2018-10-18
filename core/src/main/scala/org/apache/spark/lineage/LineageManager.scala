@@ -116,7 +116,7 @@ object LineageManager{
     materialize(split, context, effectiveStorageLevel, appId)
   }
   
-  val PRINT_DEBUG = false
+  val PRINT_DEBUG = true
   private def debugPrintTimeCallback[R](block: => R, fn: Long => Unit): R = {
     if(PRINT_DEBUG) {
       Lineage.measureTimeWithCallback(block, fn)

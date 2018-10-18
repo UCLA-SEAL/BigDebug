@@ -4,7 +4,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
+import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper.PerformanceMode
 import org.apache.spark.lineage.rdd.Lineage
+import org.apache.spark.rdd.RDD
 
 /**
  * Demo of querying after execution, relying on external cache (in this case, Ignite). It takes in two parameters:
@@ -18,17 +20,17 @@ import org.apache.spark.lineage.rdd.Lineage
  * hadoop inputs.
  */
 object ExternalQueryDemo extends LineageBaseApp(
-                                                sparkLogsEnabled = false,
-                                                lineageEnabled = false
-                                                ) {
+  sparkLogsEnabled = false,
+  lineageEnabled = false
+) {
   
   private object ExecutionMode extends Enumeration {
     val BACKWARD_ALL, BACKWARD_ALL_WITH_HADOOP_INPS, FORWARD_SUM, FORWARD_SUM_AND_LINEAGE_TRACE,
-    FORWARD_SUM_AND_LINEAGE_INPUT_JOIN, DEFAULT = Value
+    FORWARD_SUM_AND_LINEAGE_INPUT_JOIN, SLOWEST_INPUTS_QUERY, DEFAULT = Value
   }
   import ExecutionMode._
   
-  private val execMode= DEFAULT
+  private var execMode: ExecutionMode.Value = _
   private var testId: String = _
   private var hadoopFilePaths: Array[String] = _
   
@@ -37,15 +39,18 @@ object ExternalQueryDemo extends LineageBaseApp(
    * Endpoint to override the typical spark configuration.
    */
   override def initConf(args: Array[String], defaultConf: SparkConf): SparkConf = {
-    var conf = execMode match {
-      case FORWARD_SUM if false && args.lift(1).contains("/Users/jteoh/Code/Performance-Debug-Benchmarks/StudentInfo/studentData_1M_bias0_0.30.txt") =>
-        val mem = "5g"
-        println(s"WARNING: ATTEMPTING DIFFERENT DRIVER MEMORY SETTING OF $mem")
-        defaultConf.set("spark.driver.memory", mem)
-      case _ => defaultConf
-    }
-    testId = args.head //"local-1531963340265"
-    hadoopFilePaths = args.drop(1)
+    var conf = defaultConf
+    this.testId = args.headOption.getOrElse(
+      throw new IllegalArgumentException("App id (eg local-123) must be provided as first argument")
+    ) //eg "local-1539302408673"
+    this.execMode = args.lift(1).map(ExecutionMode.withName).getOrElse({
+      val str = scala.io.StdIn.readLine(s"Please enter an exec mode: ${ExecutionMode.values}\n")
+      ExecutionMode.withName(str)
+    })
+      //      throw new IllegalArgumentException("Exec mode string must be provided as one of " +
+      //                                           ExecutionMode.values)
+      //    )
+    hadoopFilePaths = args.drop(2)
     val specializedAppName = s"${appName}_${execMode}-(${hadoopFilePaths.mkString(",")})-${testId}"
     conf.setAppName(specializedAppName)
   }
@@ -104,6 +109,15 @@ object ExternalQueryDemo extends LineageBaseApp(
                                               printLimit = defaultPrintLimit)
           val slowestRecord = perf.take(1)
           printHadoopSources(slowestRecord, hadoopSourceRDDs: _*)
+        case SLOWEST_INPUTS_QUERY =>
+          val perfWrapper = lineage.traceSlowestInputPerformance(printDebugging = false,
+                                              printLimit = defaultPrintLimit)
+          val slowestInputs = perfWrapper.takeSlowestInputs(5)
+          val offSetToTextRank: RDD[(Long, (String, Long))] =
+            slowestInputs.joinInputTextRDDWithRankScore(hadoopSourceRDDs.head)
+          val displayRDD = offSetToTextRank.map(x => (x._2._2, (x._1, x._2._1)))
+          printRDDWithMessage(displayRDD, "Hadoop results, with approximate estimation of " +
+            "latency removal (heuristic score):")
         case _ =>
           throw new IllegalArgumentException("UNKNOWN MODE")
       }

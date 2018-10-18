@@ -89,18 +89,27 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
     LineageWrapper(lineageDependencies, lineageCache.filter(r => fn(r._1)))
   }
   
+  import LineageWrapper.PerformanceMode
   def tracePerformance(accFn: (Long, Long) => Long = _ +_,
                        aggFn: (Long, Long) => Long = Math.max,
                        printDebugging: Boolean = false,
                        printLimit: Option[Int] = None,
-                       usePerfTraceCalculatorV2: Boolean = true): PerfLineageWrapper = {
-    // TODO jteoh: Make this flag clearer/more easily customized.
+                       usePerfTraceCalculatorV2: PerformanceMode.Value = PerformanceMode.V2)
+                        : PerfLineageWrapper = {
+    import PerformanceMode._
     val calc: PerfTraceCalculator = usePerfTraceCalculatorV2 match {
-      case true  => PerfTraceCalculatorV2(this, accFn, aggFn, printDebugging, printLimit)
-      case false => PerfTraceCalculatorV1(this, accFn, aggFn, printDebugging, printLimit)
+      case V1  => PerfTraceCalculatorV1(this, accFn, aggFn, printDebugging, printLimit)
+      case V2 => PerfTraceCalculatorV2(this, accFn, aggFn, printDebugging, printLimit)
+      case SLOWEST_INPUTS_QUERY => SlowestInputsCalculator(this, printDebugging, printLimit)
     }
     calc.calculate()
   }
+  
+  def traceSlowestInputPerformance(printDebugging: Boolean = false,
+                                   printLimit: Option[Int] = None): SlowestInputQueryPerfWrapper = {
+    SlowestInputsCalculator(this, printDebugging, printLimit).calculate()
+  }
+  
   
   def printDependencies(showBefore: Boolean = false): Unit = lineageDependencies.print(showBefore)
   
@@ -117,6 +126,11 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   
   def asPerfLineageWrapper(idLatencyRDD: RDD[(PartitionWithRecId, Long)]): IdOnlyPerfLineageWrapper = {
     IdOnlyPerfLineageWrapper(lineageDependencies, idLatencyRDD, lineageCache)
+  }
+  
+  def asSlowestInputQueryWrapper(slowestInputsRDD: RDD[(PartitionWithRecId, RmLatencyTuple)])
+  : SlowestInputQueryPerfWrapper = {
+    SlowestInputQueryPerfWrapper(lineageDependencies, slowestInputsRDD, lineageCache)
   }
 }
 
@@ -196,6 +210,10 @@ object LineageWrapper {
           })
         }
     }
+  }
+  
+  object PerformanceMode extends Enumeration {
+    val V1, V2, SLOWEST_INPUTS_QUERY = Value
   }
   
   // Only useful within the spark session

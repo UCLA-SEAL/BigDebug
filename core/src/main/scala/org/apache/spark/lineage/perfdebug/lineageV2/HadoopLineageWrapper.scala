@@ -47,7 +47,7 @@ class HadoopLineageWrapper(val lineageDependencies: LineageCacheDependencies,
   def joinInputTextRDD(rdd: Lineage[String]): RDD[(Long, String)] = {
     val postHadoopMapRDD = rdd.asInstanceOf[MapPartitionsLRDD[String,(LongWritable, Text)]]
     val hadoopFileRDD: RDD[(LongWritable, Text)] = postHadoopMapRDD.prev match {
-        // Need to handle the case when the RDD has been tapped.
+        // Need to handle the case when the RDD has been tapped vs an external query (without)
       case tap: TapHadoopLRDD[_,_] =>
         tap.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
       case _: HadoopLRDD[_,_] =>

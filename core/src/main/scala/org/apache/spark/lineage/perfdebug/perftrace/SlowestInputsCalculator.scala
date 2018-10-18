@@ -10,6 +10,8 @@ import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.RDD._
 
+import scala.reflect.ClassTag
+
 
 /**
  * New implementation of [[PerfTraceCalculator]], specifically designed to answer queries for the
@@ -37,19 +39,8 @@ import org.apache.spark.rdd.RDD._
  * @jteoh 10/16/2018
  */
 case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
-                                   printDebugging: Boolean = true,
+                                   printDebugging: Boolean = false,
                                    printLimit: Option[Int] = None) extends PerfTraceCalculator {
-  // These are fixed and final.
-  val accFn: (Long, Long) => Long = _ + _,
-  val aggFn: (Long, Long) => Long = Math.max,
-  
-  /** Entry point for public use */
-  override def calculate(): SlowestInputQueryWrapper = {
-    val outputLatencies: RDD[(OutputId, UnAccumulatedLatency)] =
-      perfTraceRecursiveHelper(initWrapper)
-    initWrapper.asPerfLineageWrapper(outputLatencies)
-  }
-  
   type PartitionId = Int
   type InputId = PartitionWithRecId
   type OutputId = PartitionWithRecId
@@ -57,9 +48,26 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   type InputLatency = Latency
   type UnAccumulatedLatency = Latency // for OutputValue latencies that haven't been acc'ed yet.
   type OutputLatency = Latency
+  type BaseInputId = TapHadoopLRDDValue
+  type RmLatency = Latency // tuple after slowest base input has been removed
+  type RecursiveSchema = (OutputId, RmLatencyTuple)
+  type RmLatencyTupleWithCount = AggregatedResultWithCount[RmLatencyTuple]
   
-  // TODO jteoh: cache the perfTrace output RDDs somewhere and save the RDD so it's not
-  // recomputed later.
+  // These two functions are fixed and final for this implementation.
+  // merge the 'max' record from earlier with the stage-latency of the current stage.
+  val accFn = RmLatencyTuple.accFn
+  
+  val aggFn = RmLatencyTuple.aggFn
+  
+  /** Entry point for public use */
+  def calculate(): SlowestInputQueryPerfWrapper = {
+    val outputRmLatTuples: RDD[(OutputId, RmLatencyTuple)] =
+      perfTraceRecursiveHelper(initWrapper)
+    initWrapper.asSlowestInputQueryWrapper(outputRmLatTuples)
+  }
+  
+  
+  
   
   /** The 'main' body of code appears after many of these methods (which reuse arguments) are
    * defined. The main computation is actually [[perfTraceRecursiveHelper]]
@@ -96,7 +104,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   // ---------- END AGG STATS REPO HELPERS ----------
   
   // ---------- START PERF TRACE HELPERS ----------
-  def prevPerfRDDs(curr: LineageWrapper): Seq[RDD[(InputId,InputLatency)]] = {
+  def prevPerfRDDs(curr: LineageWrapper): Seq[RDD[RecursiveSchema]] = {
     // most of the time (except post cogroup), this is a single wrapper.
     val prevWrappers = curr.dependencies.indices.map(curr.traceBackwards)
     //    prevWrappers.foreach(prevWrapper =>
@@ -108,7 +116,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   }
   
   /** For getting the first prevPerfRDD. Includes an assert to ensure no incorrect usage! */
-  def prevPerfRDD(curr: LineageWrapper): RDD[(InputId, InputLatency)] = {
+  def prevPerfRDD(curr: LineageWrapper): RDD[RecursiveSchema] = {
     assert(curr.dependencies.length == 1, "Single PerfRdd can only be returned if there is only" +
       " one dependency. Otherwise, use the more general prevPerfRdds method.")
     prevPerfRDDs(curr).head
@@ -120,12 +128,12 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   /** Used within start-of-stage tracing, eg PostCoGroup, where there can be multiple
    *  input RDDs but no partial latency. This will also automatically incorporate the shuffle agg
    *  stats. */
-  def joinInputRddsWithAgg(aggTap: LatencyStatsTap[_],
-                           aggTapPartitionCount: Int,
-                           base: RDD[(OutputId, CacheValue)],
-                           first: RDD[(InputId, InputLatency)],
-                           secondOption: Option[RDD[(InputId, InputLatency)]] = None
-                          ): RDD[(OutputId, OutputLatency)] = {
+  def joinInputRddsWithAggStats(aggTap: LatencyStatsTap[_],
+                                aggTapPartitionCount: Int,
+                                base: RDD[(OutputId, CacheValue)],
+                                first: RDD[RecursiveSchema],
+                                secondOption: Option[RDD[RecursiveSchema]] = None
+                          ): RDD[RecursiveSchema] = {
     // assumption: each input latency RDD is uniquely keyed. for example, they come from the
     // prevPerfRDD set of methods. Additionally, there are no assumptions made on the
     // partitioning scheme for any input arguments. Finally, each record in base can have
@@ -165,17 +173,18 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
     // Note: Although join can use a partitioner, the output of the join is keyed by InputId
     // which has no exploitable correlation. Thus, we don't get any benefit from specifying a
     // partitioner here (though we will partition later when reducing by key=OutputId).
-    val firstJoin: RDD[(OutputId, InputLatency)] =
+    val firstJoin: RDD[RecursiveSchema] =
       LineageWrapper.joinLineageKeyedRDDs(inpToOutputMapping, first, useShuffle = true).values
-    val firstAggLatenciesWithCounts: RDD[(OutputId, AggResultWithCount)] =
+    val firstAggLatenciesWithCounts: RDD[(OutputId, RmLatencyTupleWithCount)] =
       firstJoin.reduceByKeyWithCount(partitioner, aggFn)
     
-    val resultWithoutShuffleStats: RDD[(OutputId, AggResultWithCount)] = secondOption
+    val resultWithoutShuffleStats: RDD[(OutputId, RmLatencyTupleWithCount)] = secondOption
     match {
+      
       case Some(second) =>
-        val secondJoin: RDD[(OutputId, InputLatency)] =
+        val secondJoin: RDD[RecursiveSchema] =
           LineageWrapper.joinLineageKeyedRDDs(inpToOutputMapping, second, useShuffle = true).values
-        val secondAggLatenciesWithCounts: RDD[(OutputId, AggResultWithCount)] =
+        val secondAggLatenciesWithCounts: RDD[(OutputId, RmLatencyTupleWithCount)] =
           secondJoin.reduceByKeyWithCount(partitioner, aggFn)
       
         // Since inputs for each record in base are not guaranteed to appear in both RDDs, we
@@ -187,7 +196,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         // latencies should equal the original set of OutputIds in `base`)
         // As both RDDs already use the same partitioner, this map-side 'reduce' should be
         // efficient.
-        val totalAggregatedLatenciesWithCounts: RDD[(OutputId, AggResultWithCount)] =
+        val totalAggregatedLatenciesWithCounts: RDD[(OutputId, RmLatencyTupleWithCount)] =
           firstAggLatenciesWithCounts.cogroup(secondAggLatenciesWithCounts,partitioner).map {
             case (outputId, aggCountIterTuple) => {
               val aggCount = aggCountIterTuple match {
@@ -212,26 +221,21 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
     result
   }
   
-  // Return type: Ideally we can actually drop the CacheValue field in all but the initial call
-  // . I can't think of a simple way to do so in the code (since it affects RDD schemas), so
-  // for now all recursive calls will return the output value, which will get dropped
-  // (specifically in prevPerfRdd).
-  // If performance is a major factor, one option would be to 'mirror' the code so that these
-  // values aren't generated in the first place.
-  def perfTraceRecursiveHelper(curr: LineageWrapper): RDD[(PartitionWithRecId, Long)] = {
+  // see PerfTraceCalculatorV2 for potential optimizations, as this is essentially a fork
+  def perfTraceRecursiveHelper(curr: LineageWrapper): RDD[RecursiveSchema] = {
     // re: generics usage, ideally we'd store an RDD[(ID, (_ <: CacheValue, Latency))] and convert
     // at  the end, but I'm not skilled enough with Scala generics (existential types??) to do
     // this. Instead, we just wrap/cast to PerfLineageCache at the end.
     val currTap = curr.tap
-    
     // First compute the latencies based on the predecessors, applying agg/acc as needed.
-    val result: RDD[(PartitionWithRecId, Long)] = currTap match {
+    val result: RDD[RecursiveSchema] = currTap match {
       case _ if currTap.isSourceTap =>
         currTap match {
           case _: TapHadoopLRDD[_,_] =>
             type OutputValue = TapHadoopLRDDValue
-            // TapHadoop has no predecessor, so it only needs to extract latency from the value. Yay!
-            val result = curr.lineageCache.withValueType[OutputValue].mapValues(_.latency)
+            // TapHadoop has no predecessor, so it needs to build a new tuple instance.
+            val result = curr.lineageCache.withValueType[OutputValue]
+                                          .mapValues(RmLatencyTuple.apply)
             result
           case _ =>
             throw new UnsupportedOperationException(s"Unsupported source tap RDD: $currTap")
@@ -242,13 +246,13 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         // appropriately. Since we're dealing with RDD objects, it's safe to use a Seq and map
         // operations uniformly.
         type OutputValue = CacheValue // TODO specify this further if applicable
-        val prevRdds: Seq[RDD[(OutputId, OutputLatency)]] = prevPerfRDDs(curr)
+        val prevRdds: Seq[RDD[RecursiveSchema]] = prevPerfRDDs(curr)
         
         val currCache: RDD[(OutputId, OutputValue)] = curr.lineageCache.withValueType[OutputValue]
         
         // Generalized method to handle case when either one or two dependencies are present.
         val aggTap = currTap.asInstanceOf[LatencyStatsTap[_]]
-        val result = joinInputRddsWithAgg(
+        val result = joinInputRddsWithAggStats(
                                           aggTap,
                                           curr.numPartitions,
                                           currCache,
@@ -260,7 +264,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         // eg TapLRDD, PreShuffle, PreCoGroup
         // conveniently, we know there's only one input.
         type OutputValue = EndOfStageCacheValue
-        val prevLatencyRdd: RDD[(InputId, InputLatency)] = prevPerfRDD(curr)
+        val prevLatencyRdd: RDD[RecursiveSchema] = prevPerfRDD(curr)
         
         val currRdd: RDD[(OutputId, OutputValue)] = curr.lineageCache.withValueType[OutputValue]
         debugPrint(currRdd, "EndOfStage lineage prior to join with prev latencies - " + currTap)
@@ -270,7 +274,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
             case (inputId, partialLatency) => (inputId, (r._1, partialLatency)) // discard the
             // value after getting inputs
           }))
-        val joinResult: RDD[(InputId, ((OutputId, UnAccumulatedLatency), InputLatency))] =
+        val joinResult: RDD[(InputId, ((OutputId, UnAccumulatedLatency), RmLatencyTuple))] =
         // TODO placeholder for future optimization - TapLRDDs should have 1-1 dependency on parents
           LineageWrapper.joinLineageKeyedRDDs(inpToOutputWithPartialLatency, prevLatencyRdd, useShuffle = false)
         
@@ -279,23 +283,26 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         debugPrint(joinResult.sortBy(_._2._1._1), "EndOfStage join result (pre-accumulation, " +
           "may contain duplicates for shuffle-based RDDs) " + currTap)
         
-        val accumulatedLatencies: RDD[(OutputId, OutputLatency)] =
+        val accumulatedLatencies: RDD[RecursiveSchema] =
           currTap match {
             case aggTap: LatencyStatsTap[_] =>
               // There are multiple latencies (computed from inputs) for each output record. We
               // have to aggregate over all of them after accumulating partial latencies.
-              // TODO jteoh - this is the slowest part of perf trace as of 9/17/2018
-              val nonAggregatedLatencies: RDD[(OutputId, UnAccumulatedLatency)] =
+              // jteoh: 10/17/2018 note - seems like I'm doing acc followed by agg here, which is
+              // technically less CPU-efficient but allows removal of the partial latency earlier?
+              val nonAggregatedLatencies: RDD[(OutputId, RmLatencyTuple)] = // coincidentally
+              // same as recursive schema, but we're not ready to use that yet.
                 joinResult.values.map {
-                  case((outputRecord, partialOutputLatency), inputLatency) =>
-                    (outputRecord, accFn(inputLatency, partialOutputLatency))
+                  case((outputRecord, partialOutputLatency), inputLatencyTuple) =>
+                    (outputRecord, accFn(inputLatencyTuple, partialOutputLatency))
                 }
-    
+              debugPrint(nonAggregatedLatencies, "EndOfStage post-accumulation, pre-aggregation " +
+                "stats: " + currTap)
               //val reducePartitioner = new PRIdTuplePartitioner(nonAggregatedLatencies.getNumPartitions)
               val reducePartitioner =
                 new PartitionWithRecIdPartitioner(nonAggregatedLatencies.getNumPartitions)
               
-              val aggregatedLatenciesWithCounts: RDD[(OutputId, AggResultWithCount)] =
+              val aggregatedLatenciesWithCounts: RDD[(OutputId, RmLatencyTupleWithCount)] =
                 nonAggregatedLatencies.reduceByKeyWithCount(reducePartitioner, aggFn)
               debugPrint(aggregatedLatenciesWithCounts, "EndOfStage LatencyStatsTap computed " +
                           "latencies post-aggregation, pre-shuffleStats: " + currTap)
@@ -306,7 +313,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
               // "foo"-keys. Each record technically contributes a fraction of the entire
               // partition latency, but the titian 'combined' lineage record will misleadingly
               // indicate otherwise.
-              val result: RDD[(OutputId, OutputLatency)] =
+              val result: RDD[RecursiveSchema] =
               // use curr.numPartitions because that's precomputed and saved, so no
               // post-serialization issues occur (vs using aggTap.getNumPartitions)
                 addLatencyStats(aggregatedLatenciesWithCounts, aggTap, curr.numPartitions)
@@ -314,6 +321,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
             case _ =>
               // There's no need to aggregate latencies (ie reduce), since TapLRDDValues have a strict
               // single input (1-1) mapping. Simply rearrange the records to the right schema.
+              // We could still aggregate, but avoiding it is a performance optimization.
               joinResult.values.map {
                 case ((outputId, partialOutputLatency), inputLatency) =>
                   (outputId, accFn(inputLatency, partialOutputLatency))
@@ -330,16 +338,16 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
     /*debugPrint(resultWithoutShuffleStats.sortBy(_._2._2, ascending = false),
                currTap + " computed latencies, without shuffle stats (if applicable)")*/
     
-    debugPrint(result.sortBy(_._2, ascending = false),
+    debugPrint(result.sortBy(_._2.latency, ascending = false),
                currTap + " final computed latencies")
     result
   }
   
   private def addLatencyStats(
-                                 rdd: RDD[(OutputId, AggResultWithCount)],
+                                 rdd: RDD[(OutputId, RmLatencyTupleWithCount)],
                                  aggTap: LatencyStatsTap[_],
                                  numPartitions: Int
-                                ): RDD[(OutputId, UnAccumulatedLatency)] = {
+                                ): RDD[RecursiveSchema] = {
     val shuffleAggStats = getRDDAggStats(aggTap, numPartitions)
     debugPrintStr(s"Shuffle agg stats for $aggTap: (input/output/latency)" +
                     s"\n\t${shuffleAggStats.mkString("\n\t")}")
@@ -359,12 +367,77 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
       case (outputId, aggWithCount) => {
         val aggStats: AggregateLatencyStats = shuffleAggStatsBroadcast.value(outputId.partition)
         val numInputs = if (mapSideCombineDisabled) 1 else aggWithCount.count
-        val latencyWithoutShuffle = aggWithCount.aggResult
+        val latencyWithoutShuffle: RmLatencyTuple = aggWithCount.aggResult
         // TODO: is precision loss a concern here?
         val shuffleLatency = aggStats.latency * numInputs / aggStats.numInputs //numOutputs unused
         (outputId, accFn(latencyWithoutShuffle, shuffleLatency))
       }
     }
     result
+  }
+  
+  // jteoh: copied and adapted for new RmLatTuple type on 10/17/2018
+  // these could certainly be generalized later too.
+  protected case class AggregatedResultWithCount[V](var aggResult: V, var count: Long) {
+    def mergeWith(other: AggregatedResultWithCount[V], mergeFn: (V, V) => V): AggregatedResultWithCount[V] = {
+      this.aggResult = mergeFn(this.aggResult, other.aggResult)
+      this.count += other.count
+      this
+    }
+  }
+  
+  // Note: These could be generalized (generics) but are only used for this specific use case
+  // right now
+  protected implicit class AggCountRDD[K,V](rdd: RDD[(K, V)])
+                                           (implicit keyTag: ClassTag[K],
+                                                     valueTag: ClassTag[V])
+                                            extends Serializable {
+    // TODO serializable is undesirable, but somewhere along the line this
+    // class is being serialized (likely due to complex field references and spark's closure
+    // cleaner checking). There are some hints about using a 'shim' function to clean things up
+    // in the following post, but for the time being it's much simpler to just mark this implicit
+    // class as serializable.
+    // http://erikerlandson.github.io/blog/2015/03/31/hygienic-closures-for-scala-function-serialization/
+    
+    //implicit val ct = scala.reflect.classTag[AggResultWithCount]
+    /** Mirrors reduceByKey including default partitioner */
+    // no longer in use!
+    /*
+      def reduceByKeyWithCount(fn: (Long, Long) => Long): RDD[(K, AggResultWithCount)] = {
+      val (createCombinerAggCount, mergeValueAggCount, mergeCombinerAggCount) =
+        createCombineFnsForReduce(fn)
+      rdd.combineByKeyWithClassTag(createCombinerAggCount,
+                                   mergeValueAggCount,
+                                   mergeCombinerAggCount)
+    }*/
+    
+    def reduceByKeyWithCount(part: Partitioner,
+                             fn: (V, V) => V): RDD[(K, AggregatedResultWithCount[V])] = {
+      val (createCombinerAggCount, mergeValueAggCount, mergeCombinerAggCount) =
+        createCombineFnsForReduce(fn)
+      rdd.combineByKeyWithClassTag(createCombinerAggCount,
+                                   mergeValueAggCount,
+                                   mergeCombinerAggCount,
+                                   part)
+    }
+    
+    private def createCombineFnsForReduce(fn: (V, V) => V) = {
+      // create V=> C - technically indep of fn
+      val createCombinerAggCount = (v: V) => AggregatedResultWithCount(v, 1)
+      // mergeV(C, V) => C
+      val mergeValueAggCount = (c: AggregatedResultWithCount[V], v: V) => {
+        c.aggResult = fn(c.aggResult, v)
+        c.count += 1
+        c
+      }
+      
+      // mergeC(C, C) => C
+      val mergeCombinerAggCount = (c1: AggregatedResultWithCount[V], c2: AggregatedResultWithCount[V]) => {
+        c1.mergeWith(c2, fn)
+      }
+      
+      (createCombinerAggCount, mergeValueAggCount, mergeCombinerAggCount)
+    }
+    
   }
 }
