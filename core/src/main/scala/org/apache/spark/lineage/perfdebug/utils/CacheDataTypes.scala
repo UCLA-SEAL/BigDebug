@@ -37,6 +37,15 @@ object CacheDataTypes {
     final lazy val key: PartitionWithRecId = outputId
     def inputIds: Iterable[PartitionWithRecId]
     def cacheValueString: String // set up for future serialization perhaps?
+    protected def mkStringTrunc(t: Traversable[Any], limit: Int = 20): String = {
+      val size = t.size
+      if(size > limit) {
+        t.take(limit).mkString("", ",", s",(${size - limit} hidden)")
+      } else {
+        t.mkString(",")
+      }
+      
+    }
     
     override final def toString: String = cacheValueString
   
@@ -139,8 +148,8 @@ object CacheDataTypes {
   
     override def partialLatencies: Seq[Long] = outputRecordLatencies
     
-    override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
-      s"[${outputRecordLatencies.mkString(",")}])"
+    override def cacheValueString = s"$outputId => ([${mkStringTrunc(inputRecIds)}], " +
+      s"[${mkStringTrunc(outputRecordLatencies)}])"
   }
   
   object TapPreShuffleLRDDValue {
@@ -165,7 +174,7 @@ object CacheDataTypes {
     override def inputIds: Iterable[PartitionWithRecId] =
       inputPartitions.map(new PartitionWithRecId(_, inputKeyHash))
   
-    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${mkStringTrunc(inputIds)}], " +
       s"$inputKeyHash)"
   }
   
@@ -200,8 +209,8 @@ object CacheDataTypes {
     
     override def partialLatencies: Seq[Long] = outputRecordLatencies
   
-    override def cacheValueString = s"$outputId => ([${inputRecIds.mkString(",")}], " +
-      s"[${outputRecordLatencies.mkString(",")}])"
+    override def cacheValueString = s"$outputId => ([${mkStringTrunc(inputRecIds)}], " +
+      s"[${mkStringTrunc(outputRecordLatencies)}])"
   
   }
   // ----------- SHUFFLE VALUES end ---------
@@ -232,7 +241,7 @@ object CacheDataTypes {
     override def inputIds: Iterable[PartitionWithRecId] =
       inputPartitions.map(new PartitionWithRecId(_, inputKeyHash))
   
-    override def cacheValueString = s"$outputId => ([${inputIds.mkString(",")}], " +
+    override def cacheValueString = s"$outputId => ([${mkStringTrunc(inputIds)}], " +
       s"$inputKeyHash)"
   }
   

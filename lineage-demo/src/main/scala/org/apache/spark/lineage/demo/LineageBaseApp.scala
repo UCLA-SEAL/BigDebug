@@ -5,7 +5,7 @@ import org.apache.ignite.Ignition
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.perfdebug.lineageV2.{HadoopLineageWrapper, LineageCacheRepository, LineageWrapper}
-import org.apache.spark.lineage.perfdebug.perftrace.{PerfLineageWrapper, DefaultPerfLineageWrapper, IdOnlyPerfLineageWrapper}
+import org.apache.spark.lineage.perfdebug.perftrace.PerfLineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.PerfLineageUtils
 import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.rdd.RDD
