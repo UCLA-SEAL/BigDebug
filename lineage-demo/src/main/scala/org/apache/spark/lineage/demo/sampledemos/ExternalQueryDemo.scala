@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.demo.sampledemos
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.SparkConf
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.demo.LineageBaseApp
@@ -112,10 +113,14 @@ object ExternalQueryDemo extends LineageBaseApp(
         case SLOWEST_INPUTS_QUERY =>
           val perfWrapper = lineage.traceSlowestInputPerformance(printDebugging = false,
                                               printLimit = defaultPrintLimit)
-          val slowestInputs = perfWrapper.takeSlowestInputs(5)
+          val slowestInputs = perfWrapper.takeSlowestInputs(20)
           val offSetToTextRank: RDD[(Long, (String, Long))] =
             slowestInputs.joinInputTextRDDWithRankScore(hadoopSourceRDDs.head)
-          val displayRDD = offSetToTextRank.map(x => (x._2._2, (x._1, x._2._1)))
+          // substring the string portion in case it's too long for printing.
+          val displayRDD: RDD[(Long, (Long, String))] =
+            offSetToTextRank.map(x =>
+                                   (x._2._2, (x._1, StringUtils.abbreviate(x._2._1, 1000))))
+                            .sortByKey(ascending = false)
           printRDDWithMessage(displayRDD, "Hadoop results, with approximate estimation of " +
             "latency removal (heuristic score):")
         case _ =>
