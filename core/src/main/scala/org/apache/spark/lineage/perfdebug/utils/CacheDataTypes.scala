@@ -59,7 +59,7 @@ object CacheDataTypes {
     override final def equals(obj: scala.Any): Boolean = obj match {
       case other: CacheValue =>
         // oversimplification, but cache values of different classes shouldn't be compared in the
-        // first place. This is primarily a developer class.
+        // first place. This is primarily an internal class.
         this.key == other.key
       case _ => false
     }

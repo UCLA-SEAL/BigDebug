@@ -15,7 +15,7 @@ import org.apache.spark.lineage.rdd.Lineage
  * Modified by Katherine on 8/10/18
  * Created by malig on 11/30/16.
  */
-object HistogramMoviesInjectedDelays extends LineageBaseApp(
+object HistogramMoviesInjectedDataFile extends LineageBaseApp(
                                               threadNum = Some(6), // jteoh retained from original
                                               lineageEnabled = true,
                                               sparkLogsEnabled = false,
@@ -28,10 +28,9 @@ object HistogramMoviesInjectedDelays extends LineageBaseApp(
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
     defaultConf.set("spark.executor.memory", "2g")
-    // This is a copy of the same base file, but with line 1905 (the longest line in the
-    // file) modified so that its ratings are repeated multiple times (~5). This makes it roughly
-    // 10x as long as any other file.
-    logFile = args.headOption.getOrElse("/Users/jteoh/Code/BigSummary-Experiments/experiments/MoviesAnalysis/data/file1s.data")
+    // 2106 lines, 98MB
+    logFile = args.headOption.getOrElse("/Users/jteoh/Code/BigSummary-Experiments/experiments/MoviesAnalysis/data" +
+      "/file1s_jteoh_injected_extra_long_records.data")
     defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${logFile}")
   }
   
@@ -77,9 +76,9 @@ override def run(lc: LineageContext, args: Array[String]): Unit = {
    * *************************/
   
   val lines = lc.textFile(logFile, 1)
-  val delayInjectedLines = lines.map(injectDelays)
+  //val delayInjectedLines = lines.map(injectDelays)
   //Compute once first to compare to the groundTruth to trace the lineage
-  val averageRating: Lineage[(Double, Int)] = delayInjectedLines.map { s =>
+  val averageRating: Lineage[(Double, Int)] = lines.map { s =>
     var rating: Int = 0
     var movieIndex: Int = 0
     var reviewIndex: Int = 0
@@ -112,9 +111,9 @@ override def run(lc: LineageContext, args: Array[String]): Unit = {
       avgReview = sumRatings.toFloat / totalReviews.toFloat
     }
     val avg = Math.floor(avgReview * 2.toDouble)
-    if(injectionMovies.contains(movieStr)) {
-      println(s"Movie $movieStr has average $avg")
-    }
+//    if(injectionMovies.contains(movieStr)) {
+//      println(s"Movie $movieStr has average $avg")
+//    }
     if(movieStr.equals("1995670000")) (avg , Int.MinValue) else (avg, 1)
   }
   val counts = averageRating.reduceByKey(_+_)//.filter(a=> failure(a._2))
