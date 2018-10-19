@@ -42,6 +42,14 @@ object IgniteCacheFactory {
     
           override def reset(): Unit = ???
         })*/
+        new RendezvousAffinityFunction(false, cacheArguments.numPartitionsPerCache) {
+          override def partition(key: scala.Any): Int = {
+            key.asInstanceOf[PartitionWithRecId].partition
+          }
+        }
+        // currently unused - still need to look more into how Ignite handles partitions between
+        // different caches. Also, forcing the same partitioning as the original data could lead
+        // to the same performance issues that the user application is facing.
       }
     // Split statements for ease of debugging and clarity with getOrCreateCache
     val cache: IgniteCache[PartitionWithRecId, V] = ignite.getOrCreateCache(cacheConf)
