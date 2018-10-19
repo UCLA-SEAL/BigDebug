@@ -45,7 +45,14 @@ object RmLatencyTuple {
     val fasterTuple = if(slowerTuple == first) second else first
     
     val resultTuple = slowerTuple // chosen to minimize reassignments, which are left as comments
-    resultTuple.rmLatency = Math.max(slowerTuple.rmLatency, fasterTuple.latency)
+    resultTuple.rmLatency = Math.max(slowerTuple.rmLatency,
+                                     // if removing slowest would affect the fasterTuple, use
+                                     // rmLat. Otherwise, use the original latency.
+                                     if(slowerTuple.slowest == fasterTuple.slowest) {
+                                       fasterTuple.rmLatency
+                                     } else {
+                                       fasterTuple.latency
+                                     })
     // resultTuple.slowest = slowerTuple.slowest
     // resultTuple.latency = slowerTuple.latency
     
