@@ -2,7 +2,7 @@ package org.apache.spark.lineage.perfdebug.perftrace
 
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.TapHadoopLRDDValue
 
-trait RmLatencyTupleTrait {
+trait RmLatencyTuple {
   var latency: Long
   var rmLatency: Long
   var slowest: TapHadoopLRDDValue

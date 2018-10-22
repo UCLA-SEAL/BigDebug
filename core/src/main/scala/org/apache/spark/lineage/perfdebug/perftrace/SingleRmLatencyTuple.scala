@@ -11,7 +11,7 @@ case class SingleRmLatencyTuple private(var latency: Long,
                                         // flag to indicate whether or not removal of `slowest`
                                         // results in deletion of the corresponding output record.
                                         // While true, rmLatency should be 0.
-                                        var isDestructiveRemoval: Boolean) extends RmLatencyTupleTrait {
+                                        var isDestructiveRemoval: Boolean) extends RmLatencyTuple {
   override def toString: String = s"SingleRmLatencyTuple($latency->$rmLatency ms, inp=${slowest
     .key}${if (isDestructiveRemoval) "*" else ""})"
 }
