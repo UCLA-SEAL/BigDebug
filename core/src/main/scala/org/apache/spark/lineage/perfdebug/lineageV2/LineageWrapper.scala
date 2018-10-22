@@ -100,14 +100,21 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
     val calc: PerfTraceCalculator = usePerfTraceCalculatorV2 match {
       case V1  => PerfTraceCalculatorV1(this, accFn, aggFn, printDebugging, printLimit)
       case V2 => PerfTraceCalculatorV2(this, accFn, aggFn, printDebugging, printLimit)
-      case SLOWEST_INPUTS_QUERY => SlowestInputsCalculator(this, printDebugging, printLimit)
+      case SLOWEST_INPUTS_QUERY => SlowestInputsCalculator(this,
+                                                           printDebugging = printDebugging,
+                                                           printLimit = printLimit)
     }
     calc.calculate()
   }
   
-  def traceSlowestInputPerformance(printDebugging: Boolean = false,
+  def traceSlowestInputPerformance(traceInputScope: Boolean = true,
+                                   printDebugging: Boolean = false,
                                    printLimit: Option[Int] = None): SlowestInputQueryPerfWrapper = {
-    SlowestInputsCalculator(this, printDebugging, printLimit).calculate()
+    SlowestInputsCalculator(this,
+                            traceInputScope = traceInputScope,
+                            printDebugging = printDebugging,
+                            printLimit = printLimit)
+      .calculate()
   }
   
   

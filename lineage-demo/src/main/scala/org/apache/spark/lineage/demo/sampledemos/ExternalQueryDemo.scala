@@ -111,7 +111,9 @@ object ExternalQueryDemo extends LineageBaseApp(
           val slowestRecord = perf.take(1)
           printHadoopSources(slowestRecord, hadoopSourceRDDs: _*)
         case SLOWEST_INPUTS_QUERY =>
-          val perfWrapper = lineage.traceSlowestInputPerformance(printDebugging = false,
+          val perfWrapper = lineage.traceSlowestInputPerformance(
+                                              traceInputScope = false ,
+                                              printDebugging = false,
                                               printLimit = defaultPrintLimit)
           val slowestInputs = perfWrapper.takeSlowestInputs(20)
           val offSetToTextRank: RDD[(Long, (String, Long))] =

@@ -39,6 +39,15 @@ import scala.reflect.ClassTag
  * @jteoh 10/16/2018
  */
 case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
+                                   // flag that indicates whether or the output records in
+                                   // initWrapper should be traced back to their inputs. This
+                                   // adds additional stages via a lineage trace, but can greatly
+                                   // reduce the workload in cases where the number of
+                                   // output-contributing inputs is significantly smaller than
+                                   // the number of total inputs. Disabling this reduces the
+                                   // total number of spark joins involved, but may result in
+                                   // unnecessary computation.
+                                   traceInputScope: Boolean = true,
                                    printDebugging: Boolean = false,
                                    printLimit: Option[Int] = None) extends PerfTraceCalculator {
   type PartitionId = Int
@@ -106,11 +115,12 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   // ---------- START PERF TRACE HELPERS ----------
   def prevPerfRDDs(curr: LineageWrapper): Seq[RDD[RecursiveSchema]] = {
     // most of the time (except post cogroup), this is a single wrapper.
-    val prevWrappers = curr.dependencies.indices.map(curr.traceBackwards)
-    //    prevWrappers.foreach(prevWrapper =>
-    //                           debugPrint(prevWrapper.lineageCache, "Lineage cache for " +
-    //                             prevWrapper.tap))
-    // project out input values because not required here/assumed to have already been used.
+    val dependencies = curr.dependencies
+    val prevWrappers = if(traceInputScope) {
+      dependencies.indices.map(curr.traceBackwards)
+    } else {
+      dependencies.map(LineageWrapper.apply) // full/base lineage cache
+    }
     val prevPerfWrappers = prevWrappers.map(perfTraceRecursiveHelper)
     prevPerfWrappers
   }
