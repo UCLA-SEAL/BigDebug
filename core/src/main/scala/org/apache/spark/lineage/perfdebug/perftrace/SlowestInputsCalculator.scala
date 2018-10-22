@@ -59,18 +59,18 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   type OutputLatency = Latency
   type BaseInputId = TapHadoopLRDDValue
   type RmLatency = Latency // tuple after slowest base input has been removed
-  type RecursiveSchema = (OutputId, RmLatencyTuple)
-  type RmLatencyTupleWithCount = AggregatedResultWithCount[RmLatencyTuple]
+  type RecursiveSchema = (OutputId, SingleRmLatencyTuple)
+  type RmLatencyTupleWithCount = AggregatedResultWithCount[SingleRmLatencyTuple]
   
   // These two functions are fixed and final for this implementation.
   // merge the 'max' record from earlier with the stage-latency of the current stage.
-  val accFn = RmLatencyTuple.accFn
+  val accFn = SingleRmLatencyTuple.accFn
   
-  val aggFn = RmLatencyTuple.aggFn
+  val aggFn = SingleRmLatencyTuple.aggFn
   
   /** Entry point for public use */
   def calculate(): SlowestInputQueryPerfWrapper = {
-    val outputRmLatTuples: RDD[(OutputId, RmLatencyTuple)] =
+    val outputRmLatTuples: RDD[(OutputId, SingleRmLatencyTuple)] =
       perfTraceRecursiveHelper(initWrapper)
     initWrapper.asSlowestInputQueryWrapper(outputRmLatTuples)
   }
@@ -245,7 +245,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
             type OutputValue = TapHadoopLRDDValue
             // TapHadoop has no predecessor, so it needs to build a new tuple instance.
             val result = curr.lineageCache.withValueType[OutputValue]
-                                          .mapValues(RmLatencyTuple.apply)
+                                          .mapValues(SingleRmLatencyTuple.apply)
             result
           case _ =>
             throw new UnsupportedOperationException(s"Unsupported source tap RDD: $currTap")
@@ -284,7 +284,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
             case (inputId, partialLatency) => (inputId, (r._1, partialLatency)) // discard the
             // value after getting inputs
           }))
-        val joinResult: RDD[(InputId, ((OutputId, UnAccumulatedLatency), RmLatencyTuple))] =
+        val joinResult: RDD[(InputId, ((OutputId, UnAccumulatedLatency), SingleRmLatencyTuple))] =
         // TODO placeholder for future optimization - TapLRDDs should have 1-1 dependency on parents
           LineageWrapper.joinLineageKeyedRDDs(inpToOutputWithPartialLatency, prevLatencyRdd, useShuffle = false)
         
@@ -300,7 +300,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
               // have to aggregate over all of them after accumulating partial latencies.
               // jteoh: 10/17/2018 note - seems like I'm doing acc followed by agg here, which is
               // technically less CPU-efficient but allows removal of the partial latency earlier?
-              val nonAggregatedLatencies: RDD[(OutputId, RmLatencyTuple)] = // coincidentally
+              val nonAggregatedLatencies: RDD[(OutputId, SingleRmLatencyTuple)] = // coincidentally
               // same as recursive schema, but we're not ready to use that yet.
                 joinResult.values.map {
                   case((outputRecord, partialOutputLatency), inputLatencyTuple) =>
@@ -377,7 +377,7 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
       case (outputId, aggWithCount) => {
         val aggStats: AggregateLatencyStats = shuffleAggStatsBroadcast.value(outputId.partition)
         val numInputs = if (mapSideCombineDisabled) 1 else aggWithCount.count
-        val latencyWithoutShuffle: RmLatencyTuple = aggWithCount.aggResult
+        val latencyWithoutShuffle: SingleRmLatencyTuple = aggWithCount.aggResult
         // TODO: is precision loss a concern here?
         val shuffleLatency = aggStats.latency * numInputs / aggStats.numInputs //numOutputs unused
         (outputId, accFn(latencyWithoutShuffle, shuffleLatency))

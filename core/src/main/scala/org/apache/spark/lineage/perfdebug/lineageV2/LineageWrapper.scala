@@ -135,7 +135,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
     IdOnlyPerfLineageWrapper(lineageDependencies, idLatencyRDD, lineageCache)
   }
   
-  def asSlowestInputQueryWrapper(slowestInputsRDD: RDD[(PartitionWithRecId, RmLatencyTuple)])
+  def asSlowestInputQueryWrapper(slowestInputsRDD: RDD[(PartitionWithRecId, SingleRmLatencyTuple)])
   : SlowestInputQueryPerfWrapper = {
     SlowestInputQueryPerfWrapper(lineageDependencies, slowestInputsRDD, lineageCache)
   }
