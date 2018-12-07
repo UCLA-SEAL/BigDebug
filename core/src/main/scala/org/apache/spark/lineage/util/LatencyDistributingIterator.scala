@@ -114,6 +114,7 @@ object LatencyDistributingIterator {
     var curSizeIfTraversable: Option[Int] = None
     var curSizeTime: Option[Long] = None
 
+    // No need to add a flag here for UDF timing - it's already handled by callers.
     val (udfResult, udfTime) = measureTime(block) // T1: compute, normally the UDF. This uses
     // Scala's call-by-name parameter usage.
     udfResult match {

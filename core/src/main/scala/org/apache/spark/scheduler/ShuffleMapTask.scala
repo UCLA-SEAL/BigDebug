@@ -106,6 +106,7 @@ private[spark] class ShuffleMapTask(
       // appears to increment write time metrics within the stop method).
       // TODO jteoh configure both this time measurement and the internal iterator wrapping based
       // on lineage flag.
+      // TODO shuffle flag (instrumentation toggle)
       Lineage.measureTimeWithCallback({
         val records = rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]]
         trackingInputIterator = new CountAndLatencyMeasuringIterator(records)

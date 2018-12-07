@@ -58,6 +58,7 @@ class ShuffledLRDD[K: ClassTag, V: ClassTag, C: ClassTag](
     // 1. Number of outputs (iterator count - completion iterator)
     // 2. Time to acquire iterator (this method)
     // 3. Time to exhaust/consume outputs (iterator - completion iterator)
+    // TODO shuffle flag (instrumentation toggle)
     val (iter, iteratorComputationLatency) = Lineage.measureTime(_compute(split, context))
     type Record = (K, C)
     val measuredIter = new CountAndLatencyMeasuringIterator[Record](iter)

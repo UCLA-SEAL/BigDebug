@@ -10,7 +10,7 @@ import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.collection.CompactBuffer
 import org.apache.spark.util.{PackIntIntoLong, Utils}
-import org.apache.spark.{OneToOneDependency, Partitioner, TaskContext, TaskContextImpl}
+import org.apache.spark._
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -20,6 +20,10 @@ trait Lineage[T] extends RDD[T] {
   implicit def ttag: ClassTag[T]
 
   @transient def lineageContext: LineageContext
+  // jteoh: helper function to abstract away the perf conf.
+  def shouldWrapUDFs =
+    // lineageContext.getPerfConf.wrapUDFs
+    SparkEnv.get.conf.getPerfConf.wrapUDFs
 
   protected var tapRDD: Option[TapLRDD[_]] = None
 
@@ -240,9 +244,14 @@ trait Lineage[T] extends RDD[T] {
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[T, T](
       this,
-      // TODO: jteoh: measuring here is only for the most recent record. While this is
-      // technically correct for record-level latency, the discarded records are never recorded.
-      (context, pid, iter, rddId) => iter.filter(timedFunction(cleanF, context, rddId)),
+      if(shouldWrapUDFs) {
+        // TODO: jteoh: measuring here is only for the most recent record. While this is
+        // technically correct for record-level latency, the discarded records are never recorded.
+        (context, pid, iter, rddId) => iter.filter(timedFunction(cleanF, context, rddId))
+      } else {
+        println("WARNING: UDF Wrapping is disabled as per PerfDebugConf for filter calls")
+        (context, pid, iter, rddId) => iter.filter(cleanF)
+      },
       preservesPartitioning = true)
   }
 
@@ -253,11 +262,17 @@ trait Lineage[T] extends RDD[T] {
   override def flatMap[U: ClassTag](f: T => TraversableOnce[U]): Lineage[U] =withScope{
     val cleanF = context.clean(f)
     new MapPartitionsLRDD[U, T](this,
-      //(context, pid, iter, rddId) => iter.flatMap(cleanF)
-      (context, pid, iter, rddId) => iter.flatMap(v =>
-                                                    LatencyDistributingIterator(cleanF(v), context, rddId)))
+      if(shouldWrapUDFs) {
+        (context, pid, iter, rddId) => iter.flatMap(v =>
+                                                      LatencyDistributingIterator(cleanF(v), context, rddId))
+      }
+      else {
+        println("WARNING: UDF Wrapping is disabled as per PerfDebugConf for flatMap calls")
+        (context, pid, iter, rddId) => iter.flatMap(cleanF)
+      }
+    )
   }
-
+  
   /**
    * Return an RDD of grouped items. Each group consists of a key and a sequence of elements
    * mapping to that key. The ordering of elements within each group is not guaranteed, and
@@ -298,8 +313,16 @@ trait Lineage[T] extends RDD[T] {
    */
   override def map[U: ClassTag](f: T => U): Lineage[U] = withScope{
     val cleanF = sparkContext.clean(f)
-    new MapPartitionsLRDD[U, T](this, (context, pid, iter, rddId) =>
-                                          iter.map(timedFunction(cleanF, context, rddId)))
+    new MapPartitionsLRDD[U, T](this,
+      if(shouldWrapUDFs) {
+        (context, pid, iter, rddId) =>
+          iter.map(timedFunction(cleanF, context, rddId))
+      } else {
+        println("WARNING: UDF Wrapping is disabled as per PerfDebugConf for map calls")
+        (context, pid, iter, rddId) =>
+          iter.map(cleanF)
+      }
+    )
   }
 
   /**

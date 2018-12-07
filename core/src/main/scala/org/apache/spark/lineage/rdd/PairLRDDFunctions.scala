@@ -233,10 +233,14 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def mapValues[U](f: V => U): Lineage[(K, U)] =self.withScope {
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
-      // ... => iter.map { case (k, v) => (k, cleanF(v)) },
-      (context, pid, iter, rddId) => {
-        // jteoh: Add timing of mapValues call.
-        iter.map(Lineage.timedBlock(context, { case (k, v) => (k, cleanF(v))}, rddId))
+      if(self.shouldWrapUDFs) {
+        (context, pid, iter, rddId) => {
+          // jteoh: Add timing of mapValues call.
+          iter.map(Lineage.timedBlock(context, { case (k, v) => (k, cleanF(v)) }, rddId))
+        }
+      } else {
+        println("WARNING: UDF Wrapping is disabled as per PerfDebugConf for mapValues calls")
+        (context, pid, iter, rddId) => iter.map { case (k, v) => (k, cleanF(v)) }
       },
       preservesPartitioning = true)
   }
@@ -248,11 +252,21 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
   override def flatMapValues[U](f: V => TraversableOnce[U]): Lineage[(K, U)] = self.withScope{
     val cleanF = self.context.clean(f)
     new MapPartitionsLRDD[(K, U), (K, V)](self,
-      (context, pid, iter, rddId) => iter.flatMap { case (k, v) =>
-        // jteoh: this is slightly imprecise - we aren't measuring the time to prepend the key,
-        // but analysis is primarily concerned with relative latency and the prepend should be
-        // approximately constant for all values.
-        LatencyDistributingIterator(cleanF(v), context, rddId).map(x => (k, x))
+      if (self.shouldWrapUDFs) {
+        (context, pid, iter, rddId) => iter.flatMap { case (k, v) =>
+          // jteoh: this is slightly imprecise - we aren't measuring the time to prepend the key,
+          // but analysis is primarily concerned with relative latency and the prepend should be
+          // approximately constant for all values.
+          LatencyDistributingIterator(cleanF(v), context, rddId).map(x => (k, x))
+        }
+      } else {
+        println("WARNING: UDF Wrapping is disabled as per PerfDebugConf for flatMapValues calls")
+        (context, pid, iter, rddId) => iter.flatMap { case (k, v) =>
+          // jteoh: this is slightly imprecise - we aren't measuring the time to prepend the key,
+          // but analysis is primarily concerned with relative latency and the prepend should be
+          // approximately constant for all values.
+          cleanF(v).map(x => (k, x))
+        }
       },
       preservesPartitioning = true)
   }

@@ -17,6 +17,7 @@ class CountAndLatencyMeasuringIterator[T](iter: Iterator[T]) extends Iterator[T]
   }
   
   private def measureLatency[R](block: => R): R =
+  // TODO shuffle flag (instrumentation toggle)
     Lineage.measureTimeWithCallback(block,
                                     _latency += _)
 }

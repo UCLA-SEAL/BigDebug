@@ -2,6 +2,8 @@ package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 
 import javax.cache.Cache
 import org.apache.ignite.cache.query.ScanQuery
+import org.apache.spark.SparkEnv
+import org.apache.spark.lineage.PerfDebugConf
 import org.apache.spark.lineage.perfdebug.ignite._
 import org.apache.spark.lineage.perfdebug.ignite.perftrace.IgniteCacheAggregateStatsStorage
 import org.apache.spark.lineage.perfdebug.lineageV2.{CacheArguments, LineageRecordsStorage}
@@ -42,17 +44,22 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
       val rec = conversionFn(r)
       (rec.key, rec)
     }).toMap.asJava
-    cache.putAll(data)
+    // disabled: having issues (NPE) accessing the conf
+    //if(PerfDebugConf.get.uploadIgniteDataAfterConversion) {
+      cache.putAll(data)
+    //}
   }
   
-  def storeMiniBatch(buffer: Array[Any]): Unit = {
-    val batchSize = 100000
+  def storeMiniBatch(buffer: Array[Any], batchSize: Int = 100000): Unit = {
     buffer.grouped(batchSize).foreach(batch => {
       val data = batch.map( r => {
         val rec = conversionFn(r)
         (rec.key, rec)
       }).toMap.asJava
-      cache.putAll(data)
+      // disabled: having issues (NPE) accessing the conf
+      //if(PerfDebugConf.get.uploadIgniteDataAfterConversion) {
+        cache.putAll(data)
+      //}
     })
   }
   
@@ -66,7 +73,10 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
     data.foreach(r => {
       // upstream is optimized.
       val rec = conversionFn(r)
-      streamer.addData(rec.key, rec)
+      // disabled: having issues (NPE) accessing the conf
+      //if(PerfDebugConf.get.uploadIgniteDataAfterConversion) {
+        streamer.addData(rec.key, rec)
+      //}
     })
     streamer.close()
   }
@@ -77,15 +87,16 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
 
 object IgniteLineageRecordsStorage extends LineageRecordsStorage {
   override def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
-    storeMiniBatch(appId, rdd, data)
+    storeMiniBatch(appId, rdd, data, SparkEnv.get.conf.getPerfConf.uploadBatchSize)
+    //storeStream(appId, rdd, data)
   }
   
   def storeStream(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
     doWithStorage(appId, rdd)(_.storeStream(data))
   }
   
-  def storeMiniBatch(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
-    doWithStorage(appId, rdd)(_.storeMiniBatch(data))
+  def storeMiniBatch(appId: String, rdd: RDD[_], data: Array[Any], batchSize: Int = 100000): Unit = {
+    doWithStorage(appId, rdd)(_.storeMiniBatch(data, batchSize))
   }
   
   @deprecated

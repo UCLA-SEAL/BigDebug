@@ -64,28 +64,10 @@ object LineageManager{
         override def run() {
           val rdd = tap._1.asInstanceOf[RDD[_]]
           // val key = RDDBlockId(rdd.id, split) // jteoh: no longer used.
-  
           val linMgrStr = s"$rdd partition $split"
-          val arr = debugPrintTimeCallback(
-             rdd.materializeBuffer,
-             time => println(s"$linMgrStr: Took $time ms to materialize buffer")
-          )
-          debugPrint(s"$linMgrStr: Attempting to store ${arr.length} entries in record storage")
-          
           try {
-            // jteoh: remove block manager since we don't store there anymore
-            // blockManager.putIterator(key, arr.toIterator, tap._4, true)
-
-            val appIdValue = appId.get
-            debugPrintTimeCallback(
-              LineageRecordsStorage.getInstance().store(appIdValue, rdd, arr),
-              time => println(s"$linMgrStr: Storing lineage data took $time ms")
-            )
-            rdd match {
-              case aggStatsTap: LatencyStatsTap[_] =>
-                AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap)
-              case _ =>
-            }
+            val arr = materializeRDDBuffer(rdd, linMgrStr)
+            uploadLineage(appId, rdd, linMgrStr, arr)
           } catch {
             case e: Exception => {
               println(s"Error storing data for $linMgrStr")
@@ -103,6 +85,51 @@ object LineageManager{
 //    val metrics = context.taskMetrics
 //    val lastUpdatedBlocks = metrics.updatedBlocks.getOrElse(Seq[(BlockId, BlockStatus)]())
 //    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
+  }
+  
+  private def perfConf = SparkEnv.get.conf.getPerfConf
+  
+  private def materializeRDDBuffer(rdd: RDD[_], linMgrStr: String): Array[Any] = {
+    if(perfConf.materializeBuffers) {
+      debugPrintTimeCallback(
+        rdd.materializeBuffer,
+        time => println(s"$linMgrStr: Took $time ms to materialize buffer")
+      )
+    } else {
+      println("Warning: RDD Lineage buffer materialization disabled as per perf debug conf")
+      Array.empty
+    }
+  }
+  
+  private def uploadLineage(appId: Option[String],
+                            rdd: RDD[_],
+                            linMgrStr: String,
+                            arr: Array[Any])  = {
+    if(perfConf.uploadLineage) {
+      debugPrint(s"$linMgrStr: Attempting to store ${arr.length} entries in record storage")
+      // jteoh: remove block manager since we don't store there anymore
+      // blockManager.putIterator(key, arr.toIterator, tap._4, true)
+  
+      val appIdValue = appId.get
+      val uploadData = if(perfConf.uploadLineageRecordsLimit > 0) {
+        arr.take(perfConf.uploadLineageRecordsLimit)
+      } else {
+        arr
+      }
+      
+      debugPrintTimeCallback(
+        LineageRecordsStorage.getInstance().store(appIdValue, rdd, uploadData),
+        time => println(s"$linMgrStr: Storing lineage data took $time ms")
+      )
+      rdd match {
+        case aggStatsTap: LatencyStatsTap[_] =>
+          AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap)
+        case _ =>
+      }
+    } else {
+      println("Warning: Upload to ignite is currently disabled by perf debug configuration")
+    }
+    
   }
   
   def finalizeTaskCache(

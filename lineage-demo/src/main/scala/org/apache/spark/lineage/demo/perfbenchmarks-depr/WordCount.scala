@@ -1,7 +1,7 @@
 package org.apache.spark.lineage.demo.perfbenchmarks
 
 import org.apache.spark.SparkConf
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LineageContext, PerfDebugConf}
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.rdd.Lineage
@@ -11,7 +11,9 @@ object WordCount extends LineageBaseApp(
                                         lineageEnabled = true,
                                         sparkLogsEnabled = false,
                                         sparkEventLogsEnabled = true,
-                                        igniteLineageCloseDelay = 60 * 1000
+                                        withIgnite = true,
+                                        igniteLineageCloseDelay = 60 * 1000 // note: see
+                                        // tempOverrides
                                       )  {
   var logFile: String = _
   val WITH_ARTIFICIAL_DELAY  = false
@@ -19,9 +21,33 @@ object WordCount extends LineageBaseApp(
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
     defaultConf.set("spark.executor.memory", "2g")
-    // defaultConf.set("spark.driver.memory", "2g")
     logFile = args.headOption.getOrElse("/Users/jteoh/Documents/datasets/wikipedia_50GB_subset/file100096k")
     defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${logFile}")
+    
+    // Debugging overrides.
+    defaultConf.setPerfConf(PerfDebugConf(wrapUDFs = true,
+                                          materializeBuffers = true,
+                                          uploadLineage = true,
+                                          uploadBatchSize = 1000,
+                                          uploadIgniteDataAfterConversion = true
+                                          //uploadLineageRecordsLimit = 1000
+                                          ))
+    defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${defaultConf
+      .getPerfConf}-${logFile}")
+    
+    // defaultConf.set("spark.executor.extraJavaOptions","-XX:+UseG1GC")
+    // defaultConf.set("spark.driver.extraJavaOptions","-XX:+UseG1GC")
+    // igniteLineageCloseDelay = 0 * 1000
+    
+    defaultConf
+  }
+  
+  /**
+   * For debugging, yay!
+   * */
+  def tempOverrides(lc: LineageContext): Unit = {
+    // lc.setPerfConf(PerfDebugConf(wrapUDFs = false, uploadToIgnite = false))
+    // igniteLineageCloseDelay = 0
   }
   override def run(lc: LineageContext, args: Array[String]): Unit = {
     //set up logging
@@ -42,7 +68,9 @@ object WordCount extends LineageBaseApp(
     /** ************************
      * Time Logging
      * *************************/
-    val lines: Lineage[String] = lc.textFile(logFile, 5)
+    tempOverrides(lc)
+    
+    val lines: Lineage[String] = lc.textFile(logFile, 20)
   
     val sequence: Lineage[(String, Int)] = lines.filter(s => filterSym(s)).flatMap(s => {
       s.split(" ").map(w => returnTuple(s, w))

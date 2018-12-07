@@ -6,7 +6,7 @@ package org.apache.spark.lineage.demo.perfbenchmarks
  * Modified (after Katherine) on 8/30/16
  */
 
-import org.apache.spark.lineage.LineageContext
+import org.apache.spark.lineage.{LineageContext, PerfDebugConf}
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
@@ -31,6 +31,23 @@ object StudentInfo extends LineageBaseApp(
     //defaultConf.set("spark.executor.memory", "2g")
     logFile = args.headOption.getOrElse("studentData.txt")
     defaultConf.setAppName(s"${appName}-${logFile}")
+  
+    // Debugging overrides.
+    defaultConf.setPerfConf(PerfDebugConf(wrapUDFs = true,
+                                          materializeBuffers = true,
+                                          uploadLineage = true,
+                                          uploadBatchSize = 1000,
+                                          uploadIgniteDataAfterConversion = true
+                                          //uploadLineageRecordsLimit = 1000
+    ))
+    defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${defaultConf
+                                                                    .getPerfConf}-${logFile}")
+  
+    // defaultConf.set("spark.executor.extraJavaOptions","-XX:+UseG1GC")
+    // defaultConf.set("spark.driver.extraJavaOptions","-XX:+UseG1GC")
+    igniteLineageCloseDelay = 0
+  
+    defaultConf
   }
   
   def run(lc: LineageContext, args: Array[String]): Unit = {

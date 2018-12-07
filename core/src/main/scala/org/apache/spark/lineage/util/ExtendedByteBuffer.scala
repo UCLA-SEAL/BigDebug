@@ -2,7 +2,7 @@ package org.apache.spark.lineage.util
 
 import scala.reflect.ClassTag
 /**
- * Jason: Copied from ByteBuffer and modified to contain 3 values for performance tracking
+ * Jason: Copied from [[ByteBuffer]] and modified to contain 3 values for performance tracking
  */
 abstract class ExtendedByteBuffer[@specialized(Long, Int) V1: ClassTag,
                                       @specialized(Long, Int) V2: ClassTag,

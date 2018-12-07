@@ -21,11 +21,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.LinkedHashSet
-
 import org.apache.avro.{Schema, SchemaNormalization}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
+import org.apache.spark.lineage.PerfDebugConf
 import org.apache.spark.serializer.KryoSerializer
 import org.apache.spark.util.Utils
 
@@ -46,6 +45,8 @@ import org.apache.spark.util.Utils
  *
  * @note Once a SparkConf object is passed to Spark, it is cloned and can no longer be modified
  * by the user. Spark does not support modifying the configuration at runtime.
+ *
+ * jteoh: exposed primitive booleans
  */
 class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Serializable {
 
@@ -432,6 +433,8 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
     settings.entrySet().asScala.foreach { e =>
       cloned.set(e.getKey(), e.getValue(), true)
     }
+    // jteoh: temporary while perf confs are primitive booleans rather than kv params.
+    cloned.setPerfConf(getPerfConf)
     cloned
   }
 
@@ -616,7 +619,16 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
   def toDebugString: String = {
     getAll.sorted.map{case (k, v) => k + "=" + v}.mkString("\n")
   }
-
+  
+  /**
+   * WARNING - THESE ARE BY NO MEANS MEANT TO BE A PERMANENT SOLUTION. These are really just
+   * hacks to support some feature toggles for performance evaluation.
+   */
+  private var perfConf = PerfDebugConf()
+  
+  def getPerfConf: PerfDebugConf = perfConf
+  
+  def setPerfConf(conf: PerfDebugConf): Unit = perfConf = conf
 }
 
 private[spark] object SparkConf extends Logging {

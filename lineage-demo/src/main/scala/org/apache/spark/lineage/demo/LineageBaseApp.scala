@@ -69,9 +69,7 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
   
   private def initContext(args: Array[String]): LineageContext = {
     val conf = initConf(args, buildDefaultConfiguration())
-    /*print("-" * 100)
-    print(conf.get("spark.driver.memory"))
-    print("-" * 100)*/
+    
     val sc = new SparkContext(conf)
     val lc = new LineageContext(sc)
     lc.setCaptureLineage(lineageEnabled)
@@ -96,9 +94,13 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
   
   private def buildDefaultConfiguration(): SparkConf = {
     new SparkConf()
+      // auto-configured app name based on class in use.
       .setAppName(appName)
+      // force local mode with maximum parallelization
       .setMaster(s"local[${threadNum.getOrElse("*")}]")
+      // history server logging
       .set("spark.eventLog.enabled", sparkEventLogsEnabled.toString)
+    
   }
   
   /** You can optionally use the LineageBaseApp rewriteAllHadoopFiles to avoid setting overwrite

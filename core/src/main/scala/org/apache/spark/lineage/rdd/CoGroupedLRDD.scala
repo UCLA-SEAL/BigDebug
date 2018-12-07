@@ -60,6 +60,7 @@ class CoGroupedLRDD[K: ClassTag](var lrdds: Seq[RDD[_ <: Product2[K, _]]], part:
     // 1. Number of outputs (iterator count - completion iterator)
     // 2. Time to acquire iterator (this method)
     // 3. Time to exhaust/consume outputs (iterator - completion iterator)
+    // TODO shuffle flag (instrumentation toggle)
     val (iter, iteratorComputationLatency) = Lineage.measureTime(super.compute(split, context))
     type Record = (K, Array[Iterable[_]])
     val measuredIter = new CountAndLatencyMeasuringIterator[Record](iter)
