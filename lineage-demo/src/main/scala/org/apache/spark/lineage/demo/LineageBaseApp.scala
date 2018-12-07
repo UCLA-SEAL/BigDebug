@@ -100,6 +100,9 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
       .setMaster(s"local[${threadNum.getOrElse("*")}]")
       // history server logging
       .set("spark.eventLog.enabled", sparkEventLogsEnabled.toString)
+      // reduce default buffer pool size (since most applications are fairly small)
+      //.set("spark.titian.executor.bufferpool.normal.size", "4MB")
+      //.set("spark.titian.executor.bufferpool.large.size", "32MB")
     
   }
   

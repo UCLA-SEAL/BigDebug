@@ -91,6 +91,8 @@ private[spark] abstract class Task[T](
     context.setThreadPool(threadPool) // Matteo
     context.setBufferPool(bufferPool) // Matteo
     context.setBufferPoolLarge(bufferPoolLarge) // Matteo
+    context.setBufferPoolSize(bufferPoolSize) // jteoh
+    context.setBufferPoolLargeSize(bufferPoolLargeSize) // jteoh
     taskThread = Thread.currentThread()
 
     if (_killed) {
@@ -169,6 +171,10 @@ private[spark] abstract class Task[T](
   var bufferPool: util.Queue[Array[Byte]] = null
 
   var bufferPoolLarge: util.Queue[Array[Byte]] = null
+  
+  // jteoh: added size fields and setters - these are normally set by Executor.
+  var bufferPoolSize: Int = _
+  var bufferPoolLargeSize: Int = _
 
   def setThreadPool(pool: ThreadPoolExecutor): Unit = this.threadPool = pool
 
@@ -176,6 +182,10 @@ private[spark] abstract class Task[T](
 
   def setBufferPoolLarge(pool: util.Queue[Array[Byte]]): Unit = this.bufferPoolLarge = pool
 
+  // jteoh: added size setters - these are normally set by Executor.
+  def setBufferPoolSize(size: Int) = this.bufferPoolSize = size
+  def setBufferPoolLargeSize(size: Int) = this.bufferPoolLargeSize = size
+  
   /**
    * *************************************************************************************
    */

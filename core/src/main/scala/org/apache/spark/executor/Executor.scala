@@ -84,12 +84,28 @@ private[spark] class Executor(
   // Start worker thread pool
   private val threadPool = ThreadUtils.newDaemonCachedThreadPool("Executor task launch worker")
   // Matteo
-  // TODO make the number of buffers configurable from conf
+  // TODO make the number of buffers configurable from conf - jteoh, tentatively done?
+  val bufferPoolConfPrefix = "spark.titian.executor.bufferpool."
   val bufferPool = new ConcurrentLinkedQueue[Array[Byte]]()
   val bufferPoolLarge = new ConcurrentLinkedQueue[Array[Byte]]()
-  for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 * 128))
-  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1024))
-
+  val bufferPoolSize =
+    conf.getSizeAsBytes(bufferPoolConfPrefix + "normal.size", 8 * 1024 * 1024) //8MB
+  if(bufferPoolSize > Integer.MAX_VALUE) {
+    throw new IllegalArgumentException("Buffer pool size cannot be greater than 2GB (max Int " +
+                                         "value): " + bufferPoolSize)
+  }
+  val bufferPoolLargeSize =
+    conf.getSizeAsBytes(bufferPoolConfPrefix + "large.size", 64 * 1024 * 1024) // 64MB
+  if(bufferPoolLargeSize > Integer.MAX_VALUE) {
+    throw new IllegalArgumentException("Buffer pool large size cannot be greater than 2GB (max " +
+                                         "Int value): " + bufferPoolLargeSize)
+  }
+  val bufferPoolInitCount = conf.getInt(bufferPoolConfPrefix + "normal.count", 16)
+  val bufferPoolLargeInitCount = conf.getInt(bufferPoolConfPrefix + "large.count", 16)
+  // Initialize the buffer pools.
+  1 to bufferPoolInitCount foreach { _ => new Array[Byte](bufferPoolSize.toInt)}
+  1 to bufferPoolLargeInitCount foreach { _ => new Array[Byte](bufferPoolLargeSize.toInt)}
+  
   private val executorSource = new ExecutorSource(threadPool, executorId)
   // Pool used for threads that supervise task killing / cancellation
   private val taskReaperPool = ThreadUtils.newDaemonCachedThreadPool("Task reaper")
@@ -736,4 +752,5 @@ private[spark] object Executor {
   // task is fully deserialized. When possible, the TaskContext.getLocalProperty call should be
   // used instead.
   val taskDeserializationProps: ThreadLocal[Properties] = new ThreadLocal[Properties]
+  val bufferPoolConfPrefix = "spark.executor.bufferpool"
 }

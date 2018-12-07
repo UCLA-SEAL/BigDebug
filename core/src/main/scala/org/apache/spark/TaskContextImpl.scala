@@ -80,6 +80,10 @@ private[spark] class TaskContextImpl(
   @transient private var bufferPool: Queue[Array[Byte]] = null
 
   @transient private var bufferPoolLarge: Queue[Array[Byte]] = null
+  
+  // jteoh: added size fields and setters - these are normally set by Task
+  @transient private var bufferPoolSize: Int = _
+  @transient private var bufferPoolLargeSize: Int = _
 
   def setThreadPool(pool: ThreadPoolExecutor): Unit = this.threadPool = pool
 
@@ -106,6 +110,10 @@ private[spark] class TaskContextImpl(
   def addToBufferPool(data: Array[Byte]): Unit = bufferPool.add(data)
 
   def addToBufferPoolLarge(data: Array[Byte]): Unit = bufferPoolLarge.add(data)
+  
+  // jteoh: added size setters - these are normally set by Task
+  def setBufferPoolSize(size: Int) = this.bufferPoolSize = size
+  def setBufferPoolLargeSize(size: Int) = this.bufferPoolLargeSize = size
   
   // Jason - KISS for now. Might add more for optimizations later, so
   // no direct access to the underlying map.
