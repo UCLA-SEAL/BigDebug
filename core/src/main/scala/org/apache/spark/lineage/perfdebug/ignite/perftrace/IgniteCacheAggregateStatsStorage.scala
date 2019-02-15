@@ -3,6 +3,7 @@ package org.apache.spark.lineage.perfdebug.ignite.perftrace
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, Ignition}
+import org.apache.spark.lineage.perfdebug.ignite.conf.IgniteManager
 import org.apache.spark.lineage.perfdebug.perftrace.{AggregateLatencyStats, AggregateStatsStorage}
 import org.apache.spark.lineage.rdd.LatencyStatsTap
 
@@ -16,8 +17,9 @@ import scala.collection.JavaConverters._
  * of data. We expect one entry in the cache per RDD id + partition.
  */
 class IgniteCacheAggregateStatsStorage(ignite: Ignite = {
-                                        Ignition.setClientMode(true)
-                                        Ignition.ignite()
+                                        //Ignition.setClientMode(true)
+                                        //Ignition.ignite() // jteoh IGNITEMARKER
+                                        IgniteManager.getIgniteInstance()
                                       }) extends
   AggregateStatsStorage {
   private val RESERVED_AGG_STATS_CACHE_BASE_NAME = "__PERF_IGNITE_AGG_STATS_CACHE"

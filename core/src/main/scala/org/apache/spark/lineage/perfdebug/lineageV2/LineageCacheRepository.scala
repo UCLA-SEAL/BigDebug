@@ -3,6 +3,7 @@ package org.apache.spark.lineage.perfdebug.lineageV2
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.spark.IgniteContext
 import org.apache.spark.SparkContext
+import org.apache.spark.lineage.perfdebug.ignite.conf.IgniteManager
 import org.apache.spark.lineage.perfdebug.ignite.lineageV2.IgniteLineageCacheRepository
 import org.apache.spark.lineage.rdd.TapLRDD
 
@@ -32,8 +33,9 @@ object LineageCacheRepository {
   
   def useSimpleIgniteCacheRepository(sc: SparkContext): Unit = {
     setCacheRepository(
-      new IgniteLineageCacheRepository(
-        new IgniteContext(sc,() => new IgniteConfiguration(), true))) // client mode
+      new IgniteLineageCacheRepository( // jteoh IGNITEMARKER
+        //new IgniteContext(sc,() => new IgniteConfiguration(), true))) // client mode
+        new IgniteContext(sc,() => IgniteManager.getConf, true))) // client mode
   }
   
   def getCache(tap: TapLRDD[_]): LineageCache = {

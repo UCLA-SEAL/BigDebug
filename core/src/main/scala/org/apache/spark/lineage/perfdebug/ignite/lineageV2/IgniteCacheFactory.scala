@@ -3,15 +3,17 @@ package org.apache.spark.lineage.perfdebug.ignite.lineageV2
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache, IgniteDataStreamer, Ignition}
+import org.apache.spark.lineage.perfdebug.ignite.conf.IgniteManager
 import org.apache.spark.lineage.perfdebug.lineageV2.CacheArguments
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.PartitionWithRecId
 
 // Not quite an actual factory pattern, but useful for instantiating different KV cache types
 object IgniteCacheFactory {
   // TODO figure out how to distribute this ignition across tasks
-  Ignition.setClientMode(true)
-  val ignite: Ignite = Ignition.ignite()
-
+  // jteoh IGNITEMARKER
+  //Ignition.setClientMode(true)
+  //val ignite: Ignite = Ignition.ignite()
+  val ignite: Ignite = IgniteManager.getIgniteInstance()
   def createIgniteCache[K, V](cacheArguments: CacheArguments): IgniteCache[K, V] = {
     val cacheConf = new CacheConfiguration[K, V](cacheArguments.cacheName)
       .setAffinity(
