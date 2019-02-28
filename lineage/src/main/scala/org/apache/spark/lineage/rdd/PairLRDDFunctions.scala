@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage.rdd
 
+import java.nio.ByteBuffer
+
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.io.SequenceFile.CompressionType
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -121,6 +123,59 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
                        serializer: Serializer = null): Lineage[(K, C)] =  {
     combineByKeyWithClassTag(createCombiner, mergeValue, mergeCombiners,
       partitioner, mapSideCombine, serializer)(null)
+  }
+
+  /**
+   * Aggregate the values of each key, using given combine functions and a neutral "zero value".
+   * This function can return a different result type, U, than the type of the values in this RDD,
+   * V. Thus, we need one operation for merging a V into a U and one operation for merging two U's,
+   * as in scala.TraversableOnce. The former operation is used for merging values within a
+   * partition, and the latter is used for merging values between partitions. To avoid memory
+   * allocation, both of these functions are allowed to modify and return their first argument
+   * instead of creating a new U.
+   */
+  override def aggregateByKey[U: ClassTag](zeroValue: U, partitioner: Partitioner)(seqOp: (U, V) => U,
+      combOp: (U, U) => U): Lineage[(K, U)] = self.withScope {
+    // Serialize the zero value to a byte array so that we can get a new clone of it on each key
+    val zeroBuffer = SparkEnv.get.serializer.newInstance().serialize(zeroValue)
+    val zeroArray = new Array[Byte](zeroBuffer.limit)
+    zeroBuffer.get(zeroArray)
+
+    lazy val cachedSerializer = SparkEnv.get.serializer.newInstance()
+    val createZero = () => cachedSerializer.deserialize[U](ByteBuffer.wrap(zeroArray))
+
+    // We will clean the combiner closure later in `combineByKey`
+    val cleanedSeqOp = self.context.clean(seqOp)
+    combineByKeyWithClassTag[U]((v: V) => cleanedSeqOp(createZero(), v),
+      cleanedSeqOp, combOp, partitioner)
+  }
+
+  /**
+   * Aggregate the values of each key, using given combine functions and a neutral "zero value".
+   * This function can return a different result type, U, than the type of the values in this RDD,
+   * V. Thus, we need one operation for merging a V into a U and one operation for merging two U's,
+   * as in scala.TraversableOnce. The former operation is used for merging values within a
+   * partition, and the latter is used for merging values between partitions. To avoid memory
+   * allocation, both of these functions are allowed to modify and return their first argument
+   * instead of creating a new U.
+   */
+  override def aggregateByKey[U: ClassTag](zeroValue: U, numPartitions: Int)(seqOp: (U, V) => U,
+      combOp: (U, U) => U): Lineage[(K, U)] = self.withScope {
+    aggregateByKey(zeroValue, new HashPartitioner(numPartitions))(seqOp, combOp)
+  }
+
+  /**
+   * Aggregate the values of each key, using given combine functions and a neutral "zero value".
+   * This function can return a different result type, U, than the type of the values in this RDD,
+   * V. Thus, we need one operation for merging a V into a U and one operation for merging two U's,
+   * as in scala.TraversableOnce. The former operation is used for merging values within a
+   * partition, and the latter is used for merging values between partitions. To avoid memory
+   * allocation, both of these functions are allowed to modify and return their first argument
+   * instead of creating a new U.
+   */
+  override def aggregateByKey[U: ClassTag](zeroValue: U)(seqOp: (U, V) => U,
+      combOp: (U, U) => U): Lineage[(K, U)] = self.withScope {
+    aggregateByKey(zeroValue, defaultPartitioner(self))(seqOp, combOp)
   }
 
   /**
