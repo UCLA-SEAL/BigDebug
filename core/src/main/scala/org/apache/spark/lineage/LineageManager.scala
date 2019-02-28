@@ -123,7 +123,11 @@ object LineageManager{
       )
       rdd match {
         case aggStatsTap: LatencyStatsTap[_] =>
-          AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap)
+          debugPrint(s"$linMgrStr: Attempting to store aggregate stats")
+          debugPrintTimeCallback(
+            AggregateStatsStorage.getInstance().saveAggStats(appIdValue, aggStatsTap),
+            time => println(s"$linMgrStr: Storing aggregate stats took $time ms")
+          )
         case _ =>
       }
     } else {

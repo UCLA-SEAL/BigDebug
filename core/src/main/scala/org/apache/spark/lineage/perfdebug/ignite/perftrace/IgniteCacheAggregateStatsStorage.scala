@@ -77,12 +77,13 @@ class IgniteCacheAggregateStatsStorage(ignite: Ignite = {
     val keys = (0 until numPartitions).map {(rddId, _)}
     // Some fun java-scala conversions to match the ignite API. Also use toMap to ensure an
     // immutable map is returned at the end.
-    val result = cache.getAll(keys.toSet.asJava).asScala.toMap.map {
+    val result: Map[PartitionId, AggregateLatencyStats] = cache.getAll(keys.toSet.asJava).asScala.toMap.map {
       case (rddIdAndPartition, value) => (rddIdAndPartition._2, deserializeStats(value))
     }
     if (result.size != numPartitions) {
-      println("AggStatsRepo WARN: agg partition count is not equal to expected partition count -" +
-                s"${result.size} < $numPartitions")
+      println(s"IgniteCacheAggregateStatsStorage WARN: agg partition count is not equal to " +
+                s"expected partition count for RDD $rddId: ${result.size} vs $numPartitions")
+      result.foreach {case (k, v) => println(s"Partition $k => $v")}
     }
     result
   }

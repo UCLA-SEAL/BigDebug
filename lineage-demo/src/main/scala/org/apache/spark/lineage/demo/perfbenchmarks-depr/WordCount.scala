@@ -21,15 +21,16 @@ object WordCount extends LineageBaseApp(
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
     defaultConf.set("spark.executor.memory", "2g")
-    logFile = args.headOption.getOrElse("/Users/jteoh/Documents/datasets/wikipedia_50GB_subset/file100096k")
+    logFile = args.headOption.getOrElse("/Users/jteoh/Documents/datasets/wikipedia_50GB_subset/")
+    //file100096k")//_half")
     defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${logFile}")
     
     // Debugging overrides.
     defaultConf.setPerfConf(PerfDebugConf(wrapUDFs = true,
                                           materializeBuffers = true,
                                           uploadLineage = true,
-                                          uploadBatchSize = 1000,
-                                          uploadIgniteDataAfterConversion = true
+                                          uploadBatchSize = 1000//,
+                                          //uploadIgniteDataAfterConversion = true
                                           //uploadLineageRecordsLimit = 1000
                                           ))
     defaultConf.setAppName(s"${appName}-lineage:${lineageEnabled}-${defaultConf
@@ -135,6 +136,7 @@ object WordCount extends LineageBaseApp(
   
   def filterSym(str:String): Boolean ={
     val sym: Array[String] = Array(">","<" , "*" , "="  , "#" , "+" , "-" , ":" , "{" , "}" , "/","~" , "1" , "2" , "3" ,"4" , "5" , "6" , "7" , "8" , "9" , "0")
+    
     for(i<- sym){
       if(str.contains(i)) {
         return false
