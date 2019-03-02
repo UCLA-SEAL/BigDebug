@@ -41,40 +41,33 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
-    // jteoh: Added two map to separately track record tap time (pre-shuffle) and record time up
-    // to the preshuffle.
-    // values for the three maps are: currentInputId (often incremental), current system time, or
-    // individual record latency.
-    // latter two maps may be suboptimal - will need to analyze and see if there's anything that can
-    // be done to improve. One option may be reducing precision to milliseconds or even seconds.
-    // Another may be casting into the int range and then using the bitmap approach again.
-    val map = new Int2RoaringBitMapOpenHashMap(16384)
-    val recordTimeMap = new mutable.HashMap[Int, ListBuffer[Long]]
-    val iterator = buffer.iterator
+    // Titian previously used an Int2RoaringBitMapOpenHashMap to store each outputID (key) and
+    // the (unordered) set of inputIDs (value = integer set). With the addition of latency, the
+    // value must now change to a set of (integer, long) which is not supported by the existing
+    // data structure. Instead, we opt for Scala's OpenHashMap, which allows for size
+    // specification (to avoid resizing).
+    //
+    // side note: if latency is reduced to ints, we could also combine inputID+latency into a
+    // single long. To my knowledge, there is still no hyperoptimized roaringbitmap equivalent
+    // for longs.
+    val mapCapacity = 16384 // taken from original Int2RoaringBitMapOpenHashMap
+    val outputToInputAndLatency= new mutable.OpenHashMap[Int, ListBuffer[(Int, Long)]](mapCapacity)
 
+    val iterator = buffer.iterator
     while(iterator.hasNext) {
       val next = iterator.next()
       val key = next._1
-      map.put(key, next._2)
-      recordTimeMap.getOrElseUpdate(key, new ListBuffer[Long]()) += next._3
+      val inputIdsWithLatencies = outputToInputAndLatency.getOrElseUpdate(key,
+                                                           new ListBuffer[(Int, Long)]())
+      inputIdsWithLatencies += Tuple2(next._2, next._3)
     }
 
     // We release the buffer here because not needed anymore
     releaseBuffer()
 
-    map.keySet().toIntArray.map(k =>
-      // jteoh: converted from tuple2 to tuple3 which includes array of latencies
-      //new Tuple2(new Tuple2(splitId.toInt, k), map.get(k).toArray)).toArray
-      Tuple3(Tuple2(splitId.toInt, k),
-             map.get(k).toArray, // all input partitions, with potential duplicates depending on
-             // the original dependency.
-             recordTimeMap(k).toArray)).toArray
-    // final output = list of:
-    /*(split, murmurhash of record key(?)),
-    titian-labeled inputs for that particular key (from tap method/task context)
-    timestamps for each appearance of that key in the tap method
-    record latencies for each appearance of that key in the tap method */
-    
+    outputToInputAndLatency.map({case (outputId, inputsWithLats) =>
+      Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLats)
+    }).toArray
   }
 
   override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPoolLarge())
@@ -94,5 +87,47 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
                 timeTaken // jteoh
     )
     record
+  }
+  @deprecated
+  private def materializeBufferOld: Array[Any] = {
+    // edit 3/1/19: This is incorrect but retained for easier comparison with the original Titian
+    // code (+ some modifications I made before realizing a crucial error).
+    
+    // jteoh: Added two map to separately track record tap time (pre-shuffle) and record time up
+    // to the preshuffle. (edit 3/1/19: This is outdated, there's only really one latency)
+    // values for the three maps are: currentInputId (often incremental), current system time, or
+    // individual record latency.
+    // latter two maps may be suboptimal - will need to analyze and see if there's anything that can
+    // be done to improve. One option may be reducing precision to milliseconds or even seconds.
+    // Another may be casting into the int range and then using the bitmap approach again.
+  
+    
+    val map = new Int2RoaringBitMapOpenHashMap(16384)
+    val recordTimeMap = new mutable.HashMap[Int, ListBuffer[Long]]
+    val iterator = buffer.iterator
+  
+    while(iterator.hasNext) {
+      val next = iterator.next()
+      val key = next._1
+      map.put(key, next._2)
+      recordTimeMap.getOrElseUpdate(key, new ListBuffer[Long]()) += next._3
+    }
+  
+    // We release the buffer here because not needed anymore
+    releaseBuffer()
+  
+    map.keySet().toIntArray.map(k =>
+                                  // jteoh: converted from tuple2 to tuple3 which includes array of latencies
+                                  //new Tuple2(new Tuple2(splitId.toInt, k), map.get(k).toArray)).toArray
+                                  Tuple3(Tuple2(splitId.toInt, k),
+                                         map.get(k).toArray, // all input partitions, with potential duplicates depending on
+                                         // the original dependency.
+                                         recordTimeMap(k).toArray)).toArray
+    // final output = list of:
+    /*(split, murmurhash of record key(?)),
+    titian-labeled inputs for that particular key (from tap method/task context)
+    timestamps for each appearance of that key in the tap method
+    record latencies for each appearance of that key in the tap method */
+  
   }
 }
