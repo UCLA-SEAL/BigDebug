@@ -628,7 +628,10 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
   
   def getPerfConf: PerfDebugConf = perfConf
   
-  def setPerfConf(conf: PerfDebugConf): Unit = perfConf = conf
+  def setPerfConf(conf: PerfDebugConf): SparkConf = {
+    perfConf = conf
+    this
+  }
 }
 
 private[spark] object SparkConf extends Logging {
