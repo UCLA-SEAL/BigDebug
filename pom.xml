@@ -550,7 +550,8 @@
       <dependency>
         <groupId>org.roaringbitmap</groupId>
         <artifactId>RoaringBitmap</artifactId>
-        <version>0.5.11</version>
+        <!--<version>0.5.11</version>-->
+        <version>0.7.42</version>
       </dependency>
       <dependency>
         <groupId>commons-net</groupId>

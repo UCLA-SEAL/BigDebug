@@ -139,18 +139,30 @@ object CacheDataTypes {
   // outputId. (Not sure why TapLRDD decided to specify long, but that's not the case here)
   // These names might not be the most appropriate and are subject to change.
   case class TapPreShuffleLRDDValue(override val outputId: PartitionWithRecId,
-                                    inputIdsWithPartialLatencies: Seq[(Int, Long)]
+                                    packedInputIdsWithPartialLatencies: Seq[Long]
                                     )
     extends EndOfStageCacheValue {
     
-    // retained for support of previous usage
+    // retained for unoptimized implementation
+    // implicit only required because of overlap with main constructor due to type erasure
+    def this(outputId: PartitionWithRecId,
+             inputIdsWithPartialLatencies: Seq[(Int, Long)])(implicit d: DummyImplicit) {
+      this(outputId, inputIdsWithPartialLatencies.map(r => PackIntIntoLong(r._1, r._2.toInt)))
+    }
+    
+    // retained for support of original (incorrect) implementation
     def this(outputId: PartitionWithRecId, inputRecIds: Array[Int],
-    outputRecordLatencies: Array[Long]) = {
+             outputRecordLatencies: Array[Long]) = {
       this(outputId, inputRecIds.zip(outputRecordLatencies))
     }
     
+    def inputIdsWithPartialLatencies =
+      packedInputIdsWithPartialLatencies.map(PackIntIntoLong.extractToTuple)
+                                        .map({case (id, latencyInt) => (id, latencyInt.toLong)})
+    
     private def inpIdToPartitionWithId(inpId: Int) =
       new PartitionWithRecId(outputId.partition,inpId)
+      
     override def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Long)] = {
       inputIdsWithPartialLatencies.map(
         {case (inpId, lat) => (inpIdToPartitionWithId(inpId), lat)}
@@ -174,15 +186,27 @@ object CacheDataTypes {
   }
   
   object TapPreShuffleLRDDValue {
-    def fromRecordOld(r: Any) = {
+    def fromRecordWrong(r: Any) = {
       val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Long])]
-      // new because of deprecated API
+      // 'new' because of deprecated API
       new TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
-    def fromRecord(r: Any) = {
+    def fromRecordUnoptimized(r: Any) = {
       val tuple = r.asInstanceOf[((Int, Int), Seq[(Int, Long)])]
+      // 'new' because of deprecated API
+      new TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2)
+    }
+    def fromRecordPacked(r: Any) = {
+      val tuple = r.asInstanceOf[((Int, Int), Seq[Long])]
       TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2)
     }
+    
+    def fromRecord(r: Any) = {
+      // fromRecordUnoptimized(r)
+      fromRecordPacked(r)
+    }
+    
+    
     // input partition is always same as output
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) => " +
       "([InputRecId*], [OutputLatencyMs*])"

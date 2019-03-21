@@ -624,9 +624,15 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
    * WARNING - THESE ARE BY NO MEANS MEANT TO BE A PERMANENT SOLUTION. These are really just
    * hacks to support some feature toggles for performance evaluation.
    */
-  private var perfConf = PerfDebugConf()
+  private var perfConf: PerfDebugConf = null
   
-  def getPerfConf: PerfDebugConf = perfConf
+  def getPerfConf: PerfDebugConf = {
+    if(perfConf == null) {
+      println("Initializing perfConf to default because it was not provided")
+      perfConf = PerfDebugConf()
+    }
+    perfConf
+  }
   
   def setPerfConf(conf: PerfDebugConf): SparkConf = {
     perfConf = conf

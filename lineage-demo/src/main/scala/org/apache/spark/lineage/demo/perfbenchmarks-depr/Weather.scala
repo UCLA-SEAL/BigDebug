@@ -22,7 +22,7 @@ object Weather extends LineageBaseApp(
   override def initConf(args: Array[String], defaultConf: SparkConf): SparkConf = {
     // jteoh: only conf-specific configuration is this one, which might not be required for usual
     // execution.
-    //defaultConf.set("spark.executor.memory", "2g")
+    // defaultConf.set("spark.executor.memory", "2g")
     logFile = args.headOption.getOrElse("/Users/jteoh/Code/BigSummary-Experiments/experiments/WeatherAnalysis/data/part-00000")
     defaultConf.setAppName(s"${appName}-${logFile}")
   }
@@ -54,7 +54,7 @@ object Weather extends LineageBaseApp(
       val monthdate= date.substring(0,date.lastIndexOf("/")-1)
       List[((String , String) , Float)](
         ((state , monthdate) , snow) ,
-        ((state , year)  , snow)
+        ((state , year) , snow)
       ).iterator
     }
     val deltaSnow: Lineage[((String, String), Float)] = split.groupByKey().map{ s  =>

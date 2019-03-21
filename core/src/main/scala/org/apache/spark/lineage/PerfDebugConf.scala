@@ -12,9 +12,9 @@ import org.apache.spark.SparkEnv
 case class PerfDebugConf(wrapUDFs: Boolean = true,
     // TODO look for "shuffle flag (instrumentation toggle)" TODOs and complete them.
                          estimateShuffleLatency: Boolean = true,
-                         uploadLineage: Boolean = true,
+                         uploadLineage: Boolean = true, // default true
                          uploadLineageRecordsLimit: Int = -1,
-                         uploadBatchSize: Int = 100000,
+                         uploadBatchSize: Int = 100 * 1000, // default 100K
                          tapRDDs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
@@ -23,9 +23,12 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
   if(tapRDDs && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but tapping is still enabled - these " +
               "tags will not be stored")
+    // NOTE: allocateBuffers is not actually used.
+    // NOTE: tapRDDs is not actually used.
   }
   if(materializeBuffers && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but materialization is still enabled.")
+    // NOTE: allocateBuffers is not actually used.
   }
   
   if(uploadLineage && !materializeBuffers) {
@@ -53,6 +56,7 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
   // prepping the data for Ignite to upload. Essentially the materializeBuffers method in the tap
   // rdds.
   // 6: allocating buffers (before any of the tapping occurs).
+  // 7 (3/5 edit): properly integrating this into SparkConf for distributed setting.
   
 }
 

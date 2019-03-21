@@ -22,10 +22,14 @@ import org.apache.spark.Dependency
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
 import org.apache.spark.lineage.util.IntIntLongByteBuffer
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
+import org.apache.spark.util.PackIntIntoLong
+import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.ClassTag
+
+import collection.JavaConverters._
 
 private[spark]
 class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
@@ -41,6 +45,11 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     shuffledData.setIsPreShuffleCache().asInstanceOf[Lineage[T]]
 
   override def materializeBuffer: Array[Any] = {
+    //materializeBufferWithListBuffers
+    materializeBufferLongBitmap
+  }
+  
+  def materializeBufferWithListBuffers: Array[Any] = {
     // Titian previously used an Int2RoaringBitMapOpenHashMap to store each outputID (key) and
     // the (unordered) set of inputIDs (value = integer set). With the addition of latency, the
     // value must now change to a set of (integer, long) which is not supported by the existing
@@ -69,6 +78,39 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
       Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLats)
     }).toArray
   }
+  
+  def materializeBufferLongBitmap: Array[Any] = {
+    // Titian previously used an Int2RoaringBitMapOpenHashMap to store each outputID (key) and
+    // the (unordered) set of inputIDs (value = integer set). With the addition of latency, the
+    // value must now change to a set of (integer, long). We use Roaring64NavigableMap, as
+    // described at https://github.com/RoaringBitmap/RoaringBitmap#64-bit-integers-long. To do
+    // so, we also cast the Long latency to a single int and combine latency and ID into a single
+    // Long.
+    val mapCapacity = 16384 // taken from original Int2RoaringBitMapOpenHashMap
+    // Consider initializing with values too:
+    // org.roaringbitmap.longlong.Roaring64NavigableMap.bitmapOf()
+    val outputToInputAndLatency= new mutable.OpenHashMap[Int, Roaring64NavigableMap](mapCapacity)
+    
+    val iterator = buffer.iterator
+    while(iterator.hasNext) {
+      val next = iterator.next()
+      val key = next._1
+      val inputID = next._2
+      val latency = next._3
+      val record = PackIntIntoLong.apply(inputID, latency.toInt)
+      
+      val inputIDsWithLatencies = outputToInputAndLatency.getOrElseUpdate(key,
+                                                                          new Roaring64NavigableMap())
+      inputIDsWithLatencies.addLong(record)
+    }
+    
+    // We release the buffer here because not needed anymore
+    releaseBuffer()
+    
+    outputToInputAndLatency.map({case (outputId, inputsWithLats) =>
+      Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLats.iterator().asScala.toSeq)
+    }).toArray
+  }
 
   override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPoolLarge())
 
@@ -79,7 +121,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
       buffer = null
     }
   }
-
+  //println("WARNING: TAPPRESHUFFLELRDD TAP IS DISABLED")
   override def tap(record: T) = {
     val timeTaken = tContext.getSummedRddRecordTime()
     buffer.put( Hashing.murmur3_32().hashString(record._1.toString).asInt(),
@@ -103,14 +145,14 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   
     
     val map = new Int2RoaringBitMapOpenHashMap(16384)
-    val recordTimeMap = new mutable.HashMap[Int, ListBuffer[Long]]
+    val recordTimeMap = new mutable.HashMap[Int, ArrayBuffer[Long]]
     val iterator = buffer.iterator
   
     while(iterator.hasNext) {
       val next = iterator.next()
       val key = next._1
       map.put(key, next._2)
-      recordTimeMap.getOrElseUpdate(key, new ListBuffer[Long]()) += next._3
+      recordTimeMap.getOrElseUpdate(key, new ArrayBuffer[Long]()) += next._3
     }
   
     // We release the buffer here because not needed anymore
