@@ -25,6 +25,7 @@ import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.reflect._
+import scala.util.Random
 
 private[spark]
 class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -79,7 +80,16 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
     // jteoh 8/8/2018 - removing the time measurement actually - we're primarily concerned with
     // computation time. Also, it's difficult (impossible) to pick this up for each record
     // without buffering and reprocessing the results afterwards.
+    // TODO jteoh: temporarily trying to 'sample' taps.
     firstParent[T].iterator(split, context).map(tap)
+    // TODO jteoh: temporarily trying to 'sample' taps.
+//    firstParent[T].iterator(split, context).map( r => {
+//      if(new Random().nextDouble() < 0.25) { // 25% sample threshold
+//        tap(r)
+//      } else {
+//        r
+//      }
+//    })
   }
 
   override def filter(f: T => Boolean): Lineage[T] = {

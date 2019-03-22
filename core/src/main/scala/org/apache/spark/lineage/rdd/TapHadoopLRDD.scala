@@ -49,7 +49,8 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
     buffer.clear()
     tContext.addToBufferPool(buffer.getData)
   }
-
+  
+//  println("WARNING: TAPHADOOPLRDD TAP IS DISABLED")
   override def tap(record: (K, V)) = {
     tContext.currentInputId = newRecordId()
     // TODO measure the time taken for hadoop rows, which were read from the previous RDD

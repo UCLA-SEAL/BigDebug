@@ -17,6 +17,8 @@
 
 package org.apache.spark.lineage
 
+import java.io.{PrintWriter, StringWriter}
+
 import org.apache.spark._
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageRecordsStorage
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateStatsStorage
@@ -72,6 +74,9 @@ object LineageManager{
             case e: Exception => {
               println(s"Error storing data for $linMgrStr")
               e.printStackTrace()
+              val sw = new StringWriter
+              e.printStackTrace(new PrintWriter(sw))
+              println(s"Exception for $linMgrStr: \n${sw.toString}")
             }
           } finally {
             tap._1.releaseBuffer()
