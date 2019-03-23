@@ -1,9 +1,10 @@
 package org.apache.spark.lineage.util
 
+import org.apache.spark.Latency
 import org.apache.spark.lineage.rdd.Lineage
 
 class CountAndLatencyMeasuringIterator[T](iter: Iterator[T]) extends Iterator[T] {
-  private var _latency = 0L
+  private var _latency: Latency = 0
   private var _count = 0L
   
   def latency = _latency

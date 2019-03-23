@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
-import org.apache.spark.Partitioner
+import org.apache.spark.{Latency, Partitioner}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, EndOfStageCacheValue, PartitionWithRecId, TapHadoopLRDDValue}
@@ -21,8 +21,8 @@ import org.apache.spark.rdd.RDD._
  * additional join that is not present in [[PerfTraceCalculatorV1]].
  */
 case class PerfTraceCalculatorV2(@transient initWrapper: LineageWrapper,
-                               accFn: (Long, Long) => Long = _ + _,
-                               aggFn: (Long, Long) => Long = Math.max,
+                               accFn: (Latency, Latency) => Latency = _ + _,
+                               aggFn: (Latency, Latency) => Latency = Math.max,
                                printDebugging: Boolean = false,
                                printLimit: Option[Int] = None) extends PerfTraceCalculator {
   /** Entry point for public use */
@@ -35,7 +35,6 @@ case class PerfTraceCalculatorV2(@transient initWrapper: LineageWrapper,
   type PartitionId = Int
   type InputId = PartitionWithRecId
   type OutputId = PartitionWithRecId
-  type Latency = Long
   type InputLatency = Latency
   type UnAccumulatedLatency = Latency // for OutputValue latencies that haven't been acc'ed yet.
   type OutputLatency = Latency
@@ -200,14 +199,14 @@ case class PerfTraceCalculatorV2(@transient initWrapper: LineageWrapper,
   // (specifically in prevPerfRdd).
   // If performance is a major factor, one option would be to 'mirror' the code so that these
   // values aren't generated in the first place.
-  def perfTraceRecursiveHelper(curr: LineageWrapper): RDD[(PartitionWithRecId, Long)] = {
+  def perfTraceRecursiveHelper(curr: LineageWrapper): RDD[(PartitionWithRecId, Latency)] = {
     // re: generics usage, ideally we'd store an RDD[(ID, (_ <: CacheValue, Latency))] and convert
     // at  the end, but I'm not skilled enough with Scala generics (existential types??) to do
     // this. Instead, we just wrap/cast to PerfLineageCache at the end.
     val currTap = curr.tap
     
     // First compute the latencies based on the predecessors, applying agg/acc as needed.
-    val result: RDD[(PartitionWithRecId, Long)] = currTap match {
+    val result: RDD[(PartitionWithRecId, Latency)] = currTap match {
       case _ if currTap.isSourceTap =>
         currTap match {
           case _: TapHadoopLRDD[_,_] =>
@@ -342,8 +341,11 @@ case class PerfTraceCalculatorV2(@transient initWrapper: LineageWrapper,
         val aggStats: AggregateLatencyStats = shuffleAggStatsBroadcast.value(outputId.partition)
         val numInputs = if (mapSideCombineDisabled) 1 else aggWithCount.count
         val latencyWithoutShuffle = aggWithCount.aggResult
-        // TODO: is precision loss a concern here?
-        val shuffleLatency = aggStats.latency * numInputs / aggStats.numInputs //numOutputs unused
+        // TODO: is precision loss a concern here? Using floats vs doubles (32 vs 64-bit) and
+        //  rounding to nearest integer here.
+        val shuffleLatency = // numOutputs is unused here.
+          Math.round(aggStats.latency * (numInputs.toFloat /aggStats.numInputs.toFloat))
+        
         (outputId, accFn(latencyWithoutShuffle, shuffleLatency))
       }
     }

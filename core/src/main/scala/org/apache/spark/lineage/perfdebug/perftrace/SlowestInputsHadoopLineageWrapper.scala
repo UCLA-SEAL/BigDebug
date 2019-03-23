@@ -1,6 +1,7 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
 import org.apache.hadoop.io.{LongWritable, Text}
+import org.apache.spark.Latency
 import org.apache.spark.lineage.perfdebug.lineageV2.{HadoopLineageWrapper, LineageCacheDependencies, LineageWrapper}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, TapHadoopLRDDValue}
 import org.apache.spark.lineage.perfdebug.utils.PartitionWithRecIdPartitioner
@@ -8,29 +9,29 @@ import org.apache.spark.lineage.rdd.{HadoopLRDD, Lineage, MapPartitionsLRDD, Tap
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 
 class SlowestInputsHadoopLineageWrapper(override val lineageDependencies: LineageCacheDependencies,
-                                        val valuesWithScores: RDD[(TapHadoopLRDDValue, Long)])
+                                        val valuesWithLatencyEstimates: RDD[(TapHadoopLRDDValue, Latency)])
   extends HadoopLineageWrapper(lineageDependencies,
-                               valuesWithScores.keys.map(v => (v.key, v.asInstanceOf[CacheValue]))){
+                               valuesWithLatencyEstimates.keys.map(v => (v.key, v.asInstanceOf[CacheValue]))){
   type Offset = Long
-  type RankScore = Long // roughly corresponds to removal latency
   
-  private val inputOrdering: Ordering[(TapHadoopLRDDValue, RankScore)] = Ordering.by(_._2)
+  private val inputOrdering: Ordering[(TapHadoopLRDDValue, Latency)] = Ordering.by(_._2)
   
   def top(n: Int): SlowestInputsHadoopLineageWrapper = {
-    val topInputs = valuesWithScores.top(n)(inputOrdering)
-    val slowestInputsRDD: RDD[(TapHadoopLRDDValue, RankScore)] = context.parallelize(topInputs)
+    val topInputs = valuesWithLatencyEstimates.top(n)(inputOrdering)
+    val slowestInputsRDD: RDD[(TapHadoopLRDDValue, Latency)] = context.parallelize(topInputs)
     new SlowestInputsHadoopLineageWrapper(lineageDependencies, slowestInputsRDD)
   }
   
-  // Utilities for joining and presenting the latency ranking.
-  def joinInputRDDWithRankScore(baseRDD: RDD[(Long, String)])
-                                      : RDD[(Long, (String, Long))] = {
+  // Utilities for joining and presenting the latency ranking. baseRDD is an RDD keyed by offset
+  // (ie hadoop rdds)
+  def joinInputRDDWithLatencyEstimate(baseRDD: RDD[(Long, String)])
+                                      : RDD[(Long, (String, Latency))] = {
     // Implicit assumption: The base RDD partitions are exactly the same as original input, ie by
     // partition id. Thus we can do a partition-based join.
     val partitioner = new PartitionWithRecIdPartitioner(baseRDD.getNumPartitions)
-    val partitionedHadoopLineage: RDD[(Offset, RankScore)] =
-      valuesWithScores
-      .map({ case (hadoopValue, score) => (hadoopValue.outputId, (hadoopValue.byteOffset, score)) })
+    val partitionedHadoopLineage: RDD[(Offset, Latency)] =
+      valuesWithLatencyEstimates.map({
+        case (hadoopValue, score) => (hadoopValue.outputId, (hadoopValue.byteOffset, score)) })
       // byteOffset is unique within hadoopRDD partitions, so we'll use that as key after
       // partitioning
       .partitionBy(partitioner) // organize by partition first
@@ -56,13 +57,13 @@ class SlowestInputsHadoopLineageWrapper(override val lineageDependencies: Lineag
     }
   }
   
-  def joinInputRDDWithRankScore(baseRDD: RDD[(LongWritable, Text)])
-                  (implicit d: DummyImplicit): RDD[(Long, (String, Long))] = {
+  def joinInputRDDWithRankScore(baseRDD: RDD[(LongWritable, Text)])(implicit d: DummyImplicit)
+                                                              : RDD[(Long, (String, Latency))] = {
     // As is, the hadoop RDD is not serializable and will result in an error when joining. Thus,
     // we convert the writables to actual values.
     val rawHadoopDataRDDFixed: RDD[(Long, String)] =
-    baseRDD.map({ case (lw, t) => (lw.get(), t.toString) })
-    joinInputRDDWithRankScore(rawHadoopDataRDDFixed)
+      baseRDD.map({ case (lw, t) => (lw.get(), t.toString) })
+    joinInputRDDWithLatencyEstimate(rawHadoopDataRDDFixed)
   }
   
   /** Convenience function because most data sources will start with output in the form of
@@ -71,7 +72,7 @@ class SlowestInputsHadoopLineageWrapper(override val lineageDependencies: Lineag
    *
    *  Note: number of partitions must be the same as the original dataset!
    */
-  def joinInputTextRDDWithRankScore(rdd: Lineage[String]): RDD[(Long, (String, Long))] = {
+  def joinInputTextRDDWithRankScore(rdd: Lineage[String]): RDD[(Long, (String, Latency))] = {
     val postHadoopMapRDD = rdd.asInstanceOf[MapPartitionsLRDD[String,(LongWritable, Text)]]
     val hadoopFileRDD: RDD[(LongWritable, Text)] = postHadoopMapRDD.prev match {
       // Need to handle the case when the RDD has been tapped vs an external query (without)
@@ -91,7 +92,7 @@ class SlowestInputsHadoopLineageWrapper(override val lineageDependencies: Lineag
    *  For those curious: context.textFile creates a hadoopRDD using Hadoop's TextInputFormat,
    *  which is inherently keyed by byte offsets with line splits.
    */
-  def joinInputTextRDDWithRankScore(rdd: RDD[String]): RDD[(Long, (String, Long))] = {
+  def joinInputTextRDDWithRankScore(rdd: RDD[String]): RDD[(Long, (String, Latency))] = {
     val postHadoopMapRDD = rdd.asInstanceOf[MapPartitionsRDD[String,(LongWritable, Text)]]
     val hadoopFileRDD: RDD[(LongWritable, Text)] = postHadoopMapRDD.prev
     joinInputRDDWithRankScore(hadoopFileRDD)

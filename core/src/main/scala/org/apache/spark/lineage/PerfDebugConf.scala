@@ -18,7 +18,7 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          tapRDDs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
-                         uploadIgniteDataAfterConversion: Boolean = false) extends Serializable {
+                         uploadIgniteDataAfterConversion: Boolean = true) extends Serializable {
   
   if(tapRDDs && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but tapping is still enabled - these " +
@@ -40,7 +40,7 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
     println("Warning: RDD lineage upload limit is ignored because lineage uploading is disabled.")
   }
   
-  if(uploadIgniteDataAfterConversion) {
+  if(!uploadIgniteDataAfterConversion) {
     println("Warning: uploadIgniteDataAfterConversion flag is currently broken")
   }
   

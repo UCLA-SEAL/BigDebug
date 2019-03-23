@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
+import org.apache.spark.Latency
 import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheDependencies, LineageWrapper}
 import org.apache.spark.lineage.perfdebug.perftrace.PerfLineageCache.{latencyExtractor, latencyOrdering}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId}
@@ -23,12 +24,12 @@ class DefaultPerfLineageWrapper(private val lineageDependencies: LineageCacheDep
   extends LineageWrapper(lineageDependencies, perfCache.lineageCache) with PerfLineageWrapper {
   
   /** Apply a filter/boolean function by latency */
-  override def filterLatency(fn: Long => Boolean): DefaultPerfLineageWrapper = {
+  override def filterLatency(fn: Latency => Boolean): DefaultPerfLineageWrapper = {
     val newCache = perfCache.filter(r => fn(latencyExtractor(r)))
     this.withNewCache(newCache)
   }
   
-  override def latencies: RDD[Long] = perfCache.latencies
+  override def latencies: RDD[Latency] = perfCache.latencies
   
   override def count(): Long = perfCache.count()
   
@@ -40,7 +41,7 @@ class DefaultPerfLineageWrapper(private val lineageDependencies: LineageCacheDep
     // impl note: you could also do a sortBy followed by zipWithIndex and filter to preserve the
     // RDD abstraction. However, this also results in a full sort of the data, whereas I assume
     // top/takeOrdered are more efficiently implemented (eg with heaps)
-    val topN: Array[(PartitionWithRecId, (CacheValue, Long))] = if (ascending) {
+    val topN: Array[(PartitionWithRecId, (CacheValue, Latency))] = if (ascending) {
       perfCache.takeOrdered(num)(latencyOrdering)
     } else {
       perfCache.top(num)(latencyOrdering)
@@ -54,15 +55,15 @@ class DefaultPerfLineageWrapper(private val lineageDependencies: LineageCacheDep
     // impl note: this is actually quite inefficient due to the sortBy, but is slightly cleaner
     // to write in code. In practice, it might be more efficient to take the top N and
     // parallelize that.
-    val indexedSorted: RDD[(Long, (PartitionWithRecId, (CacheValue, Long)))] =
-    perfCache.sortBy(latencyExtractor, ascending = ascending)
-    .zipWithIndex()
-    .map(_.swap)
+    val indexedSorted: RDD[(Long, (PartitionWithRecId, (CacheValue, Latency)))] =
+      perfCache.sortBy(latencyExtractor, ascending = ascending)
+               .zipWithIndex()
+               .map(_.swap)
     val newCache = indexedSorted.filter(_._1 < num).values
     this.withNewCache(newCache)
   }
   
-  override def dataRdd: RDD[(PartitionWithRecId, (CacheValue, Long))] = {
+  override def dataRdd: RDD[(PartitionWithRecId, (CacheValue, Latency))] = {
     perfCache.rdd
   }
   

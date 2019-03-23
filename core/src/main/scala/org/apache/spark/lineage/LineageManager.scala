@@ -19,7 +19,7 @@ package org.apache.spark.lineage
 
 import java.io.{PrintWriter, StringWriter}
 
-import org.apache.spark._
+import org.apache.spark.{Latency, _}
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageRecordsStorage
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateStatsStorage
 import org.apache.spark.lineage.rdd.{LatencyStatsTap, Lineage}
@@ -153,7 +153,7 @@ object LineageManager{
   }
   
   val PRINT_DEBUG = true
-  private def debugPrintTimeCallback[R](block: => R, fn: Long => Unit): R = {
+  private def debugPrintTimeCallback[R](block: => R, fn: Latency => Unit): R = {
     if(PRINT_DEBUG) {
       Lineage.measureTimeWithCallback(block, fn)
     } else {

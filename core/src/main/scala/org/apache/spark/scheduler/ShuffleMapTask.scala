@@ -95,7 +95,7 @@ private[spark] class ShuffleMapTask(
 
     var writer: ShuffleWriter[Any, Any] = null
     var trackingInputIterator: CountAndLatencyMeasuringIterator[Product2[Any,Any]] = null
-    var totalLatency: Long = -1 // although shuffle write metrics has write time, it's not clear
+    var totalLatency: Latency = -1 // although shuffle write metrics has write time, it's not clear
     // how that maps to the data itself (eg across different writers)
     
     try {

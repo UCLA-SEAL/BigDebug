@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
+import org.apache.spark.Latency
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageCache._
 import org.apache.spark.lineage.perfdebug.lineageV2.{HadoopLineageWrapper, LineageCache, LineageCacheDependencies}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId, TapHadoopLRDDValue}
@@ -21,7 +22,7 @@ case class SlowestInputQueryPerfWrapper(private val lineageDependencies: Lineage
                                                                   outputIdsWithLatencyTuples
                                                                     .mapValues(_.latency),
                                                                   baseRDD) {
-  def inputOrdering: Ordering[(TapHadoopLRDDValue, Long)] = Ordering.by(_._2)
+  def inputOrdering: Ordering[(TapHadoopLRDDValue, Latency)] = Ordering.by(_._2)
   
   /**
    * A Wrapper representing each input record and the difference between A) the maximum latency
@@ -42,7 +43,7 @@ case class SlowestInputQueryPerfWrapper(private val lineageDependencies: Lineage
     // in such a situation, removing the record can only improve total job performance by
     // difference between maximum latencies.
     // it's not really a worst case scenario though?
-    val inputsToLatencyImpact: RDD[(TapHadoopLRDDValue, Long)] = {
+    val inputsToLatencyImpact: RDD[(TapHadoopLRDDValue, Latency)] = {
       /* outputIdsWithLatencyTuples.values.map(tuple =>
                                               (tuple.slowest, tuple.latency - tuple.rmLatency))
       // TODO partitioner? (note that we expect top(n) to be called later which inherently
@@ -100,13 +101,13 @@ case class SlowestInputQueryPerfWrapper(private val lineageDependencies: Lineage
    * */
   def takeSingleSlowestInputBeta(): SlowestInputsHadoopLineageWrapper = {
     // V2 - when restricting to max, sort by max latency and then test with removal...
-    val inputsToLatencyImpact: RDD[(TapHadoopLRDDValue, Long)] = {
+    val inputsToLatencyImpact: RDD[(TapHadoopLRDDValue, Latency)] = {
       /* outputIdsWithLatencyTuples.values.map(tuple =>
                                               (tuple.slowest, tuple.latency - tuple.rmLatency))
       // TODO partitioner? (note that we expect top(n) to be called later which inherently
       // executes a job though.
       .reduceByKey(Math.min) */
-      val aggInputs: RDD[(TapHadoopLRDDValue, (Long, Long))] = outputIdsWithLatencyTuples.values
+      val aggInputs: RDD[(TapHadoopLRDDValue, (Latency, Latency))] = outputIdsWithLatencyTuples.values
           .map(
             tuple => {
               //          println(tuple)

@@ -521,22 +521,23 @@ object Lineage {
     measureTimeAndStoreInContext(taskContext, block, rddId)
   
   /** Executes the provided block and returns a pair of (result, time taken) where time is in ms*/
-  def measureTime[R](block: => R): (R, Long) = {
+  def measureTime[R](block: => R): (R, Latency) = {
     val t0 = System.currentTimeMillis()
     val result = block    // call-by-name: https://docs.scala-lang.org/tour/by-name-parameters.html
     val t1 = System.currentTimeMillis()
-    val timeTaken = t1 - t0
+    val timeTaken = (t1 - t0).toInt
     (result, timeTaken)
   }
   
-  def measureTimeWithCallback[R](block: => R, callback: Long => Unit): R = {
+  /** Measures time and passed resulting latency into callback function */
+  def measureTimeWithCallback[R](block: => R, callback: Latency => Unit): R = {
     val (result, time) = measureTime(block)
     callback(time)
     result
   }
   
   // Just abstracting away the cast.
-  def storeContextRecordTime(taskContext: TaskContext, rddId: Int, timeTaken: Long) =
+  def storeContextRecordTime(taskContext: TaskContext, rddId: Int, timeTaken: Latency) =
     taskContext.asInstanceOf[TaskContextImpl].updateRDDRecordTime(rddId, timeTaken)
   /** End added by Jason section ############################################################### */
 }

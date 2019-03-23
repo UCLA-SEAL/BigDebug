@@ -4,6 +4,7 @@ import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheDependencies, L
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, PartitionWithRecId}
 import org.apache.spark.rdd.RDD
 import IdOnlyPerfLineageWrapper._
+import org.apache.spark.Latency
 
 /**
  * Implementation of [[PerfLineageWrapper]] that supports latency analysis on an RDD where
@@ -18,7 +19,7 @@ import IdOnlyPerfLineageWrapper._
 class IdOnlyPerfLineageWrapper(
                                private val lineageDependencies: LineageCacheDependencies,
                                // the current list of IDs and latencies
-                               private val idAndLatencyRDD: RDD[(PartitionWithRecId, Long)],
+                               private val idAndLatencyRDD: RDD[(PartitionWithRecId, Latency)],
                                // the original lineage RDD from the external cache. this
                                // can reflect the entire dataset, so you need to filter
                                // with idRDD!
@@ -28,14 +29,15 @@ class IdOnlyPerfLineageWrapper(
                                                                    baseRDD))
                                 with PerfLineageWrapper {
   /** Apply a filter/boolean function by latency */
-  override def filterLatency(fn: Long => Boolean): PerfLineageWrapper =
+  override def filterLatency(fn: Latency => Boolean): PerfLineageWrapper =
     this.withNewIdAndLatencyRDD(idAndLatencyRDD.filter(r => fn(latencyExtractor(r))))
   
-  override def latencies: RDD[Long] = idAndLatencyRDD.values
+  override def latencies: RDD[Latency] = idAndLatencyRDD.values
   
   override def count(): Long = idAndLatencyRDD.count()
   
-  override def percentile(percent: Double, ascending: Boolean): PerfLineageWrapper = ???
+  // TODO: define a percentile function?
+  // override def percentile(percent: Double, ascending: Boolean): PerfLineageWrapper = ???
   
   /**
    * Takes the provided number of records, sorted by latency.
@@ -45,7 +47,7 @@ class IdOnlyPerfLineageWrapper(
     // impl note: you could also do a sortBy followed by zipWithIndex and filter to preserve the
     // RDD abstraction. However, this also results in a full sort of the data, whereas I assume
     // top/takeOrdered are more efficiently implemented (eg with heaps)
-    val topN: Array[(PartitionWithRecId, Long)] = if (ascending) {
+    val topN: Array[(PartitionWithRecId, Latency)] = if (ascending) {
       idAndLatencyRDD.takeOrdered(num)(latencyOrdering)
     } else {
       idAndLatencyRDD.top(num)(latencyOrdering)
@@ -55,21 +57,19 @@ class IdOnlyPerfLineageWrapper(
     this.withNewIdAndLatencyRDD(idAndLatencyRDD.context.parallelize(topN))
   }
   
-  override def dataRdd: RDD[(PartitionWithRecId, (CacheValue, Long))] = {
+  override def dataRdd: RDD[(PartitionWithRecId, (CacheValue, Latency))] = {
     baseRDD.join(idAndLatencyRDD)
   }
   
- private def withNewIdAndLatencyRDD(newRDD: RDD[(PartitionWithRecId, Long)]
+ private def withNewIdAndLatencyRDD(newRDD: RDD[(PartitionWithRecId, Latency)]
                                     ): IdOnlyPerfLineageWrapper = {
-   IdOnlyPerfLineageWrapper(lineageDependencies,
-                                          newRDD,
-                                          baseRDD)
+   IdOnlyPerfLineageWrapper(lineageDependencies, newRDD, baseRDD)
   }
 }
 
 object IdOnlyPerfLineageWrapper {
   def apply(lineageDependencies: LineageCacheDependencies,
-            idAndLatencyRDD: RDD[(PartitionWithRecId, Long)],
+            idAndLatencyRDD: RDD[(PartitionWithRecId, Latency)],
             baseRDD: RDD[(PartitionWithRecId, CacheValue)]
             ): IdOnlyPerfLineageWrapper = {
     new IdOnlyPerfLineageWrapper(lineageDependencies, idAndLatencyRDD, baseRDD)
@@ -84,6 +84,7 @@ object IdOnlyPerfLineageWrapper {
       LineageWrapper.joinLineageKeyedRDDs(idRDD.keyBy(identity), baseRDD, useShuffle = true)
     join.values
   }
-  def latencyExtractor(r: (PartitionWithRecId, Long)): Long = r._2
-  def latencyOrdering: Ordering[(PartitionWithRecId, Long)] = Ordering.by(latencyExtractor)
+  
+  def latencyExtractor(r: (PartitionWithRecId, Latency)): Latency = r._2
+  def latencyOrdering: Ordering[(PartitionWithRecId, Latency)] = Ordering.by(latencyExtractor)
 }

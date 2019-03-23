@@ -50,7 +50,7 @@ class TapParallelCollectionLRDD[T: ClassTag](
     tContext.currentInputId = newRecordId
     // TODO measure the time taken for each row of both parent and this map function
     // See TapHadoopLRDD for more details
-    val timeTaken = 0L
+    val timeTaken = 0
     tContext.updateRDDRecordTime(firstParent.id, timeTaken)
     buffer.add(record, nextRecord, timeTaken)
     record

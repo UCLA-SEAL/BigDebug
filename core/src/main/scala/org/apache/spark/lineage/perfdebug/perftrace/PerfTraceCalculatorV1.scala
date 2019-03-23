@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
-import org.apache.spark.Partitioner
+import org.apache.spark.{Latency, Partitioner}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, EndOfStageCacheValue, PartitionWithRecId, TapHadoopLRDDValue}
@@ -33,8 +33,8 @@ import org.apache.spark.rdd.RDD._
  * keyed by FInalOutputId and aggregated across all inputs.
  */
 case class PerfTraceCalculatorV1(@transient initWrapper: LineageWrapper,
-                                 accFn: (Long, Long) => Long = _ + _,
-                                 aggFn: (Long, Long) => Long = Math.max,
+                                 accFn: (Latency, Latency) => Latency = _ + _,
+                                 aggFn: (Latency, Latency) => Latency = Math.max,
                                  printDebugging: Boolean = false,
                                  printLimit: Option[Int] = None) extends PerfTraceCalculator {
   /** Entry point for public use */
@@ -46,7 +46,6 @@ case class PerfTraceCalculatorV1(@transient initWrapper: LineageWrapper,
   type PartitionId = Int
   type InputId = PartitionWithRecId
   type OutputId = PartitionWithRecId
-  type Latency = Long
   type InputLatency = Latency
   type UnAccumulatedLatency = Latency // for OutputValue latencies that haven't been acc'ed yet.
   type OutputLatency = Latency
@@ -358,8 +357,11 @@ case class PerfTraceCalculatorV1(@transient initWrapper: LineageWrapper,
         val aggStats: AggregateLatencyStats = shuffleAggStatsBroadcast.value(outputId.partition)
         val numInputs = if (mapSideCombineDisabled) 1 else aggWithCount.count
         val latencyWithoutShuffle = aggWithCount.aggResult
-        // TODO: is precision loss a concern here?
-        val shuffleLatency = aggStats.latency * numInputs / aggStats.numInputs //numOutputs unused
+        // TODO: is precision loss a concern here? Using floats vs doubles (32 vs 64-bit) and
+        //  rounding to nearest integer here.
+        val shuffleLatency = // numOutputs is unused here.
+          Math.round(aggStats.latency * (numInputs.toFloat /aggStats.numInputs.toFloat))
+        
         (outputId, (outputValue, accFn(latencyWithoutShuffle, shuffleLatency)))
       }
     }

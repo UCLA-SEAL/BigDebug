@@ -41,7 +41,7 @@ class IgniteCacheAggregateStatsStorage(ignite: Ignite = {
   
   private def deserializeStats(value: CacheValue): AggregateLatencyStats = {
     val split = value.split(separator, 3)
-    AggregateLatencyStats(split(0).toLong, split(1).toLong, split(2).toLong)
+    AggregateLatencyStats(split(0).toLong, split(1).toLong, split(2).toInt) // last one is latency
   }
   
   private def buildAggStatsCacheName(appId: String) = {

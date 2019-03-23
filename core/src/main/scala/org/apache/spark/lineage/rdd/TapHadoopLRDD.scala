@@ -56,7 +56,7 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
     // TODO measure the time taken for hadoop rows, which were read from the previous RDD
     // because that computation is sealed in HadoopRDD, we would likely need to wrap the iterator
     // in the TapLRDD.compute function
-    val timeTaken = 0L
+    val timeTaken = 0
     tContext.updateRDDRecordTime(firstParent.id, timeTaken)
     buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord, 0L)
     record

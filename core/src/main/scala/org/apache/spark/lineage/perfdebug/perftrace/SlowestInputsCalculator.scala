@@ -1,6 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
-import org.apache.spark.Partitioner
+import org.apache.spark.{Latency, Partitioner}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, EndOfStageCacheValue, PartitionWithRecId, TapHadoopLRDDValue}
@@ -53,7 +53,6 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   type PartitionId = Int
   type InputId = PartitionWithRecId
   type OutputId = PartitionWithRecId
-  type Latency = Long
   type InputLatency = Latency
   type UnAccumulatedLatency = Latency // for OutputValue latencies that haven't been acc'ed yet.
   type OutputLatency = Latency
@@ -65,7 +64,6 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
   // These two functions are fixed and final for this implementation.
   // merge the 'max' record from earlier with the stage-latency of the current stage.
   val accFn = SingleRmLatencyTuple.accFn
-  
   val aggFn = SingleRmLatencyTuple.aggFn
   
   /** Entry point for public use */
@@ -378,8 +376,10 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         val aggStats: AggregateLatencyStats = shuffleAggStatsBroadcast.value(outputId.partition)
         val numInputs = if (mapSideCombineDisabled) 1 else aggWithCount.count
         val latencyWithoutShuffle: SingleRmLatencyTuple = aggWithCount.aggResult
-        // TODO: is precision loss a concern here?
-        val shuffleLatency = aggStats.latency * numInputs / aggStats.numInputs //numOutputs unused
+        // TODO: is precision loss a concern here? Using floats vs doubles (32 vs 64-bit) and
+        //  rounding to nearest integer here.
+        val shuffleLatency = // numOutputs is unused here.
+          Math.round(aggStats.latency * (numInputs.toFloat /aggStats.numInputs.toFloat))
         (outputId, accFn(latencyWithoutShuffle, shuffleLatency))
       }
     }

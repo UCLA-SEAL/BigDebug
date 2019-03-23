@@ -44,7 +44,7 @@ package org.apache
 import java.util.Properties
 
 package object spark {
-
+  
   private object SparkBuildInfo {
 
     val (
@@ -94,5 +94,8 @@ package object spark {
   val SPARK_BUILD_USER = SparkBuildInfo.spark_build_user
   val SPARK_REPO_URL = SparkBuildInfo.spark_repo_url
   val SPARK_BUILD_DATE = SparkBuildInfo.spark_build_date
+  
+  // jteoh: package-wide type for latency
+  type Latency = Int
 }
 

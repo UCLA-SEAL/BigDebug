@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.perfdebug.utils
 
+import org.apache.spark.Latency
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
@@ -69,28 +70,28 @@ object CacheDataTypes {
    * 8/17/2018, these are TapLRDD, TapPreShuffleLRDD, TapPreCoGroupLRDD.
    */
   abstract class EndOfStageCacheValue extends CacheValue {
-    def partialLatencies: Iterable[Long]
+    def partialLatencies: Iterable[Latency]
     /** Returns input IDs zipped with partial latencies. */
-    def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Long)] =
+    def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Latency)] =
       inputIds.zip(partialLatencies)
   }
   
   /** TapLRDD cache value */
   case class TapLRDDValue(override val outputId: PartitionWithRecId,
                           private  val inputId: PartitionWithRecId,
-                          private  val latency: Long)
+                          private  val latency: Latency)
     extends EndOfStageCacheValue {
     
     override def inputIds: Seq[PartitionWithRecId] = Seq(inputId)
   
-    override def partialLatencies: Seq[Long] = Seq(latency)
+    override def partialLatencies: Seq[Latency] = Seq(latency)
     
     override def cacheValueString = s"($outputId => $inputId, $latency)"
   }
   
   object TapLRDDValue {
     def fromRecord(r: Any) = {
-      val (outputLong, inputRecId, latency) = r.asInstanceOf[(Long, Long,Long)]
+      val (outputLong, inputRecId, latency) = r.asInstanceOf[(Long, Long, Latency)]
       // note from jteoh:
       // In Titian, the input consists solely of the record ID as partition ID is the same and
       // the join procedure was within partitions anyways. As this is no longer the case, we
@@ -112,7 +113,7 @@ object CacheDataTypes {
   
   case class TapHadoopLRDDValue(override val outputId: PartitionWithRecId,
                                 byteOffset: Long, // in hadoop file
-                                latency: Long)
+                                latency: Latency)
     extends CacheValue {
     
     override def inputIds: Seq[PartitionWithRecId] =
@@ -123,7 +124,7 @@ object CacheDataTypes {
   
   object TapHadoopLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[(Long, Long,Long)]
+      val tuple = r.asInstanceOf[(Long, Long, Latency)]
       // implicitly rely on conversions to proper data types here, rather than using
       // `tupled` and using native types
       // As noted in TapHadoopLRDD, the first and second argument need to be swapped.
@@ -142,28 +143,28 @@ object CacheDataTypes {
                                     packedInputIdsWithPartialLatencies: Seq[Long]
                                     )
     extends EndOfStageCacheValue {
+    // TODO HANDLE CONVERSION TO LATENCY (PACKAGE) TYPE (Long -> Int)
     
     // retained for unoptimized implementation
     // implicit only required because of overlap with main constructor due to type erasure
     def this(outputId: PartitionWithRecId,
-             inputIdsWithPartialLatencies: Seq[(Int, Long)])(implicit d: DummyImplicit) {
-      this(outputId, inputIdsWithPartialLatencies.map(r => PackIntIntoLong(r._1, r._2.toInt)))
+             inputIdsWithPartialLatencies: Seq[(Int, Latency)])(implicit d: DummyImplicit) {
+      this(outputId, inputIdsWithPartialLatencies.map(r => PackIntIntoLong(r._1, r._2)))
     }
     
     // retained for support of original (incorrect) implementation
     def this(outputId: PartitionWithRecId, inputRecIds: Array[Int],
-             outputRecordLatencies: Array[Long]) = {
+             outputRecordLatencies: Array[Latency]) = {
       this(outputId, inputRecIds.zip(outputRecordLatencies))
     }
     
     def inputIdsWithPartialLatencies =
       packedInputIdsWithPartialLatencies.map(PackIntIntoLong.extractToTuple)
-                                        .map({case (id, latencyInt) => (id, latencyInt.toLong)})
     
     private def inpIdToPartitionWithId(inpId: Int) =
       new PartitionWithRecId(outputId.partition,inpId)
       
-    override def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Long)] = {
+    override def inputKeysWithPartialLatencies: Iterable[(PartitionWithRecId, Latency)] = {
       inputIdsWithPartialLatencies.map(
         {case (inpId, lat) => (inpIdToPartitionWithId(inpId), lat)}
       )
@@ -175,7 +176,7 @@ object CacheDataTypes {
     
     
   
-    override def partialLatencies: Seq[Long] = inputIdsWithPartialLatencies.map(_._2)
+    override def partialLatencies: Seq[Latency] = inputIdsWithPartialLatencies.map(_._2)
   
     /**
      * Impl note: it is visually a bit easier to see Ids and Latencies separately. This
@@ -187,17 +188,18 @@ object CacheDataTypes {
   
   object TapPreShuffleLRDDValue {
     def fromRecordWrong(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Long])]
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Latency])]
       // 'new' because of deprecated API
       new TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }
     def fromRecordUnoptimized(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Seq[(Int, Long)])]
+      val tuple = r.asInstanceOf[((Int, Int), Seq[(Int, Latency)])]
       // 'new' because of deprecated API
       new TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2)
     }
     def fromRecordPacked(r: Any) = {
       val tuple = r.asInstanceOf[((Int, Int), Seq[Long])]
+      // Partition ID, rec ID, seq(inp ID+Latency)
       TapPreShuffleLRDDValue(new PartitionWithRecId(tuple._1), tuple._2)
     }
     
@@ -251,13 +253,13 @@ object CacheDataTypes {
   
   case class TapPreCoGroupLRDDValue(override val outputId: PartitionWithRecId,
                                     private  val inputRecIds: Array[Int],
-                                    private  val outputRecordLatencies: Array[Long])
+                                    private  val outputRecordLatencies: Array[Latency])
     extends EndOfStageCacheValue {
   
     override def inputIds: Seq[PartitionWithRecId] =
       inputRecIds.map(new PartitionWithRecId(outputId.partition, _))
     
-    override def partialLatencies: Seq[Long] = outputRecordLatencies
+    override def partialLatencies: Seq[Latency] = outputRecordLatencies
   
     override def cacheValueString = s"$outputId => ([${mkStringTrunc(inputRecIds)}], " +
       s"[${mkStringTrunc(outputRecordLatencies)}])"
@@ -269,7 +271,7 @@ object CacheDataTypes {
   // ----------- COGROUP VALUES start ---------
   object TapPreCoGroupLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Long])]
+      val tuple = r.asInstanceOf[((Int, Int), Array[Int], Array[Latency])]
       // jteoh: 8/7/2018 - not using latencies for cogroup
       TapPreCoGroupLRDDValue(new PartitionWithRecId(tuple._1), tuple._2, tuple._3)
     }

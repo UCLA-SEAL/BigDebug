@@ -9,7 +9,7 @@ import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD._
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 import org.apache.spark.util.collection.CompactBuffer
-import org.apache.spark.{Partitioner, SparkContext}
+import org.apache.spark.{Latency, Partitioner, SparkContext}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -90,8 +90,8 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
   }
   
   import LineageWrapper.PerformanceMode
-  def tracePerformance(accFn: (Long, Long) => Long = _ +_,
-                       aggFn: (Long, Long) => Long = Math.max,
+  def tracePerformance(accFn: (Latency, Latency) => Latency = _ +_,
+                       aggFn: (Latency, Latency) => Latency = Math.max,
                        printDebugging: Boolean = false,
                        printLimit: Option[Int] = None,
                        usePerfTraceCalculatorV2: PerformanceMode.Value = PerformanceMode.V2)
@@ -131,7 +131,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
     DefaultPerfLineageWrapper(lineageDependencies, perfCache)
   }
   
-  def asPerfLineageWrapper(idLatencyRDD: RDD[(PartitionWithRecId, Long)]): IdOnlyPerfLineageWrapper = {
+  def asPerfLineageWrapper(idLatencyRDD: RDD[(PartitionWithRecId, Latency)]): IdOnlyPerfLineageWrapper = {
     IdOnlyPerfLineageWrapper(lineageDependencies, idLatencyRDD, lineageCache)
   }
   

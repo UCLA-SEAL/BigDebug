@@ -1,12 +1,13 @@
 package org.apache.spark.lineage.perfdebug.perftrace
 
+import org.apache.spark.Latency
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.TapHadoopLRDDValue
 
 /** Mutable tuple classes for use with
  * [[org.apache.spark.lineage.perfdebug.perftrace.SlowestInputsCalculator]]
  */
-case class SingleRmLatencyTuple private(var latency: Long,
-                                        var rmLatency: Long,
+case class SingleRmLatencyTuple private(var latency: Latency,
+                                        var rmLatency: Latency,
                                         var slowest: TapHadoopLRDDValue,
                                         // flag to indicate whether or not removal of `slowest`
                                         // results in deletion of the corresponding output record.
@@ -18,12 +19,12 @@ case class SingleRmLatencyTuple private(var latency: Long,
 
 object SingleRmLatencyTuple {
   def apply(value: TapHadoopLRDDValue): SingleRmLatencyTuple = {
-    SingleRmLatencyTuple(value.latency, 0L, value, isDestructiveRemoval = true)
+    SingleRmLatencyTuple(value.latency, 0, value, isDestructiveRemoval = true)
   }
   
   // These two functions are fixed and final for this implementation.
   // merge the 'max' record from earlier with the stage-latency of the current stage.
-  val accFn: (SingleRmLatencyTuple, Long) => SingleRmLatencyTuple = (tuple, stgLatency) => {
+  val accFn: (SingleRmLatencyTuple, Latency) => SingleRmLatencyTuple = (tuple, stgLatency) => {
     // reuse tuple and update values.
     tuple.latency += stgLatency
     if (!tuple.isDestructiveRemoval) {

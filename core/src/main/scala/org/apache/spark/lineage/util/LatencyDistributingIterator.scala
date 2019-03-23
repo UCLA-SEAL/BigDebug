@@ -1,16 +1,16 @@
 package org.apache.spark.lineage.util
 
-import org.apache.spark.TaskContext
+import org.apache.spark.{Latency, TaskContext}
 import org.apache.spark.lineage.rdd.Lineage
 
 /** Used in flatmap operations - this will compute the latency overhead from the input
  * arguments and distribute them accordingly, if required. Additionally, this iterator
  * measures the time to call cur.next() and finally calls the provided storeFn on the
  * resulting latency. */
-case class LatencyDistributingIterator[U] private(storeFn: Long => Unit, cur: Iterator[U],
-                                                  curFromIterator: Boolean, udfTime: Long,
-                                                  iteratorTime: Long,
-                                                  curSize: Option[Int], curSizeTime: Option[Long])
+case class LatencyDistributingIterator[U] private(storeFn: Latency => Unit, cur: Iterator[U],
+                                                  curFromIterator: Boolean, udfTime: Latency,
+                                                  iteratorTime: Latency,
+                                                  curSize: Option[Int], curSizeTime: Option[Latency])
   extends Iterator[U] {
   // heavily based off iter.flatMap initially, but subject to change later.
   // The flatMap API only requires that the output of the UDF is a TraversableOnce.
@@ -112,7 +112,7 @@ object LatencyDistributingIterator {
     import org.apache.spark.lineage.rdd.Lineage._
     var curFromIterator = false
     var curSizeIfTraversable: Option[Int] = None
-    var curSizeTime: Option[Long] = None
+    var curSizeTime: Option[Latency] = None
 
     // No need to add a flag here for UDF timing - it's already handled by callers.
     val (udfResult, udfTime) = measureTime(block) // T1: compute, normally the UDF. This uses

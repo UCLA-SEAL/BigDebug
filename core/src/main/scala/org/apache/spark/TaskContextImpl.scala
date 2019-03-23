@@ -70,7 +70,7 @@ private[spark] class TaskContextImpl(
   @transient var currentInputId: Int = -1
   
   // Jason - Used to track performance for records per RDD(id)
-  @transient private var rddTimeMap: Map[Int, Long] = new HashMap()
+  @transient private var rddTimeMap: Map[Int, Latency] = new HashMap()
 
   // Used to pipeline records through taps inside the same stage
   @transient var currentBuffer: ByteBuffer[Long, Int] = null
@@ -121,15 +121,15 @@ private[spark] class TaskContextImpl(
   // yields rdd2, the time it took to generate a record in rdd2 will be stored with rdd as the key.
   // This is because the newly generated RDD's id is not determined until it is actually created,
   // but the UDF provided needs access to a given RDD.
-  def updateRDDRecordTime(rddId: Int, timeNanos: Long) = rddTimeMap(rddId) = timeNanos
+  def updateRDDRecordTime(rddId: Int, latency: Latency) = rddTimeMap(rddId) = latency
   
   // Jason - might want to add some sort of default value, but that could also depend on how we
   // want to time our calls.
-  def getRddRecordOutputTime(rddId: Int): Long = rddTimeMap(rddId)
+  def getRddRecordOutputTime(rddId: Int): Latency = rddTimeMap(rddId)
   
   // Jason - exposed under assumption that the task context will only contain a linear DAG, which
   // should be the case since any branches/merges should be due to shuffles.
-  def getSummedRddRecordTime(): Long = rddTimeMap.valuesIterator.sum
+  def getSummedRddRecordTime(): Latency = rddTimeMap.valuesIterator.sum
   /**
    * *************************************************************************************
    */
