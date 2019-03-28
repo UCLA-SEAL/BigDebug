@@ -88,7 +88,7 @@ abstract class IgniteLineageRecordsStorage[V <: CacheValue,
 object IgniteLineageRecordsStorage extends LineageRecordsStorage {
   override def store(appId: String, rdd: RDD[_], data: Array[Any]): Unit = {
     
-    storeMiniBatch(appId, rdd, data, SparkEnv.get.conf.getPerfConf.uploadBatchSize)
+    storeMiniBatch(appId, rdd, data, SparkEnv.getPerfConf.uploadBatchSize)
     //println("Storing Ignite data using stream API (disclaimer: buggy on local mode)")
     //storeStream(appId, rdd, data)
   }

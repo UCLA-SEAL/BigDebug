@@ -66,7 +66,7 @@ object LineageManager{
         override def run() {
           val rdd = tap._1.asInstanceOf[RDD[_]]
           // val key = RDDBlockId(rdd.id, split) // jteoh: no longer used.
-          val linMgrStr = s"$rdd partition $split"
+          val linMgrStr = s"$rdd partition $split/${rdd.getNumPartitions}"
           try {
             val arr = materializeRDDBuffer(rdd, linMgrStr)
             uploadLineage(appId, rdd, linMgrStr, arr)
@@ -92,7 +92,7 @@ object LineageManager{
 //    metrics.updatedBlocks = Some(lastUpdatedBlocks ++ updatedBlocks.toSeq)
   }
   
-  private def perfConf = SparkEnv.get.conf.getPerfConf
+  private def perfConf = SparkEnv.getPerfConf
   
   private def materializeRDDBuffer(rdd: RDD[_], linMgrStr: String): Array[Any] = {
     if(perfConf.materializeBuffers) {

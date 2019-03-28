@@ -21,14 +21,15 @@ import java.io.File
 import java.net.Socket
 
 import com.google.common.collect.MapMaker
+
 import scala.collection.mutable
 import scala.util.Properties
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.python.PythonWorkerFactory
 import org.apache.spark.broadcast.BroadcastManager
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
+import org.apache.spark.lineage.PerfDebugConf
 import org.apache.spark.memory.{MemoryManager, StaticMemoryManager, UnifiedMemoryManager}
 import org.apache.spark.metrics.MetricsSystem
 import org.apache.spark.network.netty.NettyBlockTransferService
@@ -148,6 +149,12 @@ object SparkEnv extends Logging {
    */
   def get: SparkEnv = {
     env
+  }
+  
+  def getPerfConf: PerfDebugConf = {
+    Option(SparkEnv.get).flatMap(env => Option(env.conf))
+                        .flatMap(conf => Option(conf.getPerfConf))
+                        .getOrElse(new PerfDebugConf())
   }
 
   /**
