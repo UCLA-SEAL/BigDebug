@@ -18,14 +18,13 @@
 package org.apache.spark.lineage.rdd
 
 import org.apache.spark._
-import org.apache.spark.lineage.util.LongIntLongByteBuffer
+import org.apache.spark.lineage.util.LongIntIntByteBuffer
 import org.apache.spark.lineage.{LineageContext, LineageManager}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
 
 import scala.collection.mutable
 import scala.reflect._
-import scala.util.Random
 
 private[spark]
 class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[Dependency[_]])
@@ -37,7 +36,9 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   @transient private[spark] var nextRecord: Int = _
 
-  @transient private var buffer: LongIntLongByteBuffer = _
+  //@transient private var buffer: LongIntLongByteBuffer = _
+  // Buffer to store outputPart+RecId, inputID+Latency (packed into long)
+  @transient private var buffer: LongIntIntByteBuffer = _
 
   private var combine: Boolean = true
 
@@ -100,8 +101,9 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
       this, (context, pid, iter, rddId) => iter.filter(cleanF), preservesPartitioning = true)
   }
 
-  override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1, r
-    ._2.toLong, r._3))
+  override def materializeBuffer: Array[Any] =
+    //buffer.iterator.toArray.map(r => (r._1, r._2.toLong, r._3))
+    buffer.iterator.toArray.map(r => (r._1, r._2, r._3)) // Note: also changed in TapLRDDValue
 
   override def releaseBuffer(): Unit = {
     buffer.clear()
@@ -122,13 +124,16 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
 
   def getCachedData = shuffledData.setIsPostShuffleCache()
 
-  def initializeBuffer() = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
+  def initializeBuffer() = buffer =
+    //new LongIntLongByteBuffer(tContext.getFromBufferPool())
+    new LongIntIntByteBuffer(tContext.getFromBufferPool())
 
   def tap(record: T) = {
     val id = newRecordId()
     val timeTaken = computeSimpleTime()
     // logInfo(s"computed time: $timeTaken")
-    buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, timeTaken)
+    // buffer.put(PackIntIntoLong(splitId, id),  tContext.currentInputId, timeTaken)
+    buffer.put(PackIntIntoLong(splitId, id), tContext.currentInputId, timeTaken)
     if(isLast) {
       (record, PackIntIntoLong(splitId, id)).asInstanceOf[T]
     } else {
@@ -139,7 +144,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   // Simplified version of computeTotalTime. Should be the same in practice because task contexts
   // are only updated within the current stage.
   // 7/9/18 - Jason
-  def computeSimpleTime(): Long = {
+  def computeSimpleTime(): Latency = {
     tContext.getSummedRddRecordTime()
   }
   // Note on 6/21/18 (weeks after implementation below): This seems severely overcomplicated.
@@ -160,10 +165,11 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   // actual dependencies (as opposed to the taps used for lineage navigation)
   private val dependencyRDDs = this.dependencies.map(_.rdd)
   private var postOrderDeps: Option[Seq[RDD[_]]] = None
-  private val cachedTimes = mutable.HashMap[RDD[_], Long]()
+  private val cachedTimes = mutable.HashMap[RDD[_], Latency]()
   
-  def computeTotalTime(accumulateFunction: (Long, Long) => Long = _+_,
-                       aggregateFunction:Seq[Long]=>Long = _.foldLeft(0L)(math.max)) : Long = {
+  def computeTotalTime(accumulateFunction: (Latency, Latency) => Latency = _+_,
+                       aggregateFunction:Seq[Latency]=>Latency = _.foldLeft(0)(Math.max)) : Latency
+  = {
     if(postOrderDeps.isEmpty) {
       // compute a post-order iteration of dependencies which need to be measured
       val s = mutable.Stack[RDD[_]](dependencyRDDs:_*)

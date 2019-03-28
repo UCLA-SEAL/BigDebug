@@ -30,14 +30,14 @@ trait Lineage[T] extends RDD[T] {
   // None = no cache, true = pre, false = post
   private[spark] var isPreShuffleCache: Option[Boolean] = None
 
-  def tapRight(): TapLRDD[T] = {
+  def tapRight(): TapLRDD[T] = withScope {
     val tap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
     setTap(tap)
     setCaptureLineage(true)
     tap
   }
 
-  def tapLeft(): TapLRDD[T] = tapRight()
+  def tapLeft(): TapLRDD[T] = withScope {tapRight()}
 
   def materialize = {
     storageLevel = StorageLevel.MEMORY_ONLY

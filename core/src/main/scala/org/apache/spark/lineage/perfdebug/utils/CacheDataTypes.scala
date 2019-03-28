@@ -91,6 +91,14 @@ object CacheDataTypes {
   
   object TapLRDDValue {
     def fromRecord(r: Any) = {
+      val (outputPartitionRecID, inputID, latency) = r.asInstanceOf[(Long, Int, Latency)]
+      val outputPRID = PartitionWithRecId(outputPartitionRecID)
+      val split = outputPRID.split
+      val inputPRID = new PartitionWithRecId(split, inputID)
+      TapLRDDValue(outputPRID, inputPRID, latency)
+    }
+    /** The previous implementation, using LongIntLong buffers and long latencies */
+    def fromRecordOld(r: Any) = {
       val (outputLong, inputRecId, latency) = r.asInstanceOf[(Long, Long, Latency)]
       // note from jteoh:
       // In Titian, the input consists solely of the record ID as partition ID is the same and
@@ -124,11 +132,13 @@ object CacheDataTypes {
   
   object TapHadoopLRDDValue {
     def fromRecord(r: Any) = {
-      val tuple = r.asInstanceOf[(Long, Long, Latency)]
+      val tuple = r.asInstanceOf[(Long, Long)]
       // implicitly rely on conversions to proper data types here, rather than using
       // `tupled` and using native types
       // As noted in TapHadoopLRDD, the first and second argument need to be swapped.
-      TapHadoopLRDDValue(PartitionWithRecId(tuple._2), tuple._1, tuple._3)
+      // TODO: Remove the zero after official code changes to remove latency from source RDDs...?
+      // or just remove source RDDs entirely from lineage.
+      TapHadoopLRDDValue(PartitionWithRecId(tuple._2), tuple._1, 0)
     }
     def readableSchema = s"[${getClass.getSimpleName}] (OutputPartitionId, OutputRecId) " +
       "=> (ByteOffset, LatencyMs)"

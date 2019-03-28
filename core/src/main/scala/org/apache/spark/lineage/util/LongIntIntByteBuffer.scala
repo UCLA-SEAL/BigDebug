@@ -16,24 +16,24 @@ package org.apache.spark.lineage.util
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class LongIntLongByteBuffer(data: Array[Byte]) extends ExtendedByteBuffer[Long, Int, Long](data) {
+class LongIntIntByteBuffer(data: Array[Byte]) extends ExtendedByteBuffer[Long, Int, Int](data) {
   
-  override def put(value1: Long, value2: Int, value3: Long): Unit = {
+  override def put(value1: Long, value2: Int, value3: Int): Unit = {
     buffer.putLong(value1).putInt(value2).putLong(value3)
-    if (position + 20 > capacity) grow() // long + int + long = 8 + 4 + 8
+    if (position + 16 > capacity) grow() // long + int + int = 8 + 4 + 4
   }
   
-  override def iterator: Iterator[(Long, Int, Long)] = new Iterator[(Long, Int, Long)] {
+  override def iterator: Iterator[(Long, Int, Int)] = new Iterator[(Long, Int, Int)] {
     private val curSize = position
     buffer.position(0)
     
     override def hasNext: Boolean = position < curSize
-  
-    override def next(): (Long, Int, Long) = {
+    
+    override def next(): (Long, Int, Int) = {
       if (!hasNext) {
         throw new NoSuchElementException
       }
-      (buffer.getLong, buffer.getInt, buffer.getLong)
+      (buffer.getLong, buffer.getInt, buffer.getInt)
     }
   }
 }

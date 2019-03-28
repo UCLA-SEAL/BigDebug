@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
-import org.apache.spark.lineage.util.IntIntLongByteBuffer
+import org.apache.spark.lineage.util.{IntIntIntByteBuffer, IntIntLongByteBuffer}
 import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
 import org.apache.spark.util.PackIntIntoLong
 import org.roaringbitmap.longlong.Roaring64NavigableMap
@@ -28,7 +28,6 @@ import org.roaringbitmap.longlong.Roaring64NavigableMap
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.ClassTag
-
 import collection.JavaConverters._
 
 private[spark]
@@ -36,7 +35,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     @transient lc: LineageContext, @transient deps: Seq[Dependency[_]]
   ) extends TapLRDD[T](lc, deps) with PreShuffleLatencyStatsTap[T] {
 
-  @transient private var buffer: IntIntLongByteBuffer = _
+  @transient private var buffer: IntIntIntByteBuffer = _
   @transient private var latencyStats: AggregateLatencyStats = _
   override def getLatencyStats: AggregateLatencyStats = latencyStats
   override def setLatencyStats(stats: AggregateLatencyStats): Unit = latencyStats = stats
@@ -112,7 +111,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     }).toArray
   }
 
-  override def initializeBuffer() = buffer = new IntIntLongByteBuffer(tContext.getFromBufferPoolLarge())
+  override def initializeBuffer() = buffer = new IntIntIntByteBuffer(tContext.getFromBufferPoolLarge())
 
   override def releaseBuffer() = {
     if(buffer != null) {

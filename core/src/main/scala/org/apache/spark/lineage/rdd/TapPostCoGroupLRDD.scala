@@ -41,6 +41,7 @@ class TapPostCoGroupLRDD[T: ClassTag](
     firstParent.asInstanceOf[CoGroupedLRDD[_]].partitionLatencyStats
   
   override def materializeBuffer: Array[Any] = {
+    // TODO jteoh: I've stopped supporting cogroup for the time being (3/25/19)
     if(buffer != null) {
       val map: PrimitiveKeyOpenHashMap[Int, CompactBuffer[Long]] = new PrimitiveKeyOpenHashMap()
       val iterator = buffer.iterator

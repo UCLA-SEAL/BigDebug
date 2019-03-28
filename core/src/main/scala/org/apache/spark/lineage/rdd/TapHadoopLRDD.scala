@@ -20,7 +20,7 @@ package org.apache.spark.lineage.rdd
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark._
 import org.apache.spark.lineage.LineageContext
-import org.apache.spark.lineage.util.LongIntLongByteBuffer
+import org.apache.spark.lineage.util.{LongIntByteBuffer, LongIntLongByteBuffer}
 import org.apache.spark.util.PackIntIntoLong
 
 private[spark]
@@ -30,7 +30,7 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   def this(@transient prev: HadoopLRDD[_, _]) =
     this(prev.lineageContext, List(new OneToOneDependency(prev)))
 
-  @transient private var buffer: LongIntLongByteBuffer = _
+  @transient private var buffer: LongIntByteBuffer = _
 
   // Jason - convert to be equivalent to TapLRDD in Long 2nd value
   // 7/13/18 update: rather than cast to long, pack with the split id. In normal Titian this is
@@ -41,16 +41,16 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
   // Note: The values here are actually backwards w.r.t. the normal format of (output, input). It
   // will be explicitly handled in the TapHadoopLRDDValue class.
   override def materializeBuffer: Array[Any] = buffer.iterator.toArray.map(r => (r._1,
-    PackIntIntoLong(splitId, r._2), r._3))
+    PackIntIntoLong(splitId, r._2)))
 
-  override def initializeBuffer = buffer = new LongIntLongByteBuffer(tContext.getFromBufferPool())
+  override def initializeBuffer = buffer = new LongIntByteBuffer(tContext.getFromBufferPool())
 
   override def releaseBuffer() = {
     buffer.clear()
     tContext.addToBufferPool(buffer.getData)
   }
   
-//  println("WARNING: TAPHADOOPLRDD TAP IS DISABLED")
+  // println("WARNING: TAPHADOOPLRDD TAP IS DISABLED")
   override def tap(record: (K, V)) = {
     tContext.currentInputId = newRecordId()
     // TODO measure the time taken for hadoop rows, which were read from the previous RDD
@@ -58,7 +58,7 @@ class TapHadoopLRDD[K, V](@transient lc: LineageContext, @transient deps: Seq[De
     // in the TapLRDD.compute function
     val timeTaken = 0
     tContext.updateRDDRecordTime(firstParent.id, timeTaken)
-    buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord, 0L)
+    buffer.put(record._1.asInstanceOf[LongWritable].get, nextRecord)
     record
   }
 }
