@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.demo.sampledemos
 
+import org.apache.spark.Latency
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
@@ -74,7 +75,7 @@ object ShuffleLatencyDemoReduce extends LineageBaseApp(rewriteAllHadoopFiles = t
     assert(rawRecords.forall(_._2 == specialKey)) // #1
     assert(rawRecords.length == (1 * partitionSize) + (numPartitions-1) * 1) // #2
     
-    val perfRecords: Array[(PartitionWithRecId, (CacheValue, Long))] = perfWrapper.dataRdd.collect()
+    val perfRecords: Array[(PartitionWithRecId, (CacheValue, Latency))] = perfWrapper.dataRdd.collect()
     val preShuffleAggStats: Map[Int, AggregateLatencyStats] = getAggStats(7, numPartitions)
     val postShuffleAggStats: Map[Int, AggregateLatencyStats] = getAggStats(8, counts.getNumPartitions)
     val (specialPreShufflePartitions, regularPreShufflePartitions) =

@@ -6,7 +6,7 @@ package org.apache.spark.lineage.demo.injecteddelays
  * Modified by jteoh (after Katherine) on 8/30/16
  */
 
-import org.apache.spark.SparkConf
+import org.apache.spark.{Latency, SparkConf}
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
@@ -143,7 +143,7 @@ object StudentInfo1MInjectedDelays extends LineageBaseApp(
                        .takeSlowestInputs(5)
                      
     // printHadoopSources(slowestRec, records)
-    val offSetToTextRank: RDD[(Long, (String, Long))] =
+    val offSetToTextRank: RDD[(Long, (String, Latency))] =
       slowestRec.joinInputTextRDDWithRankScore(records)
     val displayRDD = offSetToTextRank.map(x => (x._2._2, (x._1, x._2._1)))
     printRDDWithMessage(displayRDD, "Hadoop results, with approximate estimation of " +
