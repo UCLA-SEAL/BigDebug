@@ -252,14 +252,15 @@ private[spark] class TaskSetManager(
         // This should almost always be list.trimEnd(1) to remove tail
         list.remove(indexOffset)
         if (copiesRunning(index) == 0 && !successful(index)) {
-          if (tasks(index)!= null) {
+          val task = tasks(index) // jteoh: edit task info (else clause) to include partition id
+          if (task != null) {
             return Some(index)
           } else {
             val taskId = sched.newTaskId()
-            val info = new TaskInfo(sched.newTaskId(), index, 0, System.currentTimeMillis(),
-              execId, execId, TaskLocality.ANY, false)
+            val info = new TaskInfo(taskId, index, 0, System.currentTimeMillis(),
+              execId, execId, TaskLocality.ANY, false, partitionId = task.partitionId)
             taskInfos(index) = info
-            sched.dagScheduler.taskStarted(tasks(index), info)
+            sched.dagScheduler.taskStarted(task, info)
             handleSuccessfulTask(index, new DirectTaskResult)
           }
         }
@@ -465,7 +466,7 @@ private[spark] class TaskSetManager(
         copiesRunning(index) += 1
         val attemptNum = taskAttempts(index).size
         val info = new TaskInfo(taskId, index, attemptNum, curTime,
-          execId, host, taskLocality, speculative)
+          execId, host, taskLocality, speculative, partitionId = task.partitionId)
         taskInfos(taskId) = info
         taskAttempts(index) = info :: taskAttempts(index)
         // Update our locality level for delay scheduling

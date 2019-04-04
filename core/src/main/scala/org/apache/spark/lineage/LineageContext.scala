@@ -22,6 +22,7 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
+import org.apache.spark.lineage.perfdebug.perfmetrics.PerfMetricsListener
 import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheDependencies, LineageCacheRepository}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
@@ -219,7 +220,15 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
     currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
   }
-
+  
+  /**
+   * Insert TapRDDs by analyzing the RDD dependencies in our DAG. Also save DAG information in
+   * our LineageCacheRepository so that it be accessed post-session. Finally, attach our custom
+   * listener which gathers metrics per task/partition and stores them for
+   * aggregate/coarse-grained investigation.
+   */
+  
+  
   private def tapJob[T](rdd: Lineage[T]): TapLRDD[T] = {
     val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
@@ -255,7 +264,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       }
     }
     waitingForVisit.push(rdd)
-    while (!waitingForVisit.isEmpty) {
+    while (waitingForVisit.nonEmpty) {
       visit(waitingForVisit.pop())
     }
 
@@ -267,6 +276,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     val dependencies = LineageCacheDependencies.buildLineageCacheDependencyTree(rdd.getTap.get)
     val appId = sparkContext.applicationId
     LineageCacheRepository.saveCacheDependencies(appId, dependencies)
+    /** jteoh: some additional metrics are collected via a Spark Listener implementation */
+    sparkContext.addSparkListener(new PerfMetricsListener(initAppId = Option(appId)))
     result
   }
 

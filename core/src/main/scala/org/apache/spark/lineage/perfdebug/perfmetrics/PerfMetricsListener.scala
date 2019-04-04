@@ -1,9 +1,10 @@
-package org.apache.spark.lineage.perfdebug.aggmetrics
+package org.apache.spark.lineage.perfdebug.perfmetrics
 
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
 import org.apache.ignite.configuration.CacheConfiguration
 import org.apache.ignite.{Ignite, IgniteCache}
 import org.apache.spark.executor.TaskMetrics
+import org.apache.spark.lineage.perfdebug.ignite.conf.IgniteManager
 import org.apache.spark.scheduler._
 
 import scala.collection.mutable
@@ -17,17 +18,8 @@ import scala.util.matching.Regex
  * This was imported from a secondary git repo (perf-debug-app) to include tracking of aggregate
  * metrics captured via instrumentation of the serializers/deserializers.
  */
-class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) extends
-  SparkListener {
+class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkListener {
   
-  import SerDeListener._
-  //private val taskInfoMetrics = mutable.Buffer[(TaskInfo, TaskMetrics)]()
-  type JobId = Int
-  type JobGroupId = String
-  type StageId = Int
-  type StageAttemptId = Int
-  // type PoolName = String
-  // type ExecutorId = String
   type TaskId = Long
   
   // App:
@@ -38,7 +30,7 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
   
   // Jobs:
   val jobIdToStageIds = new mutable.HashMap[JobId, Seq[StageId]]
-  val stageIdToInfo = new mutable.HashMap[StageId, StageInfo]
+  val stageIdToInfo = new mutable.HashMap[StageId, StageInfo] // ultimately not used
   val stageIdToTaskIds = new mutable.HashMap[StageId, ListBuffer[TaskId]]
   val taskIdToTaskInfoAndMetrics = new mutable.HashMap[TaskId, (TaskInfo, TaskMetrics)]
   //Stages:
@@ -57,34 +49,38 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
   }
   
   def finalize(jobEnd: SparkListenerJobEnd): Unit = {
+    // TODO: store a mapping of app -> job -> stage -> tasks. basically the equivalent of the RDD
+    //  DAG, but for physical execution.
     val jobId = jobEnd.jobId
-    for(stageId <- jobIdToStageIds(jobId)) {
-      val cacheName = coarseGrainedCacheName(appId, jobId, stageId)
-      val igniteCache = createIgniteCache(cacheName)
+    
+    /*println("JOB TO STAGE")
+    jobIdToStageIds.foreach(println)
+    println(s"Using $jobId...")
+    println("Stage to Tasks")
+    stageIdToTaskIds.foreach(println)
+    println(s"Task ID to metrics (${taskIdToTaskInfoAndMetrics.size})")
+    taskIdToTaskInfoAndMetrics.foreach(println)*/
+    
+    for(stageId <- jobIdToStageIds.remove(jobId).get) {
       // Not every stage will have completed tasks necessarily?
       if(!stageIdToTaskIds.contains(stageId))
       // TODO figure out why this happens.
         println(s"\t Warning?: Stage #$stageId did not have finished " + s"tasks")
-      for(taskId <- stageIdToTaskIds.getOrElse(stageId, Seq.empty).sorted) {
-        val key: CoarseGrainedKey = CoarseGrainedKey(taskId)
-        val value: CoarseGrainedValue = getMetrics(key)
+
+      for(taskId <- stageIdToTaskIds.remove(stageId).map(_.sorted).getOrElse(Seq.empty)) {
+        val (taskInfo, taskMetrics) = taskIdToTaskInfoAndMetrics.remove(taskId).get
+        val partitionId = taskInfo.partitionId
         
-        if(igniteCache.containsKey(key)) {
-          println(s"Replacing key $key:\n"
-                    + s"\tOld: ${igniteCache.get(key)}\n"
-                    + s"\tNew: ${value}")
-        }
-        
-        igniteCache.put(key, value)
+        val stats: PerfMetricsStats = getMetrics(taskMetrics)
+  
+        PerfMetricsStorage.getInstance().savePerfMetrics(appId, jobId, stageId, partitionId, stats)
       }
     }
   }
-  private def getMetrics(key: CoarseGrainedKey): CoarseGrainedValue = {
-    // TaskInfo not used right now.
-    val (taskInfo, taskMetrics) = taskIdToTaskInfoAndMetrics(key.taskId)
+  
+  private def getMetrics(taskMetrics: TaskMetrics): PerfMetricsStats = {
     val shuffleReadMetrics = taskMetrics.shuffleReadMetrics
     val shuffleWriteMetrics = taskMetrics.shuffleWriteMetrics
-    // taskInfo.duration not sure how this differs from executorRunTime?
     val runtime = taskMetrics.executorRunTime // includes the CPU time
     val inputReadRecords = taskMetrics.inputMetrics.recordsRead
     val outputWrittenRecords = taskMetrics.outputMetrics.recordsWritten
@@ -129,7 +125,7 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
     val shuffleWriteSerializationTime = shuffleWriteTime - shuffleWriteIOTime
     val shuffleReadDeserializationTime = shuffleReadTime - shuffleReadIOTime
     
-    
+    val gcTime = taskMetrics.jvmGCTime
     
     /*if(false) {
           println(s"Task #${taskId}:)")
@@ -139,7 +135,7 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
             s"written to disk or PairLRDDFunctions does not support)")
         }*/
     /** Using named arguments to avoid potential issues with reordering */
-    CoarseGrainedValue(
+    PerfMetricsStats(
       runtime=runtime,
       inputReadRecords=inputReadRecords,
       outputWrittenRecords=outputWrittenRecords,
@@ -157,7 +153,8 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
       shuffleWriteSerializationTime=shuffleWriteSerializationTime,
       shuffleReadTime=shuffleReadTime,
       shuffleReadIOTime=shuffleReadIOTime,
-      shuffleReadDeserializationTime=shuffleReadDeserializationTime)
+      shuffleReadDeserializationTime=shuffleReadDeserializationTime,
+      gcTime=gcTime)
   }
   
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
@@ -174,7 +171,7 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
       stageIdToInfo(stage.stageId) = stage
     }
   }
-  
+
   override def onTaskEnd(taskEnd: SparkListenerTaskEnd) {
     val taskInfo = taskEnd.taskInfo
     val taskId = taskInfo.taskId
@@ -183,85 +180,6 @@ class SerDeListener(val ignite: Ignite, val initAppId: Option[String] = None) ex
     val taskIds = stageIdToTaskIds.getOrElseUpdate(taskEnd.stageId, ListBuffer[TaskId]())
     taskIds += taskId
     taskIdToTaskInfoAndMetrics(taskId) = (taskInfo, taskMetrics)
-  }
-  
-  /** Temp clone of LineageManager's method to easily support schema changes during development. */
-  private def createIgniteCache(cacheName: String, numPartitionsPerCache: Int = 2)
-  : IgniteCache[CoarseGrainedKey, CoarseGrainedValue] = {
-    val cacheConf = new CacheConfiguration[CoarseGrainedKey, CoarseGrainedValue](cacheName)
-      .setAffinity(new RendezvousAffinityFunction(false, numPartitionsPerCache))
-    
-    val cache: IgniteCache[CoarseGrainedKey, CoarseGrainedValue] = ignite.getOrCreateCache(cacheConf)
-    cache
-  }
-  
-}
-
-object SerDeListener {
-  def coarseGrainedCacheName(appId: Any, jobId: Any, stageId: Any): String =
-    s"$appId-job-$jobId-stage-$stageId"
-  
-  val COARSE_GRAINED_CACHE_NAME_PATTERN: Regex = "job-\\d+-stage-\\d+$".r // job-stage
-  
-  // TODO move these to a more appropriate class
-  case class CoarseGrainedKey(taskId: Long) extends Ordered[CoarseGrainedKey] {
-    override def compare(that: CoarseGrainedKey): Int = this.taskId.compareTo(that.taskId)
-  }
-  
-  case class CoarseGrainedValue(runtime: Long, inputReadRecords: Long,
-                                outputWrittenRecords: Long, shuffleWrittenBytes: Long,
-                                shuffleWriteRecords: Long, shuffleReadBytes: Long,
-                                shuffleReadRecords: Long, shuffleReadFetchTime: Long,
-                                resultSizeBytes: Long, taskDeserializationTime: Long,
-                                taskResultSerializationTime: Long,
-                                /** Java SerDe metrics */
-                                shuffleWriteTime: Long,
-                                shuffleWriteIOTime: Long,
-                                shuffleWriteSerializationTime: Long,
-                                shuffleReadTime: Long,
-                                shuffleReadIOTime: Long,
-                                shuffleReadDeserializationTime: Long) {
-    
-    def toValueTuple(clazz: Class[_]): Any = {
-      clazz match {
-        case COARSE_GRAINED_VALUE_CLASS =>
-          CoarseGrainedValue.unapply(this).get
-        case JAVA_SERDE_VALUE_CLASS =>
-          // hacky, but there to ensure easy changes in the future
-          JavaSerDeValue.unapply(
-            JavaSerDeValue(
-              shuffleWriteTime=shuffleWriteTime,
-              shuffleWriteIOTime=shuffleWriteIOTime,
-              shuffleWriteSerializationTime=shuffleWriteSerializationTime,
-              shuffleReadTime=shuffleReadTime,
-              shuffleReadIOTime=shuffleReadIOTime,
-              shuffleReadDeserializationTime=shuffleReadDeserializationTime)
-          ).get
-        case _ =>
-          throw new IllegalArgumentException(s"Unsupported class for value conversion: $clazz")
-      }
-    }
-  }
-  
-  case class JavaSerDeValue(/** Java SerDe metrics */
-                            shuffleWriteTime: Long,
-                            shuffleWriteIOTime: Long,
-                            shuffleWriteSerializationTime: Long,
-                            shuffleReadTime: Long,
-                            shuffleReadIOTime: Long,
-                            shuffleReadDeserializationTime: Long)
-  
-  private val COARSE_GRAINED_KEY_CLASS = classOf[CoarseGrainedKey]
-  private val COARSE_GRAINED_VALUE_CLASS = classOf[CoarseGrainedValue]
-  private val JAVA_SERDE_VALUE_CLASS = classOf[JavaSerDeValue]
-  def COARSE_GRAINED_SCHEMA_STR(keyClass: Class[_]=COARSE_GRAINED_KEY_CLASS,
-                                valueClass: Class[_]=COARSE_GRAINED_VALUE_CLASS): String = {
-    s"(${getFieldNames(keyClass)}, ${getFieldNames(valueClass)})}"
-  }
-  
-  private def getFieldNames(clazz: Class[_]): String = {
-    val result: Array[String] = clazz.getDeclaredFields.map(_.getName.capitalize)
-    s"(${result.mkString(",")})"
   }
   
 }

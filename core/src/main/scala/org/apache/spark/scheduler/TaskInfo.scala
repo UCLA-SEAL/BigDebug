@@ -40,7 +40,10 @@ class TaskInfo(
     val executorId: String,
     val host: String,
     val taskLocality: TaskLocality.TaskLocality,
-    val speculative: Boolean) {
+    val speculative: Boolean,
+    val partitionId: Int = -1 // jteoh: Adding partitionId, but providing default parameter so
+// that I don't have to update the tests.
+   ) {
 
   /**
    * The time when the task started remotely getting the result. Will not be set if the
