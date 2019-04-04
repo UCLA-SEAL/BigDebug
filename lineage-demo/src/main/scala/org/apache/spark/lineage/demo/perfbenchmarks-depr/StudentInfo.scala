@@ -10,6 +10,7 @@ import org.apache.spark.lineage.{LineageContext, PerfDebugConf}
 import org.apache.spark.lineage.LineageContext._
 import org.apache.spark.lineage.demo.LineageBaseApp
 import org.apache.spark.lineage.perfdebug.lineageV2.LineageWrapper._
+import org.apache.spark.lineage.perfdebug.perfmetrics.PerfMetricsStorage
 import org.apache.spark.lineage.rdd.Lineage
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -45,7 +46,6 @@ object StudentInfo extends LineageBaseApp(
   
     // defaultConf.set("spark.executor.extraJavaOptions","-XX:+UseG1GC")
     // defaultConf.set("spark.driver.extraJavaOptions","-XX:+UseG1GC")
-    igniteLineageCloseDelay = 0
   
     defaultConf
   }
@@ -141,6 +141,8 @@ object StudentInfo extends LineageBaseApp(
         Time Logging
      **************************/
     println("Job's DONE!")
+    
+    testPerfMetrics(lc)
   }
   
   private def runPerformanceTrace(records: Lineage[String], grade_age_pair: Lineage[(Int, Int)],
@@ -157,5 +159,18 @@ object StudentInfo extends LineageBaseApp(
                      .take(1)
     printHadoopSources(slowestRec, records)
     slowestRec.traceBackAll().joinInputTextRDD(records)
+  }
+  
+  def testPerfMetrics(lc: LineageContext): Unit = {
+    val appId = lc.sparkContext.applicationId
+    val jobId = 0
+    val stageIds = Seq(0, 1)
+    stageIds.foreach( stageId => {
+      println(PerfMetricsStorage.COARSE_GRAINED_SCHEMA_STR())
+      val metrics = PerfMetricsStorage.getInstance().getPerfMetricsForStage(appId, jobId, stageId)
+      Thread.sleep(100)
+      metrics.foreach({case (k, v) => println(s"$k -> ${v.asMapStr}")})
+    })
+    
   }
 }
