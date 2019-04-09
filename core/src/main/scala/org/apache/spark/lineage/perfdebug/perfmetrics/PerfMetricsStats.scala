@@ -16,8 +16,9 @@ case class PerfMetricsStats(runtime: Long, inputReadRecords: Long,
                             shuffleReadIOTime: Long,
                             shuffleReadDeserializationTime: Long,
                             /** end Java SerDe metrics */
-                            gcTime: Long) {
-  // TODO: Try serializing/deserializing from a standardized format (eg CSV).
+                            gcTime: Long,
+                            peakExecMem: Long) {
+  // TODO: Consider serializing/deserializing from a standardized format (eg CSV).
   
   /*def toValueTuple(clazz: Class[_]): Any = {
     clazz match {

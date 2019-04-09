@@ -165,12 +165,14 @@ object StudentInfo extends LineageBaseApp(
     val appId = lc.sparkContext.applicationId
     val jobId = 0
     val stageIds = Seq(0, 1)
+    val sb = new StringBuilder()
     stageIds.foreach( stageId => {
-      println(PerfMetricsStorage.COARSE_GRAINED_SCHEMA_STR())
+      sb.append(PerfMetricsStorage.COARSE_GRAINED_SCHEMA_STR() + "\n")
       val metrics = PerfMetricsStorage.getInstance().getPerfMetricsForStage(appId, jobId, stageId)
       Thread.sleep(100)
-      metrics.foreach({case (k, v) => println(s"$k -> ${v.asMapStr}")})
+      metrics.foreach({case (k, v) => sb.append(s"$k -> ${v.asMapStr}\n")})
     })
+    println(sb)
     
   }
 }

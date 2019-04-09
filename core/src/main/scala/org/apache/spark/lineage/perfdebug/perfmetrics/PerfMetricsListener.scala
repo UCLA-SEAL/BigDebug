@@ -1,15 +1,10 @@
 package org.apache.spark.lineage.perfdebug.perfmetrics
 
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction
-import org.apache.ignite.configuration.CacheConfiguration
-import org.apache.ignite.{Ignite, IgniteCache}
 import org.apache.spark.executor.TaskMetrics
-import org.apache.spark.lineage.perfdebug.ignite.conf.IgniteManager
 import org.apache.spark.scheduler._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.matching.Regex
 
 /** Largely based off of StatsReportListener and JobProgressListener. This class collects task
  * metrics and then saves them for each job (within stages). This is still a testing listener
@@ -126,6 +121,7 @@ class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkLis
     val shuffleReadDeserializationTime = shuffleReadTime - shuffleReadIOTime
     
     val gcTime = taskMetrics.jvmGCTime
+    val peakExecMem = taskMetrics.peakExecutionMemory
     
     /*if(false) {
           println(s"Task #${taskId}:)")
@@ -154,7 +150,8 @@ class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkLis
       shuffleReadTime=shuffleReadTime,
       shuffleReadIOTime=shuffleReadIOTime,
       shuffleReadDeserializationTime=shuffleReadDeserializationTime,
-      gcTime=gcTime)
+      gcTime=gcTime,
+      peakExecMem=peakExecMem)
   }
   
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
