@@ -1,5 +1,6 @@
 package org.apache.spark.lineage.perfdebug.perfmetrics
 
+import org.apache.spark.Success
 import org.apache.spark.executor.TaskMetrics
 import org.apache.spark.scheduler._
 
@@ -13,7 +14,11 @@ import scala.collection.mutable.ListBuffer
  * This was imported from a secondary git repo (perf-debug-app) to include tracking of aggregate
  * metrics captured via instrumentation of the serializers/deserializers.
  */
-class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkListener {
+class PerfMetricsListener(val initAppId: Option[String] = None,
+                          val saveCallback:
+                            (AppId, JobId, StageId, PartitionId, PerfMetricsStats) => Unit =
+                            PerfMetricsStorage.getInstance().savePerfMetrics _)
+  extends SparkListener {
   
   type TaskId = Long
   
@@ -60,7 +65,7 @@ class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkLis
       // Not every stage will have completed tasks necessarily?
       if(!stageIdToTaskIds.contains(stageId))
       // TODO figure out why this happens.
-        println(s"\t Warning?: Stage #$stageId did not have finished " + s"tasks")
+        println(s"\t Warning?: Job #$jobId Stage #$stageId did not have any finished tasks")
 
       for(taskId <- stageIdToTaskIds.remove(stageId).map(_.sorted).getOrElse(Seq.empty)) {
         val (taskInfo, taskMetrics) = taskIdToTaskInfoAndMetrics.remove(taskId).get
@@ -68,7 +73,7 @@ class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkLis
         
         val stats: PerfMetricsStats = getMetrics(taskMetrics)
   
-        PerfMetricsStorage.getInstance().savePerfMetrics(appId, jobId, stageId, partitionId, stats)
+        saveCallback(appId, jobId, stageId, partitionId, stats)
       }
     }
   }
@@ -173,10 +178,15 @@ class PerfMetricsListener(val initAppId: Option[String] = None) extends SparkLis
     val taskInfo = taskEnd.taskInfo
     val taskId = taskInfo.taskId
     val taskMetrics = taskEnd.taskMetrics
+    val reason = taskEnd.reason
     
-    val taskIds = stageIdToTaskIds.getOrElseUpdate(taskEnd.stageId, ListBuffer[TaskId]())
-    taskIds += taskId
-    taskIdToTaskInfoAndMetrics(taskId) = (taskInfo, taskMetrics)
+    if(reason != Success) {
+      println(s"Task $taskId is not stored because it was not successful: $reason")
+    } else {
+      val taskIds = stageIdToTaskIds.getOrElseUpdate(taskEnd.stageId, ListBuffer[TaskId]())
+      taskIds += taskId
+      taskIdToTaskInfoAndMetrics(taskId) = (taskInfo, taskMetrics)
+    }
   }
   
 }
