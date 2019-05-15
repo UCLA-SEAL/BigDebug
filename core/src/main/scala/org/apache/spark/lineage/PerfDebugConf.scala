@@ -10,7 +10,7 @@ import org.apache.spark.SparkEnv
  * @author jteoh
  */
 case class PerfDebugConf(wrapUDFs: Boolean = true,
-    // TODO look for "shuffle flag (instrumentation toggle)" TODOs and complete them.
+                         // TODO look for "shuffle flag (instrumentation toggle)" TODOs and complete them.
                          estimateShuffleLatency: Boolean = true,
                          uploadLineage: Boolean = true, // default true
                          uploadLineageRecordsLimit: Int = -1,
@@ -19,7 +19,9 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
                          uploadIgniteDataAfterConversion: Boolean = true,
-                         enableSparkContextPerfListener: Boolean = true) extends Serializable {
+                         enableSparkContextPerfListenerPrinter: Boolean = true,
+                         enableSparkContextPerfListenerIgniteStore: Boolean = false) extends
+  Serializable {
   
   if(tapRDDs && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but tapping is still enabled - these " +

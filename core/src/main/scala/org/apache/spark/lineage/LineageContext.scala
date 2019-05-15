@@ -277,7 +277,10 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     val appId = sparkContext.applicationId
     LineageCacheRepository.saveCacheDependencies(appId, dependencies)
     /** jteoh: some additional metrics are collected via a Spark Listener implementation */
-    sparkContext.addSparkListener(new PerfMetricsListener(initAppId = Option(appId)))
+    if(PerfDebugConf.get.enableSparkContextPerfListenerIgniteStore) {
+      sparkContext.addSparkListener(new PerfMetricsListener(initAppId = Option(appId)))
+    }
+    
     result
   }
 
