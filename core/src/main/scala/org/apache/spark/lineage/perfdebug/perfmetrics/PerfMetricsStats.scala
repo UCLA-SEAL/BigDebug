@@ -2,6 +2,7 @@ package org.apache.spark.lineage.perfdebug.perfmetrics
 
 import scala.collection.immutable.ListMap
 
+// Note: all times are in ms unless otherwise states (ns)
 case class PerfMetricsStats(runtime: Long, inputReadRecords: Long,
                             outputWrittenRecords: Long, shuffleWrittenBytes: Long,
                             shuffleWriteRecords: Long, shuffleReadBytes: Long,
@@ -9,15 +10,19 @@ case class PerfMetricsStats(runtime: Long, inputReadRecords: Long,
                             resultSizeBytes: Long, taskDeserializationTime: Long,
                             taskResultSerializationTime: Long,
                             /** Java SerDe metrics */
-                            shuffleWriteTime: Long,
-                            shuffleWriteIOTime: Long,
-                            shuffleWriteSerializationTime: Long,
-                            shuffleReadTime: Long,
-                            shuffleReadIOTime: Long,
-                            shuffleReadDeserializationTime: Long,
+                            shuffleWriteTimeNanos: Long,
+                            shuffleWriteIOTimeNanos: Long,
+                            shuffleWriteSerializationTimeNanos: Long,
+                            shuffleReadTimeNanos: Long,
+                            shuffleReadIOTimeNanos: Long,
+                            shuffleReadDeserializationTimeNanos: Long,
                             /** end Java SerDe metrics */
                             gcTime: Long,
-                            peakExecMem: Long) {
+                            peakExecMem: Long,
+                            cpuTimeNanos: Long,
+                            memBytesSpilled: Long) {
+  // TODO standardize units, I think native metrics such as gcTime and runtime are in ms while
+  //  some implemented metrics such as shufflereadIO time are in ns... [also cpu time]
   // TODO: Consider serializing/deserializing from a standardized format (eg CSV).
   
   /*def toValueTuple(clazz: Class[_]): Any = {
@@ -60,4 +65,9 @@ case class PerfMetricsStats(runtime: Long, inputReadRecords: Long,
   def asMapStr: String = {
     this.asMap.toString().replace("Map", this.getClass.getSimpleName)
   }
+  
+  def dataFields: Array[AnyRef] = this.getClass.getDeclaredFields.map(field => {
+    field.setAccessible(true)
+    field.get(this)
+  })
 }

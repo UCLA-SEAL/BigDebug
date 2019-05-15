@@ -19,7 +19,7 @@ package org.apache.spark
 
 import java.io._
 import java.lang.reflect.Constructor
-import java.net.{URI}
+import java.net.URI
 import java.util.{Arrays, Locale, Properties, ServiceLoader, UUID}
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
@@ -29,18 +29,16 @@ import scala.collection.Map
 import scala.collection.generic.Growable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect.{ClassTag, classTag}
 import scala.util.control.NonFatal
-
 import com.google.common.collect.MapMaker
 import org.apache.commons.lang3.SerializationUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, DoubleWritable, FloatWritable, IntWritable, LongWritable, NullWritable, Text, Writable}
-import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, SequenceFileInputFormat, TextInputFormat}
+import org.apache.hadoop.io._
+import org.apache.hadoop.mapred.{Utils => _, _}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
@@ -48,6 +46,8 @@ import org.apache.spark.input.{FixedLengthBinaryInputFormat, PortableDataStream,
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
+import org.apache.spark.lineage.PerfDebugConf
+import org.apache.spark.lineage.perfdebug.perfmetrics._
 import org.apache.spark.partial.{ApproximateEvaluator, PartialResult}
 import org.apache.spark.rdd._
 import org.apache.spark.rpc.RpcEndpointRef
@@ -1897,6 +1897,9 @@ class SparkContext(config: SparkConf) extends Logging {
     )
   }
 
+  /** jteoh: buffer/builder for perf metrics listening, temp-only */
+  var sb: StringBuilder = _
+  var csvSb: StringBuilder = _
   /**
    * Run a function on a given set of partitions in an RDD and pass the results to the given
    * handler function. This is the main entry point for all actions in Spark.
@@ -1909,6 +1912,38 @@ class SparkContext(config: SparkConf) extends Logging {
     if (stopped.get()) {
       throw new IllegalStateException("SparkContext has been shutdown")
     }
+    /** jteoh start */
+    if(PerfDebugConf.get.enableSparkContextPerfListener) {
+      println("JTEOH WARNING: SparkContext has been modified to collect stats via " +
+                "PerfMetricsListener and save via ??")
+      sb = new StringBuilder
+      csvSb = new StringBuilder
+      /** jteoh: some additional metrics are collected via a Spark Listener implementation */
+      val HEADER = PerfMetricsStorage.COARSE_GRAINED_SCHEMA_STR() + "\n"
+      // TODO: sb's don't work
+      sb.append(HEADER)
+      csvSb.append(HEADER)
+      this.addSparkListener(new PerfMetricsListener(initAppId = Option(applicationId),
+                                                    saveCallback = {
+          case (appId: AppId, jobId: JobId, stageId: StageId, partitionId: PartitionId, data: PerfMetricsStats) =>
+            val key = s"${jobId}-${stageId}-${partitionId}"
+            val value = data.asMapStr
+            val line = s"$key -> $value\n"
+            //print(line)
+            sb.append(line)
+            val csvValues: Seq[Any] = Seq(appId, jobId, stageId, partitionId) ++ data.dataFields
+            val csvLine = csvValues.mkString(",") + "\n"
+            print(csvLine) // should be unnecessary, but retained because I can easily dedupe later
+            // delete/comment out the above line if it starts affecting performance
+            // (ideally, the end of this whole method should print the results in both k->v and
+            // csv format)
+            csvSb.append(csvLine)
+            
+      }))
+    }
+    /** jteoh end */
+    
+    
     val callSite = getCallSite
     val cleanedFunc = clean(func)
     logInfo("Starting job: " + callSite.shortForm)
@@ -1918,6 +1953,10 @@ class SparkContext(config: SparkConf) extends Logging {
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)
     progressBar.foreach(_.finishAll())
     rdd.doCheckpoint()
+    if(PerfDebugConf.get.enableSparkContextPerfListener) {
+      println(sb)
+      println(csvSb)
+    }
   }
 
   /**

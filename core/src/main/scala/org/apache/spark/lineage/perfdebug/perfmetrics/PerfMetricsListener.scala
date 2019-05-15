@@ -127,6 +127,8 @@ class PerfMetricsListener(val initAppId: Option[String] = None,
     
     val gcTime = taskMetrics.jvmGCTime
     val peakExecMem = taskMetrics.peakExecutionMemory
+    val cpuTime = taskMetrics.executorCpuTime
+    val memBytesSpilled = taskMetrics.memoryBytesSpilled
     
     /*if(false) {
           println(s"Task #${taskId}:)")
@@ -149,14 +151,16 @@ class PerfMetricsListener(val initAppId: Option[String] = None,
       taskDeserializationTime=taskDeserializationTime,
       taskResultSerializationTime=taskResultSerializationTime,
       // Java SerDe times
-      shuffleWriteTime=shuffleWriteTime,
-      shuffleWriteIOTime=shuffleWriteIOTime,
-      shuffleWriteSerializationTime=shuffleWriteSerializationTime,
-      shuffleReadTime=shuffleReadTime,
-      shuffleReadIOTime=shuffleReadIOTime,
-      shuffleReadDeserializationTime=shuffleReadDeserializationTime,
+      shuffleWriteTimeNanos=shuffleWriteTime,
+      shuffleWriteIOTimeNanos=shuffleWriteIOTime,
+      shuffleWriteSerializationTimeNanos=shuffleWriteSerializationTime,
+      shuffleReadTimeNanos=shuffleReadTime,
+      shuffleReadIOTimeNanos=shuffleReadIOTime,
+      shuffleReadDeserializationTimeNanos=shuffleReadDeserializationTime,
       gcTime=gcTime,
-      peakExecMem=peakExecMem)
+      peakExecMem=peakExecMem,
+      cpuTimeNanos= cpuTime,
+      memBytesSpilled = memBytesSpilled)
   }
   
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {

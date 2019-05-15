@@ -18,7 +18,8 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          tapRDDs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
-                         uploadIgniteDataAfterConversion: Boolean = true) extends Serializable {
+                         uploadIgniteDataAfterConversion: Boolean = true,
+                         enableSparkContextPerfListener: Boolean = true) extends Serializable {
   
   if(tapRDDs && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but tapping is still enabled - these " +
