@@ -20,7 +20,7 @@ import org.apache.spark.rdd.RDD
  * This method will retrieve the appropriate lineage data, retrieve the slowest single record, and trace back to its
  * hadoop inputs.
  */
-object ExternalQueryDemo extends LineageBaseApp(
+object ExternalQueryDemoInternal extends LineageBaseApp(
   sparkLogsEnabled = false,
   lineageEnabled = false
 ) {

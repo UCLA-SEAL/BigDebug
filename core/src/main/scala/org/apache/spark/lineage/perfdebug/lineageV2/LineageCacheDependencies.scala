@@ -78,8 +78,7 @@ object LineageCacheDependencies {
       // assumption: application ID should be the same for all RDDs in dependency tree
       val cacheName = LineageRecordsStorage.getInstance().buildCacheName(appId, tap)
       LineageCacheDependencies(appId, cacheName, tap,
-                               result.getOrElse(tap, Seq.empty).map
-                               (convertToLineageCacheDependencies), tap.getNumPartitions)
+                               result.getOrElse(tap, Seq.empty).map(convertToLineageCacheDependencies), tap.getNumPartitions)
     }
     
     
