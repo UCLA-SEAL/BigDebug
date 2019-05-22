@@ -19,7 +19,7 @@ import org.apache.spark.rdd.RDD
  * tradeoff is implemented in [[IdOnlyPerfLineageWrapper]].
  */
  
-class DefaultPerfLineageWrapper(private val lineageDependencies: LineageCacheDependencies,
+class DefaultPerfLineageWrapper(override val lineageDependencies: LineageCacheDependencies,
                                 private val perfCache: PerfLineageCache)
   extends LineageWrapper(lineageDependencies, perfCache.lineageCache) with PerfLineageWrapper {
   

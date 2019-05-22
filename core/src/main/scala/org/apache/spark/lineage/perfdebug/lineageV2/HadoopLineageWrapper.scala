@@ -7,11 +7,12 @@ import org.apache.spark.lineage.rdd.{HadoopLRDD, Lineage, MapPartitionsLRDD, Tap
 import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 
 // Fragile class that basically assumes the tap is an instance of TapLRDD
-class HadoopLineageWrapper(val lineageDependencies: LineageCacheDependencies,
+class HadoopLineageWrapper(override val lineageDependencies: LineageCacheDependencies,
                            override val lineageCache: LineageCache)
   extends LineageWrapper(lineageDependencies, lineageCache) with InputLineageWrapper[(Long,String)]{
   
-  assert(lineageDependencies.tap.isInstanceOf[TapHadoopLRDD[_,_]])
+  // assert(lineageDependencies.tap.isInstanceOf[TapHadoopLRDD[_,_]])
+  assert(lineageDependencies.tapName == classOf[TapHadoopLRDD[_,_]].getSimpleName)
   
   private def hadoopLineage: RDD[(PartitionWithRecId, TapHadoopLRDDValue)] =
     lineageCache.withValueType[TapHadoopLRDDValue]
@@ -70,13 +71,6 @@ class HadoopLineageWrapper(val lineageDependencies: LineageCacheDependencies,
     joinInputRDD(hadoopFileRDD)
   }
   
-  /** CAUTION - only use within the original spark session! */
-  def rawInputRDD: RDD[(Long, String)] = {
-    // really unclean approach to getting the original hadoop RDD WITH byte offsets, based on
-    // LineageRDD line 303 (show() on TapHadoopLRDD)
-    // Later this won't be usable as we'll need to recompute or persist this rdd for external usage.
-    joinInputRDD(tap.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]])
-  }
 }
 
 object HadoopLineageWrapper {

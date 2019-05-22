@@ -61,8 +61,12 @@ trait LineageRecordsStorage {
     }
   }
   
-  def buildCacheName(appId: String, rdd: RDD[_]) = {
-    s"${appId}_${rdd.id}[${rdd.getClass.getSimpleName}]"
+  def buildCacheName(appId: String, rdd: RDD[_]): String = {
+    buildCacheName(appId, rdd.id, rdd.getClass.getSimpleName)
+  }
+  
+  def buildCacheName(appId: String, rddId: Int, rddName: String): String = {
+    s"${appId}_$rddId[$rddName]"
   }
 }
 

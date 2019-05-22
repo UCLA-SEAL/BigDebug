@@ -14,9 +14,11 @@ private[spark]
 case class LineageCacheDependencies(
                                     appId: String, // jteoh: added later to support shuffle agg stats
                                     cacheName: String,
-                                    tap: TapLRDD[_], //TODO jteoh: consider changing to string -
-                                    // this isn't storage-friendly.
-                                    // TODO jteoh: knowing the taps might be insufficient for
+                                    tapName: String,
+                                    tapStr: String,
+                                    tapRddId: Int,
+                                    combinerEnabled: Boolean,
+                                    // TODO jteoh: knowing the taps tree might be insufficient for
                                     // performance purposes, eg if we the external storage system
                                     // retains partitioning and an operation such as reduce or
                                     // cogroup does not result in a shuffle, we'll need to
@@ -27,6 +29,12 @@ case class LineageCacheDependencies(
                                      *  also save the number of partitions.
                                      */
                                     numPartitions: Int) {
+  
+  def this(appId: String, cacheName: String, tap: TapLRDD[_],
+           dependencies: Seq[LineageCacheDependencies], numPartitions: Int)  {
+    this(appId, cacheName, tap.getClass.getSimpleName, tap.toString, tap.id, tap.isCombinerEnabled,
+         dependencies, numPartitions)
+  }
   
   /** Uses the [[org.apache.spark.lineage.perfdebug.lineageV2.LineageCacheRepository]] to
    * retrieve the entire lineage cache, without any pre-filtering/joining.
@@ -77,7 +85,7 @@ object LineageCacheDependencies {
     def convertToLineageCacheDependencies(tap: TapLRDD[_]): LineageCacheDependencies = {
       // assumption: application ID should be the same for all RDDs in dependency tree
       val cacheName = LineageRecordsStorage.getInstance().buildCacheName(appId, tap)
-      LineageCacheDependencies(appId, cacheName, tap,
+      new LineageCacheDependencies(appId, cacheName, tap,
                                result.getOrElse(tap, Seq.empty).map(convertToLineageCacheDependencies), tap.getNumPartitions)
     }
     
@@ -105,14 +113,14 @@ object LineageCacheDependencies {
         println("  " * indent + rdd)
         rdd.dependencies.foreach(d => visitPrint(d.rdd, indent + 1))
       }
-      println("----------Debug string----------")
-      println(deps.tap.toDebugString)
-      println("----------Before adjusting dependencies------")
-      visitPrint(deps.tap)
+      // println("----------Debug string----------")
+      // println(deps.tap.toDebugString)
+      // println("----------Before adjusting dependencies------")
+      // visitPrint(deps.tap)
       println("----------Tap dependencies---------")
     }
     visit((node, depth) =>
-             println(s"${" " * depth}${node.tap}[${node.cacheName}[${node.numPartitions}]]"))(deps)
+             println(s"${" " * depth}${node.tapStr}[${node.cacheName}[${node.numPartitions}]]"))(deps)
     if(showBefore) {
       println("----------Done----------")
     }

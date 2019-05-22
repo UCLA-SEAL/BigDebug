@@ -19,10 +19,14 @@ import scala.reflect.ClassTag
  * @param lineageDependencies instance representing the current TapRDD + its lineage dependencies.
  * @param lineageCache the current cache (including any filtering that has been applied from
  *                     previous joins).
+ *
  */
-class LineageWrapper protected(private val lineageDependencies: LineageCacheDependencies,
+class LineageWrapper protected(val lineageDependencies: LineageCacheDependencies,
                                val lineageCache: LineageCache) extends {
-  def tap: TapLRDD[_] = lineageDependencies.tap
+  // EDIT 5/21/2019: jteoh making cache deps public for programming sake. In practice it should
+  // be hidden.
+  def tapName: String = lineageDependencies.tapName
+  def tapRddId: Int = lineageDependencies.tapRddId
   def lineageAppId: String = lineageDependencies.appId
   def context: SparkContext = lineageCache.sparkContext
   // used to avoid post-serialization issues, eg hadoop RDD's job conf being inaccessible
@@ -39,7 +43,7 @@ class LineageWrapper protected(private val lineageDependencies: LineageCacheDepe
     val parent = dependencies(pos)
     // start = postshuffle/postcogroup (and also sources, but lineage is not applicable there)
     // end = preshuffle, precogroup, tapLRDD - all retain the same partitioning.
-    val useShuffle = parent.tap.isStartOfStageTap
+    val useShuffle = parent.tapName.isStartOfStageTap
   
     // Since the first RDD is keyed by identity, the key and value's first element are identical.
     val tracedParentCache = LineageWrapper.joinLineageKeyedRDDs(lineageCache.inputIds.keyBy(identity),

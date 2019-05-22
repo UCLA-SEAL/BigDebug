@@ -14,15 +14,15 @@ object PerfLineageUtils {
    * Execution graph (how the caches relate to each other)
    * raw data RDDs
    */
-  def traceBackAndPrint(rdd: Lineage[_]): RDD[(Long, String)] = {
+  def traceBackAndPrint(rdd: Lineage[_], rawInputRdd: RDD[(Long, String)]): RDD[(Long, String)]
+  = {
     val lastLineageWrapper = rdd.lineageWrapper
     println("----------Tap dependencies---------")
     lastLineageWrapper.printDependencies() // debugging
     
     // trace to the data source (hadoop)
     val hadoopLineageWrapper = lastLineageWrapper.traceBackAll()
-    val rawHadoopValues = hadoopLineageWrapper.rawInputRDD
-    
+    val rawHadoopValues = hadoopLineageWrapper.joinInputRDD(rawInputRdd)
     printRDDWithMessage(rawHadoopValues, "Raw input data that was traced (with byte offsets):")
     rawHadoopValues
   }

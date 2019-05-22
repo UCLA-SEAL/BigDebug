@@ -14,7 +14,7 @@ import org.apache.spark.rdd.RDD
  *
  * This implementation is primarily used with [[SlowestInputsCalculator]].
  */
-case class SlowestInputQueryPerfWrapper(private val lineageDependencies: LineageCacheDependencies,
+case class SlowestInputQueryPerfWrapper(override val lineageDependencies: LineageCacheDependencies,
                                         outputIdsWithLatencyTuples: RDD[(PartitionWithRecId,
                                           SingleRmLatencyTuple)],
                                         baseRDD: RDD[(PartitionWithRecId, CacheValue)]

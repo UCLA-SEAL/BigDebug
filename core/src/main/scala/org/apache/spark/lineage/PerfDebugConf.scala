@@ -19,7 +19,7 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
                          uploadIgniteDataAfterConversion: Boolean = true,
-                         enableSparkContextPerfListenerPrinter: Boolean = true,
+                         _enableSparkContextPerfListenerPrinter: Boolean = true,
                          enableSparkContextPerfListenerIgniteStore: Boolean = false) extends
   Serializable {
   
@@ -60,6 +60,10 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
   // rdds.
   // 6: allocating buffers (before any of the tapping occurs).
   // 7 (3/5 edit): properly integrating this into SparkConf for distributed setting.
+  
+  def enableSparkContextPerfListenerPrinter: Boolean = {
+    SparkEnv.get.conf.get("spark.perfdebug.taskmetrics.enabled", "false")
+  }
   
 }
 

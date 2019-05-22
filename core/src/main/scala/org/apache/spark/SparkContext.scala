@@ -1898,7 +1898,7 @@ class SparkContext(config: SparkConf) extends Logging {
   }
 
   /** jteoh: buffer/builder for perf metrics listening, temp-only */
-  var sb: StringBuilder = _
+  // var sb: StringBuilder = _
   var csvSb: StringBuilder = _
   /**
    * Run a function on a given set of partitions in an RDD and pass the results to the given
@@ -1913,16 +1913,16 @@ class SparkContext(config: SparkConf) extends Logging {
       throw new IllegalStateException("SparkContext has been shutdown")
     }
     /** jteoh start */
-    if(PerfDebugConf.get.enableSparkContextPerfListenerPrinter) {
+    if(PerfDebugConf.get._enableSparkContextPerfListenerPrinter) {
       println("JTEOH WARNING: SparkContext has been modified to collect stats via " +
-                "PerfMetricsListener and save via ??")
-      sb = new StringBuilder
-      csvSb = new StringBuilder
+                "PerfMetricsListener and print out results after job completion")
+      //sb = new StringBuilder
+      //csvSb = new StringBuilder
       /** jteoh: some additional metrics are collected via a Spark Listener implementation */
       val HEADER = PerfMetricsStorage.COARSE_GRAINED_SCHEMA_STR() + "\n"
-      // TODO: sb's don't work
-      sb.append(HEADER)
-      csvSb.append(HEADER)
+      //sb.append(HEADER)
+      //csvSb.append(HEADER)
+      print(HEADER)
       this.addSparkListener(new PerfMetricsListener(initAppId = Option(applicationId),
                                                     saveCallback = {
           case (appId: AppId, jobId: JobId, stageId: StageId, partitionId: PartitionId, data: PerfMetricsStats) =>
@@ -1930,14 +1930,13 @@ class SparkContext(config: SparkConf) extends Logging {
             val value = data.asMapStr
             val line = s"$key -> $value\n"
             //print(line)
-            sb.append(line)
+            //sb.append(line)
             val csvValues: Seq[Any] = Seq(appId, jobId, stageId, partitionId) ++ data.dataFields
             val csvLine = csvValues.mkString(",") + "\n"
-            print(csvLine) // should be unnecessary, but retained because I can easily dedupe later
-            // delete/comment out the above line if it starts affecting performance
-            // (ideally, the end of this whole method should print the results in both k->v and
-            // csv format)
-            csvSb.append(csvLine)
+            print(csvLine)
+            // ideally we'd be saving to buffer and printing later, but the buffer doesn't
+            // contain anything beyond the header for some reason so we print here instead.
+            //csvSb.append(csvLine)
             
       }))
     }
@@ -1953,9 +1952,11 @@ class SparkContext(config: SparkConf) extends Logging {
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)
     progressBar.foreach(_.finishAll())
     rdd.doCheckpoint()
-    if(PerfDebugConf.get.enableSparkContextPerfListenerPrinter) {
-      println(sb)
-      println(csvSb)
+    if(PerfDebugConf.get._enableSparkContextPerfListenerPrinter) {
+      // println(sb)
+      //println("CSV values")
+      //println(csvSb)
+      // for whatever reason, this doesn't print out at the end.
     }
   }
 

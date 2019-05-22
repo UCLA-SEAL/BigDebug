@@ -106,8 +106,11 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
     // We release the buffer here because not needed anymore
     releaseBuffer()
     
+    // important: use toList and not toSeq, as toSeq will create a stream which inherently
+    // references the roaring bitmap somehow (tlgen field?)
     outputToInputAndLatency.map({case (outputId, inputsWithLats) =>
-      Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLats.iterator().asScala.toSeq)
+      val inputsWithLatStorageStructure = inputsWithLats.toArray.toSeq // inputsWithLats.iterator().asScala.toList
+      Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLatStorageStructure)
     }).toArray
   }
 

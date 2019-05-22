@@ -17,7 +17,7 @@ import org.apache.spark.Latency
  * the tradeoffs may be found in [[DefaultPerfLineageWrapper]].
  */
 class IdOnlyPerfLineageWrapper(
-                               private val lineageDependencies: LineageCacheDependencies,
+                               override val lineageDependencies: LineageCacheDependencies,
                                // the current list of IDs and latencies
                                private val idAndLatencyRDD: RDD[(PartitionWithRecId, Latency)],
                                // the original lineage RDD from the external cache. this
