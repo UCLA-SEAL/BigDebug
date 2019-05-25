@@ -19,7 +19,7 @@ package org.apache.spark.lineage.util
 class LongIntIntByteBuffer(data: Array[Byte]) extends ExtendedByteBuffer[Long, Int, Int](data) {
   
   override def put(value1: Long, value2: Int, value3: Int): Unit = {
-    buffer.putLong(value1).putInt(value2).putLong(value3)
+    buffer.putLong(value1).putInt(value2).putInt(value3)
     if (position + 16 > capacity) grow() // long + int + int = 8 + 4 + 4
   }
   
