@@ -102,11 +102,15 @@ object TapUtils {
     }
     
     private def isPostShuffle: Boolean = {
-      tapName ==  classOf[PostShuffleLatencyStatsTap[_]].getSimpleName
+      // TODO ideally this would map to the [[PostShuffleLatencyStatsTap]] trait
+      val classes = Seq(classOf[TapPostShuffleLRDD[_]], classOf[TapPostCoGroupLRDD[_]])
+      classes.exists(tapName == _.getSimpleName)
     }
     
     private def isPreShuffle: Boolean = {
-      tapName == classOf[PreShuffleLatencyStatsTap[_]].getSimpleName
+      // TODO ideally this would map to the [[PreShuffleLatencyStatsTap]] trait
+      val classes = Seq(classOf[TapPreShuffleLRDD[_]], classOf[TapPreCoGroupLRDD[_]])
+      classes.exists(tapName == _.getSimpleName)
     }
     
     def isLatencyStatsTap: Boolean = {
