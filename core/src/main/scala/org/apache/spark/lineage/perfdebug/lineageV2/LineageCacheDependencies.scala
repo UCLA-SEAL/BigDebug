@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
  * the dependencies between LineageCache instances and is intentionally not exposed. While the
  * RDD is made available, it is primarily there for class matching and is actually near useless
  * outside of the original session as both context and dependencies are lost. */
-private[spark]
+// private[spark] // jteoh: disabled private on 5/24/2019 for debugging only
 case class LineageCacheDependencies(
                                     appId: String, // jteoh: added later to support shuffle agg stats
                                     cacheName: String,
@@ -46,7 +46,7 @@ case class LineageCacheDependencies(
   }
 }
 
-private[spark]
+// private[spark] // jteoh: disabled private on 5/24/2019 for debugging only
 object LineageCacheDependencies {
   /** Returns a [[LineageCacheDependencies]] that can be used for lineage tracing. In tree
    * terminology, this is essentially the root node.

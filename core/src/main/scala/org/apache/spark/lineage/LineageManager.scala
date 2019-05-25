@@ -77,6 +77,10 @@ object LineageManager{
               val sw = new StringWriter
               e.printStackTrace(new PrintWriter(sw))
               println(s"Exception for $linMgrStr: \n${sw.toString}")
+              
+              // edit 5/24/2019: since this is now a post-mortem tool, we absolutely do want to
+              // collect data and throw an exception if some lineage/latency fails to be captured.
+              throw e
             }
           } finally {
             tap._1.releaseBuffer()

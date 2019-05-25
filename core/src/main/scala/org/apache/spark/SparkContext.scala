@@ -1913,7 +1913,7 @@ class SparkContext(config: SparkConf) extends Logging {
       throw new IllegalStateException("SparkContext has been shutdown")
     }
     /** jteoh start */
-    if(PerfDebugConf.get._enableSparkContextPerfListenerPrinter) {
+    if(PerfDebugConf.get.enableSparkContextPerfListenerPrinter) {
       println("JTEOH WARNING: SparkContext has been modified to collect stats via " +
                 "PerfMetricsListener and print out results after job completion")
       //sb = new StringBuilder
@@ -1952,7 +1952,7 @@ class SparkContext(config: SparkConf) extends Logging {
     dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)
     progressBar.foreach(_.finishAll())
     rdd.doCheckpoint()
-    if(PerfDebugConf.get._enableSparkContextPerfListenerPrinter) {
+    if(PerfDebugConf.get.enableSparkContextPerfListenerPrinter) {
       // println(sb)
       //println("CSV values")
       //println(csvSb)

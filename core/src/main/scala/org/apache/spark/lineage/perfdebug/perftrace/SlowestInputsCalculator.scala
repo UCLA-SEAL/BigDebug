@@ -47,6 +47,10 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
                                    // the number of total inputs. Disabling this reduces the
                                    // total number of spark joins involved, but may result in
                                    // unnecessary computation.
+                                   // tl;dr: true = first compute backwards lineage trace before
+                                   // computing forwards trace for latency calcs. May be more
+                                   // expensive if trace takes a while, but much cheaper if
+                                   // traced size << total input size
                                    traceInputScope: Boolean = true,
                                    printDebugging: Boolean = false,
                                    printLimit: Option[Int] = None) extends PerfTraceCalculator {

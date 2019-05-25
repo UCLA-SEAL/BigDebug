@@ -19,11 +19,13 @@ import org.apache.spark.Latency
 class IdOnlyPerfLineageWrapper(
                                override val lineageDependencies: LineageCacheDependencies,
                                // the current list of IDs and latencies
-                               private val idAndLatencyRDD: RDD[(PartitionWithRecId, Latency)],
+                               val idAndLatencyRDD: RDD[(PartitionWithRecId, Latency)], // should
+                               // be private
                                // the original lineage RDD from the external cache. this
                                // can reflect the entire dataset, so you need to filter
                                // with idRDD!
-                               private val baseRDD: RDD[(PartitionWithRecId, CacheValue)]
+                               val baseRDD: RDD[(PartitionWithRecId, CacheValue)] // should be
+                               // private
                                ) extends LineageWrapper(lineageDependencies,
                                                         filterJoin(idAndLatencyRDD.keys,
                                                                    baseRDD))

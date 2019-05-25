@@ -89,6 +89,13 @@ class LineageWrapper protected(val lineageDependencies: LineageCacheDependencies
     result
   }
   
+  /** Return the parent wrapper (ie earlier in stage), without joining to the current one's IDs.
+    * This is primarily used for debugging. */
+  def predecessorWrapper(pos: Int = 0): Unit = {
+    val parent = dependencies(0)
+    LineageWrapper(parent, parent.fullLineageCache)
+  }
+  
   def filterId(fn: PartitionWithRecId => Boolean): LineageWrapper = {
     LineageWrapper(lineageDependencies, lineageCache.filter(r => fn(r._1)))
   }

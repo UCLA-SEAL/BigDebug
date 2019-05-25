@@ -17,7 +17,7 @@ import org.apache.spark.rdd.RDD
 case class SlowestInputQueryPerfWrapper(override val lineageDependencies: LineageCacheDependencies,
                                         outputIdsWithLatencyTuples: RDD[(PartitionWithRecId,
                                           SingleRmLatencyTuple)],
-                                        baseRDD: RDD[(PartitionWithRecId, CacheValue)]
+                                        override val baseRDD: RDD[(PartitionWithRecId, CacheValue)]
                                ) extends IdOnlyPerfLineageWrapper(lineageDependencies,
                                                                   outputIdsWithLatencyTuples
                                                                     .mapValues(_.latency),

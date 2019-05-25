@@ -42,7 +42,13 @@ case class LatencyDistributingIterator[U] private(storeFn: Latency => Unit, cur:
   // 5.b.1: All output records receive time T_R + (T_1 + T_2 + T_3)/CUR_SIZE
   
   // This approach essentially embodies two assumptions:
-  // 1. If `cur` is a [[Traversable]], the data is assumed to be computed upfront. As such,
+  // 1. Updated 5/22: If `cur` is a [[Traversable]], the data is assumed to be computed upfront. As
+  //  // such, the overhead of applying the user UDF is a bottleneck for all results within.
+  //  Since we 'assume' these are computed in parallel, this value is added to each produced
+  //  output.
+  //  // `cur.
+  // 1.OUTDATED 5/22: If `cur` is a [[Traversable]], the data is assumed to be computed upfront. As
+  // such,
   // the overhead of applying the user UDF should be distributed across all results within
   // `cur.
   // 2. If `cur` is an [[Iterator]], there is no way to determine the overheads. The
@@ -74,10 +80,14 @@ case class LatencyDistributingIterator[U] private(storeFn: Latency => Unit, cur:
       udfTime + iteratorTime
     } else {
       if (curSize.get != 0) {
+        // edit 5/22: Add the overhead to each record
+        // since we assume later assume they are computed in parallel.
+        udfTime + iteratorTime + curSizeTime.get
+  
         // loss of precision, but this is in ms anyways.
-        (udfTime + iteratorTime + curSizeTime.get) / curSize.get
+        // (udfTime + iteratorTime + curSizeTime.get) / curSize.get
       } else {
-        assert(hasNext == false, "curSize cannot be zero if there is a next element")
+        assert(!hasNext, "curSize cannot be zero if there is a next element")
         0 // doesn't matter - we should never use this.
       }
     }

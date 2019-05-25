@@ -2,6 +2,8 @@ package org.apache.spark.lineage
 
 import org.apache.spark.SparkEnv
 
+import scala.util.Try
+
 /**
  * Primitive configuration class for storing various toggles. This is currently intended for use
  * only on the driver side (i.e., worker classes should be configured beforehand).
@@ -61,8 +63,19 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
   // 6: allocating buffers (before any of the tapping occurs).
   // 7 (3/5 edit): properly integrating this into SparkConf for distributed setting.
   
-  def enableSparkContextPerfListenerPrinter: Boolean = {
-    SparkEnv.get.conf.get("spark.perfdebug.taskmetrics.enabled", "false")
+  val PD_TASK_METRICS_ENABLED_KEY = "spark.perfdebug.taskmetrics.enabled"
+  lazy val enableSparkContextPerfListenerPrinter: Boolean = {
+    val conf = SparkEnv.get.conf
+    if(conf.contains(PD_TASK_METRICS_ENABLED_KEY)) {
+      val boolStr = conf.get(PD_TASK_METRICS_ENABLED_KEY)
+      println(s"Found value for configuration ${PD_TASK_METRICS_ENABLED_KEY}: ${boolStr}. Note " +
+                s"that this overrides anything set in PerfDebugConf")
+      boolStr.toBoolean
+    } else {
+      println(s"No value found for configuration ${PD_TASK_METRICS_ENABLED_KEY}. Defaulting to " +
+                s"PerfDebugConf value ${_enableSparkContextPerfListenerPrinter}")
+      _enableSparkContextPerfListenerPrinter
+    }
   }
   
 }
