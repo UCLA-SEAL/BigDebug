@@ -75,4 +75,61 @@ object PerfLineageUtils {
     if(printSeparatorLines) println(sepStr)
     
   }
+  
+  /** Join two key-ed RDDs assuming their partitions line up. By default, the left RDD is assumed
+   * to be smaller and used to build an in-memory map of values for joining.
+   */
+  def joinByPartitions[K,V1,V2](left: RDD[(K, V1)],
+                                right: RDD[(K, V2)],
+                                leftSmaller: Boolean = true): RDD[(K, (V1, V2))] = {
+    if(!leftSmaller) {
+      joinByPartitions(right, left, leftSmaller = false).map({case (k, v) => (k, v.swap)})
+    }
+    else {
+      right.zipPartitions(left) { (buildIter, streamIter) =>
+        val slowestRecordsMap = buildIter.toMap
+        if (slowestRecordsMap.isEmpty) {
+          Iterator.empty
+        } else {
+          streamIter.flatMap({ case (offset, text) =>
+            slowestRecordsMap.get(offset).map(score => (offset, (text, score)))
+            // fun scala: this is either an empty or singleton because get
+            // returns an option!
+          })
+        }
+      }
+    }
+  }
+  
+  def joinByPartitionsOld[K,V1,V2](prev: RDD[(K, V1)], baseRDD: RDD[(K, V2)]): RDD[(K, (V1, V2))]  = {
+    baseRDD.zipPartitions(prev) {
+      (buildIter, streamIter) =>
+        val hashMap = new java.util.HashMap[K,V2]()
+        var rowKey: (K, V2) = null.asInstanceOf[(K, V2)]
+        
+        // Create a Hash map of buildKeys
+        while (buildIter.hasNext) {
+          rowKey = buildIter.next()
+          val keyExists = hashMap.containsKey(rowKey._1)
+          if (!keyExists) {
+            hashMap.put(rowKey._1, rowKey._2)
+          }
+        }
+        
+        if (hashMap.isEmpty) {
+          Iterator.empty
+        } else {
+          streamIter.flatMap(current => {
+            if(!hashMap.containsKey(current._1)) {
+              Seq.empty
+            } else {
+              // assuming buildIter should be the 2nd value
+              val v2 = hashMap.get(current._1)
+              Seq((current._1, (current._2, v2)))
+            }
+          })
+          
+        }
+    }
+  }
 }

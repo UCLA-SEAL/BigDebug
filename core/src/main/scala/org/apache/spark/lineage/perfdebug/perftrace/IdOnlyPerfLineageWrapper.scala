@@ -5,6 +5,9 @@ import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, Part
 import org.apache.spark.rdd.RDD
 import IdOnlyPerfLineageWrapper._
 import org.apache.spark.Latency
+import org.apache.spark.annotation.Experimental
+import org.apache.spark.lineage.perfdebug.utils.{PartitionWithRecIdPartitioner, PerfLineageUtils}
+import org.apache.spark.lineage.rdd.TapPostShuffleLRDD
 
 /**
  * Implementation of [[PerfLineageWrapper]] that supports latency analysis on an RDD where
@@ -66,6 +69,38 @@ class IdOnlyPerfLineageWrapper(
  private def withNewIdAndLatencyRDD(newRDD: RDD[(PartitionWithRecId, Latency)]
                                     ): IdOnlyPerfLineageWrapper = {
    IdOnlyPerfLineageWrapper(lineageDependencies, newRDD, baseRDD)
+  }
+  
+  /** VERY EXPERIMENTAL attempt at joining latencies with program output, under the crucial
+   * assumption that appOutput is an RDD that contains the original program output in the same
+   * partitioning scheme. (order is somewhat flexible as long as shuffle keys are consistent).
+   * This is currently only tested for TapPostShuffleLRDD lineage joining (ie on a ShuffleLRDD
+   * result)!
+   * @param appOutput
+   */
+  @Experimental
+  def joinApplicationResultBeta[K,V](appOutput: RDD[(K, V)], print: Boolean = false) = {
+    assert(tapName == classOf[TapPostShuffleLRDD[_]].getSimpleName, "HELP! This isn't tested for " +
+      "non-PostShuffle RDDs yet!")
+    
+    val idLatPartitioner = new PartitionWithRecIdPartitioner(appOutput.getNumPartitions)
+    // don't need partition # anymore
+    val idAndLatPartitioned = idAndLatencyRDD.partitionBy(idLatPartitioner).map(
+      {case (key, value) => (key.recordId, value)}
+  
+      // appOutput: Key, Value (but the whole record is important!)
+      // idAndLatPartitioned: RecId, Latency
+      // For TapPostShuffleLRDD specifically, recID = key.hashCode!!
+    )
+    val outputWithHash = appOutput.map({case (key, value) => (key.hashCode, (key, value))})
+    val latencyWithResults =
+      PerfLineageUtils.joinByPartitions(idAndLatPartitioned, outputWithHash).values
+  
+    if(print) {
+      println("Printing (Latency, <AppResult>)...")
+      latencyWithResults.collect().foreach(println)
+    }
+    
   }
 }
 
