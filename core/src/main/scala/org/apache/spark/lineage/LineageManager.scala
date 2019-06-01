@@ -72,6 +72,8 @@ object LineageManager{
             uploadLineage(appId, rdd, linMgrStr, arr)
           } catch {
             case e: Exception => {
+              e.printStackTrace(System.out)
+              e.printStackTrace(System.err)
               println(s"Error storing data for $linMgrStr")
               e.printStackTrace()
               val sw = new StringWriter
@@ -80,6 +82,9 @@ object LineageManager{
               
               // edit 5/24/2019: since this is now a post-mortem tool, we absolutely do want to
               // collect data and throw an exception if some lineage/latency fails to be captured.
+              // 5/30: re-commenting this out, as there are occasional issues with uploading agg
+              // stats that might not be relevant for execution.
+              // 5/31: re-adding back in, as it's crucial to have lineage info
               throw e
             }
           } finally {

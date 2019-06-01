@@ -2,6 +2,7 @@ package org.apache.spark.lineage.perfdebug.perftrace
 
 import org.apache.spark.{Latency, Partitioner}
 import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.lineage.PerfDebugConf
 import org.apache.spark.lineage.perfdebug.lineageV2.{LineageCacheDependencies, LineageWrapper}
 import org.apache.spark.lineage.perfdebug.utils.CacheDataTypes.{CacheValue, EndOfStageCacheValue, PartitionWithRecId, TapHadoopLRDDValue}
 import org.apache.spark.lineage.perfdebug.utils.TapUtils._
@@ -348,8 +349,16 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
                currTap + " final computed latencies")
     result
   }
-  
-  private def addLatencyStats(
+  private def addLatencyStats(rdd: RDD[(OutputId, RmLatencyTupleWithCount)],
+                   aggDep: LineageCacheDependencies
+                  ): RDD[RecursiveSchema] = {
+    if(PerfDebugConf.get.estimateShuffleLatency) {
+      accumulateLatencyStats(rdd, aggDep)
+    } else {
+      skipLatencyStats(rdd, aggDep)
+    }
+  }
+  private def accumulateLatencyStats(
                                  rdd: RDD[(OutputId, RmLatencyTupleWithCount)],
                                  aggDep: LineageCacheDependencies
                                 ): RDD[RecursiveSchema] = {
@@ -382,6 +391,16 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
       }
     }
     result
+  }
+  
+  private def skipLatencyStats(
+                                  rdd: RDD[(OutputId, RmLatencyTupleWithCount)],
+                                  aggDep: LineageCacheDependencies
+                              ): RDD[RecursiveSchema] = {
+    // simplified version of above: ignores the aggregate latency stats altogether
+    rdd.map {
+      case(outputId, aggWithCount) => (outputId, aggWithCount.aggResult)
+    }
   }
   
   // jteoh: copied and adapted for new RmLatTuple type on 10/17/2018

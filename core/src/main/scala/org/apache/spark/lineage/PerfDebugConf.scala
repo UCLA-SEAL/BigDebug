@@ -13,10 +13,10 @@ import scala.util.Try
  */
 case class PerfDebugConf(wrapUDFs: Boolean = true,
                          // TODO look for "shuffle flag (instrumentation toggle)" TODOs and complete them.
-                         estimateShuffleLatency: Boolean = true,
+                         _estimateShuffleLatency: Boolean = false,
                          uploadLineage: Boolean = true, // default true
                          uploadLineageRecordsLimit: Int = -1,
-                         uploadBatchSize: Int = 100 * 1000, // default 100K
+                         _uploadBatchSize: Int = 100 * 1000, // default 100K
                          tapRDDs: Boolean = true,
                          materializeBuffers: Boolean = true,
                          allocateBuffers: Boolean = true,
@@ -78,6 +78,35 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
     }
   }
   
+  val PD_USE_SHUFFLE_ESTIMATES = "spark.perfdebug.shufflelatency.enabled"
+  lazy val estimateShuffleLatency: Boolean = {
+    val conf = SparkEnv.get.conf
+    if(conf.contains(PD_USE_SHUFFLE_ESTIMATES)) {
+      val boolStr = conf.get(PD_USE_SHUFFLE_ESTIMATES)
+      println(s"Found value for configuration ${PD_USE_SHUFFLE_ESTIMATES}: ${boolStr}. Note " +
+                s"that this overrides anything set in PerfDebugConf")
+      boolStr.toBoolean
+    } else {
+      println(s"No value found for configuration ${PD_USE_SHUFFLE_ESTIMATES}. Defaulting to " +
+                s"PerfDebugConf value ${_estimateShuffleLatency}")
+      _estimateShuffleLatency
+    }
+  }
+  
+  val PD_IGNITE_LINEAGE_BATCH_SIZE = "spark.perfdebug.lineage.ignite.batchsize"
+  lazy val uploadBatchSize: Int = {
+    val conf = SparkEnv.get.conf
+    if(conf.contains(PD_IGNITE_LINEAGE_BATCH_SIZE)) {
+      val confValue = conf.get(PD_IGNITE_LINEAGE_BATCH_SIZE)
+      println(s"Found value for configuration ${PD_IGNITE_LINEAGE_BATCH_SIZE}: ${confValue}. Note " +
+                s"that this overrides anything set in PerfDebugConf")
+      confValue.toInt
+    } else {
+      println(s"No value found for configuration ${PD_IGNITE_LINEAGE_BATCH_SIZE}. Defaulting to " +
+                s"PerfDebugConf value ${_uploadBatchSize}")
+      _uploadBatchSize
+    }
+  }
 }
 
 object PerfDebugConf {
