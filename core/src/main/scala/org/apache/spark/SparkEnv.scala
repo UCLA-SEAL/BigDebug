@@ -77,9 +77,10 @@ class SparkEnv (
   private[spark] val hadoopJobMetadata = new MapMaker().softValues().makeMap[String, Any]()
 
   private[spark] var driverTmpDir: Option[String] = None
+  // jteoh: Maybe add thread executor pool here rather than task context impl?
 
   private[spark] def stop() {
-
+    // jteoh: if not stopped, wait on thread executor pool here!
     if (!isStopped) {
       isStopped = true
       pythonWorkers.values.foreach(_.stop())

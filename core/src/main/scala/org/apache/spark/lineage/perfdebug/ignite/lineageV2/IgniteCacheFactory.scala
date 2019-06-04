@@ -13,7 +13,8 @@ object IgniteCacheFactory {
   // jteoh IGNITEMARKER
   //Ignition.setClientMode(true)
   //val ignite: Ignite = Ignition.ignite()
-  val ignite: Ignite = IgniteManager.getIgniteInstance()
+  // jteoh
+  lazy val ignite: Ignite = IgniteManager.getIgniteInstance()
   def createIgniteCache[K, V](cacheArguments: CacheArguments): IgniteCache[K, V] = {
     val cacheConf = new CacheConfiguration[K, V](cacheArguments.cacheName)
       .setAffinity(

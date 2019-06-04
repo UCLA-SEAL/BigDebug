@@ -10,7 +10,9 @@ import org.apache.spark.lineage.perfdebug.utils.{PartitionWithRecIdPartitioner, 
 import org.apache.spark.lineage.rdd.{TapHadoopLRDD, _}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.rdd.RDD._
+import org.apache.spark.util.BoundedPriorityQueue
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 
@@ -275,11 +277,44 @@ case class SlowestInputsCalculator(@transient initWrapper: LineageWrapper,
         val currRdd: RDD[(OutputId, OutputValue)] = curr.lineageCache.withValueType[OutputValue]
         debugPrint(currRdd, "EndOfStage lineage prior to join with prev latencies - " + currTap)
         // Arrange the output rdd (currRdd) so that it can be joined against the inputs.
-        val inpToOutputWithPartialLatency: RDD[(InputId, (OutputId, UnAccumulatedLatency))] =
+        var inpToOutputWithPartialLatency: RDD[(InputId, (OutputId, UnAccumulatedLatency))] =
+          // TODO 6/2/2019: See if it's possible to pre-filter some of these out.
+          // this by itself is a huge rdd proportional to the reduction factor of aggregation in
+        // first stage.
           currRdd.flatMap(r => r._2.inputKeysWithPartialLatencies.map({
             case (inputId, partialLatency) => (inputId, (r._1, partialLatency)) // discard the
             // value after getting inputs
           }))
+        if(curr.dependencies.head.tapName.isSourceTap &&
+          PerfDebugConf.get.experimentalPerfQueryFirstShuffleTrim.isDefined) {
+          // BETA OPTIMIZATION: we assume hadoop latencies are zero and that the slowest record
+          // is in the top K delay of the first stage. Note that this is ONLY to surpass some
+          // memory issues with ignite.
+          // Note: ideally we'd also change the SlowestInputWrappers to store not the hadoop
+          // value (which can be easily regenerated), but an arbitrary point in between
+          // (primarily targeting preshuffle values). That's a much bigger undertaking though.
+          val PRE_SHUFFLE_TRIM_BETA = PerfDebugConf.get.experimentalPerfQueryFirstShuffleTrim.get
+          inpToOutputWithPartialLatency = currRdd.flatMap(r => {
+            /*val topKInputsWithPartialLatencies = r._2.inputKeysWithPartialLatencies.foldLeft(
+              mutable.PriorityQueue[(InputId, UnAccumulatedLatency)]()(
+                Ordering.by(-_._2)) // keep a min-queue and drop all but k elements
+            )({ case (heap, tuple) =>
+              heap += tuple
+              if(heap.size > PRE_SHUFFLE_TRIM_BETA) heap.dequeue()
+              heap
+            }
+            )*/
+            val topKInputsWithPartialLatencies = r._2.inputKeysWithPartialLatencies.foldLeft(
+              new BoundedPriorityQueue[(InputId, UnAccumulatedLatency)](PRE_SHUFFLE_TRIM_BETA)(Ordering.by(_._2))
+            )(
+              { case (heap, tuple) => heap += tuple}
+            )
+            
+            topKInputsWithPartialLatencies.map(t => (t._1, (r._1, t._2)))
+            
+          })
+        }
+        
         val joinResult: RDD[(InputId, ((OutputId, UnAccumulatedLatency), SingleRmLatencyTuple))] =
         // TODO placeholder for future optimization - TapLRDDs should have 1-1 dependency on parents
           LineageWrapper.joinLineageKeyedRDDs(inpToOutputWithPartialLatency, prevLatencyRdd, useShuffle = false)

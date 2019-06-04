@@ -21,8 +21,8 @@ import com.google.common.hash.Hashing
 import org.apache.spark.Dependency
 import org.apache.spark.lineage.perfdebug.perftrace.AggregateLatencyStats
 import org.apache.spark.lineage.util.{IntIntIntByteBuffer, IntIntLongByteBuffer}
-import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext}
-import org.apache.spark.util.PackIntIntoLong
+import org.apache.spark.lineage.{Int2RoaringBitMapOpenHashMap, LineageContext, PerfDebugConf}
+import org.apache.spark.util.{BoundedPriorityQueue, PackIntIntoLong}
 import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 import scala.collection.mutable
@@ -45,7 +45,14 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
 
   override def materializeBuffer: Array[Any] = {
     //materializeBufferWithListBuffers
-    materializeBufferLongBitmap
+    if (PerfDebugConf.get.experimentalPreShuffleLineageBound.isDefined) {
+      println("Materializing pre shuffle buffer with bounded queue input lineage ids")
+      materializeBufferWithBoundedQueue
+    } else {
+      println("Materializing pre shuffle buffer with standard long bitmap")
+      materializeBufferLongBitmap
+    }
+    
   }
   
   def materializeBufferWithListBuffers: Array[Any] = {
@@ -75,6 +82,41 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
 
     outputToInputAndLatency.map({case (outputId, inputsWithLats) =>
       Tuple2(Tuple2(splitId.toInt, outputId), inputsWithLats)
+    }).toArray
+  }
+  
+  def materializeBufferWithBoundedQueue: Array[Any] = {
+    // Titian previously used an Int2RoaringBitMapOpenHashMap to store each outputID (key) and
+    // the (unordered) set of inputIDs (value = integer set). With the addition of latency, the
+    // value must now change to a set of (integer, long) which is not supported by the existing
+    // data structure. Instead, we opt for Scala's OpenHashMap, which allows for size
+    // specification (to avoid resizing).
+    //
+    // side note: if latency is reduced to ints, we could also combine inputID+latency into a
+    // single long. To my knowledge, there is still no hyperoptimized roaringbitmap equivalent
+    // for longs.
+    val mapCapacity = 16384 // taken from original Int2RoaringBitMapOpenHashMap
+    //val outputToInputAndLatency= new mutable.OpenHashMap[Int, mutable.PriorityQueue[(Int, Long)]](mapCapacity)
+    val outputToInputAndLatency= new mutable.OpenHashMap[Int, BoundedPriorityQueue[(Int, Long)]](mapCapacity)
+    
+    assert(PerfDebugConf.get.experimentalPreShuffleLineageBound.isDefined,
+           "Bounded priority queue approach for TapPreShuffleLRDD should only apply if explicitly enabled")
+    val lineageBound = PerfDebugConf.get.experimentalPreShuffleLineageBound.get
+    val iterator = buffer.iterator
+    while(iterator.hasNext) {
+      val next = iterator.next()
+      val key = next._1
+      val inputIdsWithLatencies = outputToInputAndLatency.getOrElseUpdate(
+        key, new BoundedPriorityQueue[(Int, Long)](lineageBound)(Ordering.by(_._2)))
+      inputIdsWithLatencies += Tuple2(next._2, next._3)
+    }
+    
+    // We release the buffer here because not needed anymore
+    releaseBuffer()
+    
+    outputToInputAndLatency.map({case (outputId, inputsWithLats) =>
+      Tuple2(Tuple2(splitId.toInt, outputId),
+             inputsWithLats.map(t => PackIntIntoLong.apply(t._1, t._2.toInt)).toSeq)
     }).toArray
   }
   

@@ -22,9 +22,16 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          allocateBuffers: Boolean = true,
                          uploadIgniteDataAfterConversion: Boolean = true,
                          _enableSparkContextPerfListenerPrinter: Boolean = true,
-                         enableSparkContextPerfListenerIgniteStore: Boolean = false) extends
+                         enableSparkContextPerfListenerIgniteStore: Boolean = false,
+                         _experimentalPerfQueryFirstShuffleTrim: Option[Int] = Some(5),
+                         experimentalPreShuffleLineageBound: Option[Int] = None //Some(10)
+                        ) extends
   Serializable {
-  
+  if(experimentalPreShuffleLineageBound.isDefined) {
+    println("Warning: pre shuffle lineage bound is experimental and WILL result in only partial " +
+              "lineage upload. This should be used with caution and under the expectation that " +
+              "slowest-input queries will be executed!")
+  }
   if(tapRDDs && !allocateBuffers) {
     println("Warning: RDD lineage buffers are not allocated but tapping is still enabled - these " +
               "tags will not be stored")
@@ -105,6 +112,26 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
       println(s"No value found for configuration ${PD_IGNITE_LINEAGE_BATCH_SIZE}. Defaulting to " +
                 s"PerfDebugConf value ${_uploadBatchSize}")
       _uploadBatchSize
+    }
+  }
+  
+  val PD_PERFQUERY_PRESHUFFLE_TRIM = "spark.perfdebug.lineage.perfquery.preshuffletrim"
+  lazy val experimentalPerfQueryFirstShuffleTrim: Option[Int] = {
+    val conf = SparkEnv.get.conf
+    if(conf.contains(PD_PERFQUERY_PRESHUFFLE_TRIM)) {
+      val confValue = conf.get(PD_PERFQUERY_PRESHUFFLE_TRIM)
+      println(s"Found value for configuration ${PD_PERFQUERY_PRESHUFFLE_TRIM}: ${confValue}. Note " +
+                s"that this overrides anything set in PerfDebugConf")
+      val value = confValue.toInt
+      if(value > 0) {
+        Some(value)
+      } else {
+        None
+      }
+    } else {
+      println(s"No value found for configuration ${PD_PERFQUERY_PRESHUFFLE_TRIM}. Defaulting to " +
+                s"PerfDebugConf value ${_experimentalPerfQueryFirstShuffleTrim}")
+      _experimentalPerfQueryFirstShuffleTrim
     }
   }
 }

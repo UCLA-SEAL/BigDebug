@@ -37,5 +37,7 @@ class IgniteLineageCacheRepository(igniteContext: IgniteContext)
     DEPENDENCIES_CACHE.put(jobId, lineageCacheDependencies)
   }
   
-  override def close(): Unit = igniteContext.close() // do we need to close on workers too?
+  override def close(): Unit = {}
+  // jteoh 6/1/2019: don't close things out, just in case!
+  // igniteContext.close() // do we need to close on workers too?
 }

@@ -39,7 +39,6 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
         }, x=> println(s"run() time: $x ms"))
       }
       finally {
-        lc.sparkContext.stop()
         if (useIgniteForLineageStorage) {
           println(s"Waiting $igniteLineageCloseDelay ms to ensure data is uploaded to ignite")
           // Spark/Titian will try to finalize the caches and upload to ignite after the job itself
@@ -60,7 +59,8 @@ abstract class LineageBaseApp(var lineageEnabled: Boolean = true,
         if(withIgnite) {
           LineageCacheRepository.close()
         }
-    
+        // jteoh: testing putting stop after the sleep delay
+        lc.sparkContext.stop()
       }
     }, x => println(s"Total time: $x ms"))
   }
