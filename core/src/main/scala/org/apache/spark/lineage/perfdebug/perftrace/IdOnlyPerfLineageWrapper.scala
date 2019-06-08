@@ -80,8 +80,8 @@ class IdOnlyPerfLineageWrapper(
    */
   @Experimental
   def joinApplicationResultBeta[K,V](appOutput: RDD[(K, V)], print: Boolean = false) = {
-    assert(tapName == classOf[TapPostShuffleLRDD[_]].getSimpleName, "HELP! This isn't tested for " +
-      "non-PostShuffle RDDs yet!")
+//    assert(tapName == classOf[TapPostShuffleLRDD[_]].getSimpleName, "HELP! This isn't tested for " +
+//      "non-PostShuffle RDDs yet!")
     
     val idLatPartitioner = new PartitionWithRecIdPartitioner(appOutput.getNumPartitions)
     // don't need partition # anymore

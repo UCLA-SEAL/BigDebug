@@ -24,7 +24,7 @@ case class PerfDebugConf(wrapUDFs: Boolean = true,
                          _enableSparkContextPerfListenerPrinter: Boolean = true,
                          enableSparkContextPerfListenerIgniteStore: Boolean = false,
                          _experimentalPerfQueryFirstShuffleTrim: Option[Int] = Some(5),
-                         experimentalPreShuffleLineageBound: Option[Int] = None //Some(10)
+                         experimentalPreShuffleLineageBound: Option[Int] = Some(10) //None
                         ) extends
   Serializable {
   if(experimentalPreShuffleLineageBound.isDefined) {
