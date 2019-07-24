@@ -2,9 +2,9 @@
 
 This branch contains the source code for [Titian: Data Provenance for Apache Spark published at Vldb 2015](https://github.com/maligulzar/bigdebug/blob/titian-2.1/vldb2016-p301-interlandi.pdf)
 
-The journal version of this work is avaible [here](https://link.springer.com/article/10.1007/s00778-017-0474-5)
+The journal version of this work is available [here](https://link.springer.com/article/10.1007/s00778-017-0474-5)
 
-A preliminary usage instructions are available at the BigDebug [website](https://sites.google.com/site/sparkbigdebug/)
+The preliminary usage instructions are available at the BigDebug [website](https://sites.google.com/site/sparkbigdebug/)
 
 
 ## Apache Spark
