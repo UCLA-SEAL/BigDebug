@@ -1,4 +1,13 @@
-# Apache Spark
+# Titian: Data Provenance for Apache Spark
+
+## This branch contains the source code for [Titian: Data Provenance for Apache Spark published at Vldb 2015](https://github.com/maligulzar/bigdebug/blob/titian-2.1/vldb2016-p301-interlandi.pdf)
+
+The journal version of this work is avaible [here](https://link.springer.com/article/10.1007/s00778-017-0474-5)
+
+A preliminary usage instructions are available at the BigDebug [website](https://sites.google.com/site/sparkbigdebug/)
+
+
+## Apache Spark
 
 Spark is a fast and general cluster computing system for Big Data. It provides
 high-level APIs in Scala, Java, Python, and R, and an optimized engine that
