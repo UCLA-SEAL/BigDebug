@@ -93,7 +93,7 @@ class BDPredicateCompiler(targetDir: Option[File]) extends Logging {
 	}
 
 	private def wrapCodeInClass(className: String, code: String) = {
-		"class " + className + " extends org.apache.spark.bdd.BDDFilter[" + extractType(code) + "] {\n" +
+		"class " + className + " extends org.apache.spark.bdd.BDFilter[" + extractType(code) + "] {\n" +
 			code +
 			"}\n"
 	}
