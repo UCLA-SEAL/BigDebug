@@ -1,3 +1,16 @@
+
+# BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark
+
+This branch contains the source code for [BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark at ICSE 2016](http://web.cs.ucla.edu/~miryung/Publications/icse2016-gulzar-bigdebug.pdf)
+
+The demo papers of this work are available here [FSE 2016](http://web.cs.ucla.edu/~miryung/Publications/fse2016demo-bigdebug.pdf)
+and [SIGMOD 2017](http://web.cs.ucla.edu/~miryung/Publications/sigmod2017-bigdebugdemo.pdf)
+
+The demo videos are available here [Spark Summit 2017](https://www.youtube.com/watch?v=_HR3VJ2dPbE) and [Tutorial](https://www.youtube.com/watch?v=aZ91EyC5-Yc)
+
+The preliminary usage instructions are available at the BigDebug [website](https://sites.google.com/site/sparkbigdebug/)
+
+
 # Apache Spark
 
 Spark is a fast and general cluster computing system for Big Data. It provides
