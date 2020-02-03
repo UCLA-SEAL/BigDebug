@@ -31,6 +31,7 @@ import org.apache.spark.shuffle.ShuffleHandle
 @DeveloperApi
 abstract class Dependency[T] extends Serializable {
   def rdd: RDD[T]
+  def tapDependency(tap: RDD[_] = null): Dependency[T] = throw new NotImplementedError()
 }
 
 
@@ -93,7 +94,7 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
   _rdd.sparkContext.cleaner.foreach(_.registerShuffleForCleanup(this))
 
   /** Added by Matteo */
-  def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
+  override def tapDependency(tap: RDD[_] = null): ShuffleDependency[K, V, C] = {
     _rdd = tap.asInstanceOf[RDD[Product2[K, V]]]
     this
   }
@@ -109,7 +110,7 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
   override def getParents(partitionId: Int): List[Int] = List(partitionId)
 
   /** Added by Matteo */
-  def tapDependency(tap: RDD[_] = null): OneToOneDependency[T] = {
+  override def tapDependency(tap: RDD[_] = null): OneToOneDependency[T] = {
     new OneToOneDependency[T](tap.asInstanceOf[RDD[T]])
   }
 }

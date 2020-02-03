@@ -142,7 +142,14 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
    * Run a job on all partitions in an RDD and return the results in an array.
    */
   def runJob[T: ClassTag, U: ClassTag](rdd: Lineage[T], func: Iterator[T] => U): Array[U] = {
+    println("-" * 40)
+    println("BEFORE")
+    println(rdd.toDebugString)
     val tappedRdd = if(isLineageActive) tapJob(rdd) else rdd
+    println("-"*  40)
+    println("AFTER")
+    println(tappedRdd.toDebugString)
+    println("-" * 40)
 //    sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
     sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size)
 
@@ -190,7 +197,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     current
   }
 
-  def getLineage(rdd: Lineage[_]) = {
+  def getLineage(rdd: Lineage[_]): Lineage[_] = {
     val initialTap: Lineage[_] = rdd.materialize
     val visited = new HashSet[RDD[_]]
 
@@ -218,6 +225,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     visit(initialTap, initialTap)
 
     currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
+    currentLineagePosition.get
   }
 
   private def tapJob[T](rdd: Lineage[T]): TapLRDD[T] = {
@@ -238,12 +246,12 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
             case narDep: OneToOneDependency[_] =>
               // Intercept the end of the stage to add a post-shuffle tap
-              if(narDep.rdd.dependencies.nonEmpty) {
-                if(narDep.rdd.dependencies
-                  .count(d => d.isInstanceOf[ShuffleDependency[_, _, _]]) > 0) {
-                  val tap = narDep.rdd.tapRight()
-                  deps += narDep.tapDependency(tap)
-                }
+              if(narDep.rdd.dependencies
+                .count(d => d.isInstanceOf[ShuffleDependency[_, _, _]]) > 0) {
+                val tap = narDep.rdd.tapRight()
+                deps += narDep.tapDependency(tap)
+              } else {
+                deps += narDep // jteoh: added else case
               }
 
             case _ =>
@@ -254,9 +262,58 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         }
       }
     }
+
+    implicit class ShuffleCheckRDD(rdd: RDD[_]) {
+      def isStageBoundary: Boolean = {
+        rdd match {
+          case _: ShuffledLRDD[_, _, _] | _: CoGroupedLRDD[_] =>
+            // not shown: SubtractRDDs can also have shuffle dependencies!
+            true
+          case _ => false
+        }
+      }
+    }
+    
+    def visitFixed(rdd: RDD[_]): Unit = {
+      if (!visited(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
+        visited += rdd
+        waitingForVisit.pushAll(rdd.dependencies.map(_.rdd))
+  
+        // Task #1: Analyze the rdd for shuffle parents at tap them if so. Update this set of
+        // dependencies to point to those taps.
+        val firstPassDependencies = rdd.dependencies.map(dep => {
+          val depRdd = dep.rdd
+          if (depRdd.isStageBoundary) {
+            val tap = depRdd.tapRight()
+            // If we tap a parent's right, we want to insert a 1-1 dependency between the tap and
+            // this rdd. ?? should be a narrow dependency since we assume this is postshuffle
+            // Before: Parent - <NarDep> - This
+            // After: Parent - <implicitly made 1-1> - Tap - <NarDep?> - This
+            dep.tapDependency(tap)
+            // implicitly this is by default new OneToOneDependency(tap)
+            // returning a 1-1 dependency might not be entirely correct, e.g. in cases where a
+            // coalesce is called (or some other non-1-to-1 dependency).
+          } else {
+            dep
+          }
+        })
+        
+        // Task #2: If the current RDD is a shuffle, add a PreShuffle and update dependencies again
+        val finalDependencies = if (rdd.isStageBoundary) {
+          // TODO: check if stage doesn't involve shuffle. if so, explicitly handle this...
+          val tap = rdd.tapLeft() // insert a tap before this shuffle
+          // Stuff - <X> - Shuffle
+          // Stuff - <implicitly made 1-1> - PreShuffleTap - <X> - Shuffle
+          firstPassDependencies.map(_.tapDependency(tap))
+        } else {
+          firstPassDependencies
+        }
+        rdd.updateDependencies(finalDependencies)
+        }
+      }
     waitingForVisit.push(rdd)
-    while (!waitingForVisit.isEmpty) {
-      visit(waitingForVisit.pop())
+    while (waitingForVisit.nonEmpty) {
+      visitFixed(waitingForVisit.pop())
     }
 
     rdd.tapRight()
@@ -362,6 +419,7 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         case hadoop: TapHadoopLRDD[Long @unchecked, Int @unchecked] =>
           hadoop.map(_.swap).map(r => ((Dummy, r._1), r._2))
         case tap: TapLRDD[_] => tap
+        case _ => throw new Exception("Tap RDD not found - did you forget to collect lineage?")
       }
       Some(result)
     }

@@ -60,8 +60,11 @@ private[spark] class PairLRDDFunctions[K, V](self: Lineage[(K, V)])
       throw new SparkException("Default partitioner cannot partition array keys.")
     }
     val cg = new CoGroupedLRDD[K](Seq(self, other), partitioner)
-    cg.mapValues { case Array(vs, w1s) =>
-      (vs.asInstanceOf[Iterable[V]], w1s.asInstanceOf[Iterable[W]])
+    cg.mapValues {
+      case Array(vs, w1s) =>
+        (vs.asInstanceOf[Iterable[V]], w1s.asInstanceOf[Iterable[W]])
+      case e => // for some reason, there's only one iterable in this value...
+        throw new Exception(s"What happened? $e")
     }
   }
 

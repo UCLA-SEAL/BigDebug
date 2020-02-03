@@ -63,5 +63,7 @@ class TapPreShuffleLRDD[T <: Product2[_, _]: ClassTag](
   override def tap(record: T) = {
     buffer.put(Hashing.murmur3_32().hashString(record._1.toString).asInt(), tContext.currentInputId)
     record
+    // TODO: if there's no shuffle after this operation, we need to map with:
+    // (value, splitID + keyHash)
   }
 }

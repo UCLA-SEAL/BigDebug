@@ -25,11 +25,13 @@ trait Lineage[T] extends RDD[T] {
   // None = no cache, true = pre, false = post
   private[spark] var isPreShuffleCache: Option[Boolean] = None
 
+  // jteoh: tap on RHS should only ever be inserted once - there's never a reason to have multiple.
+  private lazy val rightTap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
   def tapRight(): TapLRDD[T] = {
-    val tap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
-    setTap(tap)
+    // val tap = new TapLRDD[T](lineageContext, Seq(new OneToOneDependency(this)))
+    setTap(rightTap)
     setCaptureLineage(true)
-    tap
+    rightTap
   }
 
   def tapLeft(): TapLRDD[T] = tapRight()
