@@ -1,3 +1,5 @@
+package examples
+
 import org.apache.spark.SparkConf
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
@@ -12,7 +14,7 @@ object ScratchRDD extends App {
                             .set("spark.eventLog.enabled", "true")
   val spark = SparkSession
     .builder.config(conf)
-    .appName("ScratchRDD")
+    .appName("examples.ScratchRDD")
     .getOrCreate()
   
   spark.sparkContext.setLogLevel("WARN")

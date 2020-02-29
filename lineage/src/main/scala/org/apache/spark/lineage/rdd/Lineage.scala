@@ -5,6 +5,7 @@ import org.apache.hadoop.mapred.TextOutputFormat
 import org.apache.spark.Partitioner._
 import org.apache.spark.lineage.LineageContext
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.iterative.IterationStartRDD
 import org.apache.spark.rdd._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.{PackIntIntoLong, Utils}
@@ -66,11 +67,20 @@ trait Lineage[T] extends RDD[T] {
         case tap: TapHadoopLRDD[Any@unchecked, Long@unchecked] =>
           tap //.map(_.swap)
         case tap: TapLRDD[(Long, Long)@unchecked] =>
-          tap.map(r => (r._1, (Dummy, r._2)))
+          // jteoh: not sure why this is the case, as TapLRDD is by default written out as
+          // [out, in]
+          // whereas other RDDs (e.g. TapPost) are written as [inp, out]
+          tap.map(r => (r._1, (Dummy, r._2))).setName("TapLRDD map to lineage")
+          // fixed versino below
+          //tap.map(_.swap).setName("TapLRDD map to lineage")
       }
     }
     throw new UnsupportedOperationException("no lineage support for this RDD")
   }
+  
+  // currently a secret alias to getLineage(), Titian does iteration-based stuff under the covers...
+  // primarily in setCaptureLineage.
+  def getIterationLineage(): LineageRDD = getLineage()
 
   def setIsPreShuffleCache(): Lineage[T] = {
     this.isPreShuffleCache = Some(true)
@@ -84,7 +94,7 @@ trait Lineage[T] extends RDD[T] {
 
   def getAggregate(tappedIter: Iterator[Nothing], context: TaskContext): Iterator[Product2[_, _]] = Iterator.empty
 
-  private[spark] def rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
+  private[spark] def  rightJoin[T, V](prev: Lineage[(T, Any)], next: Lineage[(T, V)]) = {
     prev.zipPartitions(next) {
       (buildIter, streamIter) =>
         val hashSet = new java.util.HashSet[T]()
@@ -109,6 +119,12 @@ trait Lineage[T] extends RDD[T] {
     }
   }
 
+  // Looks like this is meant to be used with:
+  // Lineage corresponding to TapHadoopLRDD after filtering
+  //        not sure about this format - looks like it's expected as a RecordID (e.g. just the
+  //        'inputs'
+  // TapHadoopLRDD lineage table (full) [LongWritable hadoop value, Int output id]
+  // HadoopLRDD.map, to join with the taphadoop
   private[spark] def join3Way(
       prev: Lineage[(Int, _)],
       next1: Lineage[(Long, Int)],
@@ -410,6 +426,13 @@ trait Lineage[T] extends RDD[T] {
         (item, i * n + k)
       }
     }
+  }
+  
+  def markIterationStart(): IterationStartRDD[T] = {
+    // tap right to make sure there's some sort of lineage table stored beforehand, then insert
+    // the IterationStart marker. Cast to type T for consistency reasons.
+    val iterationPrev = tapRDD.getOrElse(this.tapRight()).asInstanceOf[TapLRDD[T]]
+    new IterationStartRDD[T](iterationPrev)
   }
 }
 

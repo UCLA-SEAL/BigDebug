@@ -27,6 +27,7 @@ import org.apache.hadoop.io.{LongWritable, Text}
 import org.apache.spark._
 import org.apache.spark.lineage.Direction.Direction
 import org.apache.spark.lineage.LineageContext._
+import org.apache.spark.lineage.iterative.{IterationStartLineageRDD, IterationStartRDD}
 import org.apache.spark.lineage.rdd.Lineage._
 import org.apache.spark.lineage.{Direction, HashAwarePartitioner, LocalityAwarePartitioner}
 import org.apache.spark.rdd.RDD
@@ -35,8 +36,8 @@ import org.apache.spark.util.collection.CompactBuffer
 
 import scala.reflect._
 
-private[spark]
 class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with Lineage[Any] {
+  this.setName(s"LineageRDD for '${Option(prev.name).getOrElse(prev.getClass.getSimpleName)}'")
 
   def this(prev: => Lineage[(Int, Any)]) = this(prev.map(r => ((Dummy, r._1), r._2)))
 
@@ -77,6 +78,46 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       new LineageRDD(firstParent[(Long, Any)].filter(r => r._1 == f).cache())
       //new LineageRDD(firstParent[((Long, Int), Any)].filter(r => r._1._2 == f).cache())
     }
+  }
+  
+  // Used to join pre-iteration and iteration lineage together
+  def filterMerge(preIter: LineageRDD, printDebug: Boolean = false): Lineage[(RecordId, RecordId)] = {
+    // For unknown reasons, this seems to be computed in a final form of Output/Input and needs
+    // to be swapped
+    val iterationLineage = this.asInstanceOf[Lineage[(RecordId, RecordId)]].map(_.swap)
+    val preIterUnpacked = preIter.asInstanceOf[Lineage[(Long, RecordId)]] // tapLRDD signature, [out, in]
+                                  .map(p => (PackIntIntoLong.asTuple(p._1), p._2))
+    // TODO: use rightJoin if things are partitioned properly, but for some reason they aren't
+    //  initially...
+    // val result = rightJoin[RecordId, RecordId](iterationLineage, preIterUnpacked)
+    
+    val result: Lineage[(RecordId, RecordId)] = iterationLineage.join(preIterUnpacked,
+                                                                          new LocalityAwarePartitioner(iterationLineage.getNumPartitions))
+                                                                    .map(r => (r._1, r._2._2))
+    
+    
+    if(printDebug) {
+      println("****** iteration")
+      println(iterationLineage) //.toDebugString)
+      //println(iterationLineage.firstParent)
+      println(iterationLineage.count())
+      iterationLineage.collect().take(10).foreach(println)
+      println("------ pre-iter")
+      println(preIterUnpacked) //.toDebugString)
+      //println(preIterUnpacked.firstParent)
+      println(preIterUnpacked.count())
+      //println(other.collect().take(10).foreach(println))
+      preIterUnpacked.collect().take(10).foreach(println)
+      println("------ join result")
+      println(result.count())
+      result.collect().take(10).foreach(println)
+      println("***** trace result")
+      val inputIds = result.goBackAll()
+  
+      println(inputIds.count())
+      inputIds.collect().take(10).foreach(println)
+    }
+    result
   }
 
   override def saveAsDBTable(url: String, username: String, password: String, path: String, driver: String): Unit = {
@@ -285,6 +326,125 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
   def goBackAll(times: Int = Int.MaxValue) = go(times, Direction.BACKWARD)
 
   def goNextAll(times: Int = Int.MaxValue) = go(times)
+  
+  def goBackIterative(path: Int = 0): LineageRDD = {
+    // TODO understand this...
+    // stop it at the iterative start
+    // create a .map() of some sort to generate expected lineage IDs
+    // this is a modified version of goBack()
+    val next = lineageContext.getBackward(path)
+    val current = lineageContext.getCurrentLineagePosition.get
+    if (next.isDefined) {
+      val shuffled: Lineage[(RecordId, Any)] = current match {
+        case _: TapPreShuffleLRDD[_]  =>
+          val part = new LocalityAwarePartitioner(next.get.partitions.size)
+          val last = lineageContext.getLastLineageSeen.get
+          val join = rightJoin[Long, (CompactBuffer[Long], Int)](prev,
+                                                                 last.asInstanceOf[Lineage[(Long, (CompactBuffer[Long], Int))]])
+          
+//          println(s"!!!TapPreShuffle join-friends to make 'shuffled': \n\t$prev\n\t$last")
+//          println("*"*40)
+//          prev.collect().map(collToStr).foreach(println)
+//          println("*"*40)
+//          last.collect().map(collToStr).foreach(println)
+//          println("*" * 40)
+//          println("TapPreShuffle mid-join 'shuffled'")
+//          println("*" * 40)
+//          join.collect().map(collToStr).foreach(println)
+//          println("*" * 40)
+          new ShuffledLRDD[RecordId, Any, Any](join
+                                                 .map(_.swap)
+                                                 .flatMap(r => r._1._1.map(r2 => ((PackIntIntoLong.getLeft(r2), r._1._2), (Dummy, r._2)))), part)
+        case _ =>
+          prev
+      }
+      
+//      println(s"!!!GoBackIter current pos, shuffled, next: \n\t$temp\n\t$shuffled\n\t$next")
+//      println("*" * 40 + "temp")
+//      temp.collect().map(collToStr).foreach(println)
+//      println("*" * 40 + "shuffled")
+//      shuffled.collect().map(collToStr).foreach(println)
+//      println("*" * 40 + "next")
+//      next.get.collect().map(collToStr).foreach(println)
+      
+      current match {
+        case _: TapPreShuffleLRDD[_] =>
+          rightJoin(shuffled, next.get)
+            .flatMap(r => r._2.asInstanceOf[Array[Int]].map(b => (r._1, (r._1._1, b))))
+            .cache()
+        case _: TapParallelCollectionLRDD[_] =>
+          rightJoin[Int, Any](shuffled, next.get.map(_.swap).asInstanceOf[Lineage[(Int, Any)]])
+            .map(_.swap).cache()
+        case _: TapPostCoGroupLRDD[_] =>
+          rightJoin[Int, (CompactBuffer[Int], Int)](shuffled.map(_.swap),next.get)
+            .flatMap(r => r._2._1.map(c => ((c, r._1), (c, r._2._2))))
+            .cache()
+        case _: IterationStartLineageRDD[_] =>
+          // similar to TapHadoop, which is the 'else'/default case,
+          rightJoin[Int, Any](shuffled.map(_.swap), next.get).cache()
+        case _ =>
+          rightJoin[Int, Any](shuffled.map(_.swap), next.get.map { r =>
+            if(r._1.isInstanceOf[Tuple2[_, _]])(r._1._2, r._2) else r.asInstanceOf[(Int, Any)]})
+            .map(r => ((Dummy, r._1), r._2))
+            .cache()
+      }
+    } else {
+      current match {
+        case _: TapPreShuffleLRDD[_] =>
+          val part = new LocalityAwarePartitioner(prev.partitions.size)
+          val shuffled = new ShuffledLRDD[RecordId, Any, Any](prev
+                                                                .asInstanceOf[Lineage[(Any, (CompactBuffer[Long], Int))]]
+                                                                .flatMap(r => r._2._1.map(c => ((PackIntIntoLong.getLeft(c), r._2._2), (Dummy, r._1)))), part)
+          rightJoin[RecordId, Array[Int]](shuffled, current)
+            .flatMap(r => r._2.map(b => (r._1, (Dummy, b))))
+            .cache
+        case _ => prev.map(_.swap).cache()
+      }
+    }
+  }
+  // debugging aid
+  private def collToStr(x: Any): String = x match {
+    case tup: Tuple2[_, _] =>
+      s"(${collToStr(tup._1)}, ${collToStr(tup._2)})"
+    case arr: Array[_] => arr.map(collToStr).mkString("[",",","]")
+    case _ => x.toString
+  }
+  
+  def goBackUntilIterationStart(): LineageRDD = {
+    def atIterationStart = {
+      lineageContext.getCurrentLineagePosition.get match {
+        case _: IterationStartLineageRDD[_] =>
+          true
+        case _ =>
+          false
+      }
+    }
+    var result = this
+    var debugTmp = lineageContext.getCurrentLineagePosition.get
+    while(!atIterationStart) {
+//      println(s"Total join count: $result : ${result.count}")
+//      println(s"\tCurrent position: ${debugTmp} has ${debugTmp.count}")
+//      println("=" * 40 + "result")
+//      println(result.toString)
+//      result.collect().map(collToStr).foreach(println)
+//      println("-" * 40)
+//      println(s"\t${debugTmp.toString}")
+//      debugTmp.collect().map(collToStr).foreach(x => println(s"\t$x"))
+//      println("=" * 40)
+      result = result.goBackIterative()
+      debugTmp = lineageContext.getCurrentLineagePosition.get
+    }
+//    println(s"Final result count: $result : ${result.count}")
+//    println(s"\tFinal position: ${debugTmp} has ${debugTmp.count}")
+//    println("=" * 40 + "result")
+//    println(result.toString)
+//    result.collect().map(collToStr).foreach(println)
+////    println("-" * 40)
+////    println(s"\t${debugTmp.toString}")
+////    debugTmp.collect().map(collToStr).foreach(x => println(s"\t$x"))
+//    println("=" * 40)
+    result
+  }
 
   def show(): ShowRDD[_] = {
     val position = lineageContext.getCurrentLineagePosition
@@ -292,6 +452,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
       var result: ShowRDD[_] = null
       position.get match {
         case _: TapHadoopLRDD[_, _] =>
+          println(lineageContext.getLastLineageSeen.get)
           lineageContext.getLastLineageSeen.get match {
             case _: TapPreShuffleLRDD[_] | _: TapPreCoGroupLRDD[_] =>
               result = new ShowRDD[Long](
@@ -300,8 +461,13 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
                     .map(r => (r._1.get(), r._2.toString))
                 ).cache())
             case _: TapLRDD[_] =>
+              //TODO: I think this is joining TapLRDD, TapHadoopLRDD, and HadoopLRDD but tbh not
+              // sure.
+              // prev: just before the show
+              // prev.firstParent: HadoopLRDD duh
               result = new ShowRDD(join3Way(
-                prev.map(r => r._1),
+                prev.map(r => r._1), // the first column, hopefully the 'inputs'..., assumption
+                // of partitioning in place though.
                 position.get.asInstanceOf[Lineage[(Long, Int)]],
                 position.get.firstParent.asInstanceOf[HadoopLRDD[LongWritable, Text]]
                   .map(r => (r._1.get(), r._2.toString))

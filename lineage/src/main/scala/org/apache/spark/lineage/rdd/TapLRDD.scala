@@ -55,7 +55,7 @@ class TapLRDD[T: ClassTag](@transient lc: LineageContext, @transient deps: Seq[D
   private[spark] override def computeOrReadCheckpoint(
      split: Partition,
      context: TaskContext): Iterator[T] = compute(split, context)
-
+  
   override def ttag = classTag[T]
 
   override def lineageContext: LineageContext = lc

@@ -22,9 +22,10 @@ import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, TextInpu
 import org.apache.spark._
 import org.apache.spark.internal.Logging
 import org.apache.spark.lineage.Direction.Direction
+import org.apache.spark.lineage.iterative.{IterationStartLineageRDD, IterationStartRDD}
 import org.apache.spark.lineage.rdd._
 import org.apache.spark.rdd._
-import org.apache.spark.util.SerializableConfiguration
+import org.apache.spark.util.{PackIntIntoLong, SerializableConfiguration}
 
 import scala.collection.mutable
 import scala.collection.mutable.{HashSet, Stack}
@@ -142,14 +143,19 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
    * Run a job on all partitions in an RDD and return the results in an array.
    */
   def runJob[T: ClassTag, U: ClassTag](rdd: Lineage[T], func: Iterator[T] => U): Array[U] = {
-    println("-" * 40)
-    println("BEFORE")
-    println(rdd.toDebugString)
-    val tappedRdd = if(isLineageActive) tapJob(rdd) else rdd
-    println("-"*  40)
-    println("AFTER")
-    println(tappedRdd.toDebugString)
-    println("-" * 40)
+    val tappedRdd = if(isLineageActive) {
+      val temp = tapJob(rdd)
+//      println("-" * 40)
+//      println("BEFORE")
+//      println(rdd.toDebugString)
+//      println("-"*  40)
+//      println("AFTER")
+//      println(temp.toDebugString)
+//      println("-" * 40)
+      temp
+    } else rdd
+    
+    
 //    sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size, false)
     sparkContext.runJob(tappedRdd, func, 0 until tappedRdd.partitions.size)
 
@@ -227,15 +233,68 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
     currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
     currentLineagePosition.get
   }
+  
+  // Move backwards and find lineage ending at iteration start. If none is found, this behaves
+  // like the usual getLineage.
+  def getIterationLineage(rdd: Lineage[_]): Lineage[_] = {
+    val initialTap: Lineage[_] = rdd.materialize
+    // trace backwards in the lineage graph and 'edit' the RDD dependencies so only the Taps are
+    // linked together.
+    // I've simplified this by removing the visited sets - we can add it back in if needed.
+    def visit(rdd: RDD[_], parent: RDD[_]) {
+      rdd.setCaptureLineage(isLineageActive)
+      var dependencies = List[OneToOneDependency[_]]()
+      for (dep <- rdd.dependencies) {
+        var shouldVisitParent = true
+        val newParent: RDD[_] = dep.rdd match {
+          case tap: TapLRDD[_] =>
+            dependencies = new OneToOneDependency(tap.materialize.cache()) :: dependencies
+            tap
+          case start: IterationStartRDD[_] =>
+            // if we come across an iteration start, we need to
+            // (1) produce an RDD of just its IDs alone
+            val lineageRDD = start.lineageBuffer()
+            dependencies = new OneToOneDependency(lineageRDD) :: dependencies
+            shouldVisitParent = false
+            lineageRDD
+          case _ => parent
+        }
+        if(shouldVisitParent) visit(dep.rdd, newParent)
+      }
+      if (!dependencies.isEmpty) {
+        val oldDeps = parent.dependencies.filter(d => d.rdd.isInstanceOf[TapLRDD[_]])
+        parent.updateDependencies(oldDeps.toList ::: dependencies)
+      }
+    }
+    
+    visit(initialTap, initialTap)
+    
+    currentLineagePosition = Some(rdd.asInstanceOf[Lineage[(RecordId, Any)]])
+    currentLineagePosition.get
+  }
+  
+//  private def removeTaps[T](rdd: Lineage[T]): Lineage[T] = {
+//    def visit(rdd: RDD[_]): Unit = {
+//      rdd.dependencies.foreach(dep => {
+//        dep.rdd match {
+//          case _: TapLRDD[_] =>
+//
+//        }
+//      })
+//    }
+//  }
 
+  // jteoh: 2/21/2020 enhancement: keep a global set of visited RDDs and avoid re-tapping them.
+  // this does come with an underlying assumption that some RDDs won't be re-used later, which
+  // may require adjustments later on.
+  private val tappedRDDs = new HashSet[RDD[_]]
   private def tapJob[T](rdd: Lineage[T]): TapLRDD[T] = {
-    val visited = new HashSet[RDD[_]]
     // We are manually maintaining a stack here to prevent StackOverflowError
     // caused by recursively visiting
     val waitingForVisit = new Stack[RDD[_]]
     def visit(rdd: RDD[_]) {
-      if (!visited(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
-        visited += rdd
+      if (!tappedRDDs(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
+        tappedRDDs += rdd
         val deps = new HashSet[Dependency[_]]
         for (dep <- rdd.dependencies) {
           waitingForVisit.push(dep.rdd)
@@ -274,9 +333,13 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       }
     }
     
+    def shouldVisit(rdd: RDD[_]): Boolean = {
+      !tappedRDDs.contains(rdd) && !rdd.isInstanceOf[TapLRDD[_]]
+    }
+    
     def visitFixed(rdd: RDD[_]): Unit = {
-      if (!visited(rdd) && !rdd.isInstanceOf[TapLRDD[_]]) {
-        visited += rdd
+      if (shouldVisit(rdd)) {
+        tappedRDDs += rdd
         waitingForVisit.pushAll(rdd.dependencies.map(_.rdd))
   
         // Task #1: Analyze the rdd for shuffle parents at tap them if so. Update this set of
@@ -311,12 +374,20 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
         rdd.updateDependencies(finalDependencies)
         }
       }
-    waitingForVisit.push(rdd)
-    while (waitingForVisit.nonEmpty) {
-      visitFixed(waitingForVisit.pop())
+    
+    if(shouldVisit(rdd)) {
+      waitingForVisit.push(rdd)
+      while (waitingForVisit.nonEmpty) {
+        visitFixed(waitingForVisit.pop())
+        //visit(waitingForVisit.pop())
+      }
+    
+      rdd.tapRight()
+    } else {
+      
+      // This should already be tapped, so return the original instance rather than revising!
+      rdd.getTap.get.asInstanceOf[TapLRDD[T]]
     }
-
-    rdd.tapRight()
   }
 
   private def tapJobWithId[T](rdd: Lineage[T]): RDD[(T, Long)] = {
@@ -383,7 +454,8 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
 
   def setCaptureLineage(newLineage: Boolean) = {
     if(newLineage == false && captureLineage == true) {
-      getLineage(lastLineagePosition.get)
+      //getLineage(lastLineagePosition.get)
+      getIterationLineage(lastLineagePosition.get)
     }
     captureLineage = newLineage
   }
@@ -414,12 +486,16 @@ class LineageContext(@transient val sparkContext: SparkContext) extends Logging 
       None
     } else {
       val result: Lineage[(RecordId, Any)] = getCurrentLineagePosition.get match {
+        case iterLineage: IterationStartLineageRDD[_] =>
+          iterLineage.map(r => (r, r)) // the second value is only duplicated for API
+        // compatibility
         case postCG: TapPostCoGroupLRDD[(Int, Any) @unchecked] =>
           postCG.map(r => ((Dummy, r._1), r._2))
         case hadoop: TapHadoopLRDD[Long @unchecked, Int @unchecked] =>
           hadoop.map(_.swap).map(r => ((Dummy, r._1), r._2))
         case tap: TapLRDD[_] => tap
-        case _ => throw new Exception("Tap RDD not found - did you forget to collect lineage?")
+        case nonTap => throw new Exception("Tap RDD not found - did you forget to collect " +
+                                             s"lineage? $nonTap")
       }
       Some(result)
     }

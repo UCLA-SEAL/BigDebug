@@ -102,8 +102,14 @@ class LAggregator[K, V, C] (
           combiners.insert(pair._1, pair._2)
         }
       } else {
+        // TODO jteoh: error when mapside combine is set to true (i.e. this method is called)
+        //  where pair._2._2 is an Int but was expected as Long. As it's only called in one
+        //  location (farther down), we just change the data type here.
+        // This casting here is a patch fix but there's probably some other fundamental flaw
         var pair: Product2[K, Product2[C, Long]] = null
         val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Long]]]]
+        //var pair: Product2[K, Product2[C, Int]] = null
+        //val tappedIter = iter.asInstanceOf[Iterator[_ <: Product2[K, Product2[C, Int]]]]
         if(isCache) {
           while (iter.hasNext) {
             pair = tappedIter.next()
