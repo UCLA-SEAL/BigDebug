@@ -1,9 +1,12 @@
 package org.apache.spark.lineage.ui
+import java.util
 import javax.servlet.http.HttpServletRequest
+
 import org.apache.commons.lang3.StringEscapeUtils
 import org.apache.spark.internal.Logging
 import org.apache.spark.ui.scope.{RDDOperationCluster, RDDOperationGraph, RDDOperationNode}
 import org.apache.spark.ui.{ToolTips, UIUtils, WebUIPage}
+
 import scala.collection.mutable.StringBuilder
 import scala.xml.{Node, Unparsed}
 
@@ -245,10 +248,10 @@ class BSUIPage(parent: BigSiftWebUI, listener: BigSiftUIListenerBus) extends Web
 }
 
 object BSUIPage {
-
+ var  listn : BigSiftUIListenerBus  = null
 
   def getPieDiv(listener: BigSiftUIListenerBus): Seq[Node] ={
-    //listener.sparkContext.get.jobProgressListener.
+    listn = listener
     if(listener.sparkContext.isDefined && listener.jobId!= -1) {
       <div>
         {showDagVizForJob(
@@ -264,11 +267,19 @@ object BSUIPage {
   }
 
   def makeDotFile(graph: Seq[RDDOperationGraph]): String = {
+
+    val list: util.ArrayList[Int] = new util.ArrayList[Int]()
     val dotFile = new StringBuilder
     dotFile.append(s""" digraph ""{\n """)
     graph.map { g =>
-      makeDotSubgraph(dotFile, g.rootCluster, indent = "  ")
-      g.edges.foreach { edge => dotFile.append( s"""  ${edge.fromId}->${edge.toId};\n""") }
+      makeDotSubgraph(dotFile, g.rootCluster, indent = "  " , list)
+      g.edges.foreach {
+
+        edge =>
+          if(list.contains(edge.toId) || list.contains(edge.toId)){}else {
+            dotFile.append( s"""  ${edge.fromId}->${edge.toId};\n""")
+          }
+      }
       dotFile.append("  ").append("}\n")
     }
     dotFile.append("}")
@@ -309,25 +320,51 @@ object BSUIPage {
   }
 
   /** Return the dot representation of a node in an RDDOperationGraph. */
-  private def makeDotNode(node: RDDOperationNode , name:String): String = {
+  private def makeDotNode(node: RDDOperationNode , name:String , list: util.ArrayList[Int]): String = {
+    var red = 0.0f
+  if(listn.dagInfo.isDefined) {
+    var map = listn.dagInfo.get
+    var green = -1.0f
+    var set: Boolean = false
+    var old = 0
+    var tempg = -1f
+    var tempf = -1f
+    for ((id, t, f) <- map) {
+      if (node.id == id-1) {
+        green = (t - f).toFloat / t.toFloat
+        red = f.toFloat / t.toFloat
+      }
+      if (node.id < id-1 && node.id > old-1) {
+        green = tempg
+        red = tempf
+      }
+      tempg = (t - f).toFloat / t.toFloat
+      tempf = f.toFloat / t.toFloat
+      old = id;
+    }
+  }
+
     val label = s"${name}"
-    s"""${node.id} [label="${StringEscapeUtils.escapeJava(label)}" , fillcolor="lightcoral;0.8:palegreen" ]"""
+    s"""${node.id} [label="${StringEscapeUtils.escapeJava(label)}" , fillcolor="lightcoral;${red}:palegreen" ]"""
   }
   /** Update the dot representation of the RDDOperationGraph in cluster to subgraph. */
   private def makeDotSubgraph(subgraph: StringBuilder,
                               cluster: RDDOperationCluster,
-                              indent: String): Unit = {
+                              indent: String , list : util.ArrayList[Int]): Unit = {
 
     if(cluster.name.contains("Stage")) {
       subgraph.append(indent).append(s"subgraph cluster${cluster.id} {\n")
       subgraph.append(indent).append( s"""  label="${StringEscapeUtils.escapeJava(cluster.name)}"\n""")
       subgraph.append(indent).append( s"""  node [shape=circle, style="wedged"]\n""")
       cluster.childClusters.foreach { cscope =>
-        makeDotSubgraph(subgraph, cscope, indent + "  ")
+        makeDotSubgraph(subgraph, cscope, indent + "  " , list)
       }
     }else {
       cluster.childNodes.foreach { node =>
-        subgraph.append(indent).append(s"  ${makeDotNode(node , cluster.name)};\n")
+        if(!cluster.name.contains("tap"))
+        subgraph.append(indent).append(s"  ${makeDotNode(node , cluster.name , list)};\n")
+        else
+          list.add(node.id)
       }
     }
   }

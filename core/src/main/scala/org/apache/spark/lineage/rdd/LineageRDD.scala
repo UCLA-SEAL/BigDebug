@@ -33,6 +33,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.util.PackIntIntoLong
 import org.apache.spark.util.collection.CompactBuffer
 
+import scala.collection.mutable
 import scala.reflect._
 
 private[spark]
@@ -282,7 +283,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     }
   }
 
-  def goBackAll(times: Int = Int.MaxValue) = go(times, Direction.BACKWARD)
+  def goBackAll(times: Int = Int.MaxValue , map:mutable.Map[Int, (RDD[Any], Long)] = null) = go(times, Direction.BACKWARD , map)
 
   def goNextAll(times: Int = Int.MaxValue) = go(times)
 
@@ -419,17 +420,26 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
     }
   }
 
-  private[spark] def go(times: Int, direction: Direction = Direction.FORWARD): LineageRDD =
+  private[spark] def go(times: Int, direction: Direction = Direction.FORWARD , map:mutable.Map[Int, (RDD[Any] , Long)] = null): LineageRDD =
   {
     var result = this
     var counter = 0
     try {
+      if(map!=null){
+        if(lineageContext.getCurrentLineagePosition.isDefined)
+          map(lineageContext.getCurrentLineagePosition.get.id) = (lineageContext.getCurrentLineagePosition.get , result.count());
+      }
       while(counter < times) {
         if(direction == Direction.BACKWARD) {
           result = result.goBack()
         } else {
           result = result.goNext
         }
+        if(map!=null){
+          if(lineageContext.getCurrentLineagePosition.isDefined)
+            map(lineageContext.getCurrentLineagePosition.get.id) = (lineageContext.getCurrentLineagePosition.get , result.count());
+        }
+
         counter = counter + 1
       }
     } catch {

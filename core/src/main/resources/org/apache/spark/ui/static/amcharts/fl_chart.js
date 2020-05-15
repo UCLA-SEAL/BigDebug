@@ -91,7 +91,7 @@ function updateChart(data) {
 
 var percentColors = [
     { pct: 0.0, color: { r: 0xff, g: 0x00, b: 0 } },
-    { pct: 0.5, color: { r: 0xff, g: 0xff, b: 0 } },
+    { pct: 0.1, color: { r: 0xff, g: 0xff, b: 0 } },
     { pct: 1.0, color: { r: 0x00, g: 0xff, b: 0 } } ];
 
 var getColorForPercentage = function(pct) {
@@ -119,7 +119,8 @@ var getColorForPercentage = function(pct) {
 var redefineColors = function(chart2) {
     var dataProvider = chart2.dataProvider;
     var min = Number.MAX_VALUE;
-    var max = Number.MIN_VALUE
+    var max = Number.MIN_VALUE;
+    var sum = 0;
     for (var i = 0; i < dataProvider.length; i++) {
         if(dataProvider[i].value < min){
             min = dataProvider[i].value;
@@ -127,12 +128,14 @@ var redefineColors = function(chart2) {
         if(dataProvider[i].value > max){
             max = dataProvider[i].value;
         }
+        sum = sum +dataProvider[i].value;
     }
 
-    var med = (max-min )/ 2;
+    var med = sum/dataProvider.length ;
+    var d = med - min > max - med ? med - min : max - med;
     for (var i = 0; i < dataProvider.length; i++) {
         var temp = dataProvider[i].value;
-        dataProvider[i].color = getColorForPercentage( 1 - (Math.abs(temp - med)/ ( med - min) ) ) ;
+        dataProvider[i].color = getColorForPercentage( 1 - (Math.abs(temp - med)/ Math.abs(d) ) ) ;
     }
 
 

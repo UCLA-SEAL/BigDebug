@@ -2,7 +2,9 @@ package org.apache.spark.lineage.ui
 
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.internal.Logging
+import org.apache.spark.rdd.RDD
 
+import scala.collection.immutable.TreeMap
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -39,7 +41,7 @@ trait BigSiftUIListenerBus extends Logging {
   var initialOutput: Option[String] = None
   var waitObjectForBigSIft : Object = new Object;
   var initialOutputViz: Option[mutable.ArraySeq[Any]] = None
-
+  var dagInfo :  Option[List[(Int, Long, Long)]] = None
 
   /**
     * User Defined Test Predicated Handler
@@ -62,6 +64,25 @@ trait BigSiftUIListenerBus extends Logging {
   }
 
   /***/
+
+  def setDAGInfoMap(s: mutable.Map[Int, (RDD[Any] , Long)] ): Unit ={
+    var map = List[(Int, Long, Long)]()
+    var adj = 0
+    for((k,v) <- s){
+      map =   (k ,v._1.count() , v._2) :: map
+    }
+    var temp = map.sortBy(_._1)
+    map = List[(Int, Long, Long)]()
+    for((k, v1, v2) <- temp) {
+      if (v2 > v1) {
+        adj = adj-1
+      }else {
+        map = (k + adj, v1, v2) :: map
+      }
+    }
+    dagInfo = Some(map.sortBy(_._1))
+  }
+
 
   def addListener(listener: BigSiftUIListener) {
     bsuiListeners += listener
@@ -109,7 +130,6 @@ trait BigSiftUIListenerBus extends Logging {
           e.printStackTrace()
       }
     }
-
   }
 
 
@@ -187,13 +207,13 @@ trait BigSiftUIListenerBus extends Logging {
               a.asInstanceOf[Tuple2[Any, Any]]._2 match {
                 case _ :Int =>
                   var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, Int]]]
-                    outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : ${s._2} } """  ).reduce(_+","+_)
+                    outputStr = typed_arr.map( s => s""" {"key": "${s._1.toString.replace("\"", "\\\"")}" , "value" : ${s._2} } """  ).reduce(_+","+_)
                 case _ :Float =>
                   var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, Float]]]
-                  outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : ${s._2} } """  ).reduce(_+","+_)
+                  outputStr = typed_arr.map( s => s""" {"key": "${s._1.toString.replace("\"", "\\\"")}" , "value" : ${s._2} } """  ).reduce(_+","+_)
                 case _ : String =>
                   var typed_arr =  initialOutputViz.get.asInstanceOf[mutable.ArraySeq[Tuple2[Any, String]]]
-                  outputStr = typed_arr.map( s => s""" {"key": "${s._1}" , "value" : "${s._2}" } """  ).reduce(_+","+_)
+                  outputStr = typed_arr.map( s => s""" {"key": "${s._1.toString.replace("\"", "\\\"")}" , "value" : "${s._2}" } """  ).reduce(_+","+_)
 
                 case _ => logInfo("Output type not supported")
               }
@@ -225,7 +245,7 @@ trait BigSiftUIListenerBus extends Logging {
       msg = getFaultLocalizationIterator().map{s =>
         var sample = ""
         if(s.topRecords.size != 0)
-          sample = s.topRecords.toIterator.map(  s => s""" "$s" """).reduce( (v1,v2) => v1 + "," + v2)
+          sample = s.topRecords.toIterator.map(  s => s""" "${s.replace("\"", "\\\"")}" """).reduce( (v1,v2) => v1 + "," + v2)
         else
           sample = ""
         s"""{ "time": ${s.time/1000000l} , "size":${s.size} , "toprecords" : [${sample}] }"""

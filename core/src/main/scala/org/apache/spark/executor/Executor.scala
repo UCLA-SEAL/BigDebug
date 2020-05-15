@@ -87,8 +87,8 @@ private[spark] class Executor(
   // TODO make the number of buffers configurable from conf
   val bufferPool = new ConcurrentLinkedQueue[Array[Byte]]()
   val bufferPoolLarge = new ConcurrentLinkedQueue[Array[Byte]]()
-  for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 * 128))
-  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte](64 * 1024 * 1024))
+  for(i <- 0 to 15) bufferPool.add(new Array[Byte](64 * 1024 ))// *128))
+  for(i <- 0 to 15) bufferPoolLarge.add(new Array[Byte]( 1024 * 64))   //64 * 1024 * 1024))
 
   private val executorSource = new ExecutorSource(threadPool, executorId)
   // Pool used for threads that supervise task killing / cancellation
