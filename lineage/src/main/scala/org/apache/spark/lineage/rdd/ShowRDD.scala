@@ -19,7 +19,7 @@ package org.apache.spark.lineage.rdd
 
 import org.apache.spark.lineage.LocalityAwarePartitioner
 import org.apache.spark.lineage.LineageContext._
-import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd.{MapPartitionsRDD, RDD}
 import org.apache.spark.{Partition, TaskContext}
 
 import scala.reflect._
@@ -29,6 +29,8 @@ class ShowRDD[K: ClassTag](prev: Lineage[(K, String)])
   extends RDD[String](prev) with Lineage[String]
 {
   override def ttag = classTag[String]
+
+  def toRDD = new MapPartitionsRDD[String, (K,String)](prev, (context, pid, iter) => iter.map(x => x._2))
 
   override def lineageContext = prev.lineageContext
 

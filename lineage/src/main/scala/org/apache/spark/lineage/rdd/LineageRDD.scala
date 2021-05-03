@@ -286,7 +286,9 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
 
   def goNextAll(times: Int = Int.MaxValue) = go(times)
 
-  def show(): ShowRDD[_] = {
+  def show(): ShowRDD[_] = show(false)
+
+  def show(print:Boolean): ShowRDD[_] = {
     val position = lineageContext.getCurrentLineagePosition
     if(position.isDefined) {
       var result: ShowRDD[_] = null
@@ -408,7 +410,7 @@ class LineageRDD(val prev: Lineage[(RecordId, Any)]) extends RDD[Any](prev) with
           case _ => throw new UnsupportedOperationException("what cache are you talking about?")
         }
 
-      result.collect.foreach(println)
+      if (print) result.collect.foreach(println)
       result
     } else {
       throw new UnsupportedOperationException("what position are you talking about?")
