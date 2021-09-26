@@ -7,11 +7,11 @@ First, BigDebug's simulated breakpoints and on-demand watchpoints allow users to
 
 If you encounter any problems, please open an issue or feel free to contact us:
 
-[Matteo Interlandi](https://interesaaat.github.io): Postdoc and now Senior Scientist at Microsoft; 
+[Matteo Interlandi](https://interesaaat.github.io): was a postdoc and now a Senior Scientist at Microsoft; 
 
-[Muhammad Ali Gulzar](https://people.cs.vt.edu/~gulzar/): PhD student, now Assistant Professor at Virginia Tech, gulzar@cs.vt.edu;
+[Muhammad Ali Gulzar](https://people.cs.vt.edu/~gulzar/): was a PhD student, now an Assistant Professor at Virginia Tech, gulzar@cs.vt.edu;
 
-[Tyson Condie](https://samueli.ucla.edu/people/tyson-condie/): Assistant Professor, now at Microsoft 
+[Tyson Condie](https://samueli.ucla.edu/people/tyson-condie/): was an Assistant Professor at UCLA, now at Microsoft 
 
 [Miryung Kim](http://web.cs.ucla.edu/~miryung/): Professor at UCLA, miryung@cs.ucla.edu;
 
