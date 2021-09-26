@@ -1,6 +1,43 @@
 
 # BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark
 
+## Summary of BigDebug 
+Developers use cloud computing platforms to process a large quantity of data in parallel when developing big data analytics. Debugging the massive parallel computations that run in today's datacenters is time consuming and error-prone. To address this challenge, we design a set of interactive, real-time debugging primitives for big data processing in Apache Spark, the next generation data-intensive scalable cloud computing platform. This requires rethinking the notion of step-through debugging in a traditional debugger such as gdb, because pausing the entire computation across distributed worker nodes causes significant delay and naively inspecting millions of records using a watchpoint is too time consuming for an end user.
+First, BigDebug's simulated breakpoints and on-demand watchpoints allow users to selectively examine distributed, intermediate data on the cloud with little overhead. Second, a user can also pinpoint a crash-inducing record and selectively resume relevant sub-computations after a quick fix. Third, a user can determine the root causes of errors (or delays) at the level of individual records through a fine-grained data provenance capability. Our evaluation shows that BigDebug scales to terabytes and its record-level tracing incurs less than 25% overhead on average. It determines crash culprits orders of magnitude more accurately and provides up to 100% time saving compared to the baseline replay debugger. The results show that BigDebug supports debugging at interactive speeds with minimal performance impact.## Team 
+
+If you encounter any problems, please open an issue or feel free to contact us:
+
+[Matteo Interlandi](https://interesaaat.github.io): Postdoc and now Senior Scientist at Microsoft; 
+
+[Muhammad Ali Gulzar](https://people.cs.vt.edu/~gulzar/): PhD student, now Assistant Professor at Virginia Tech, gulzar@cs.vt.edu;
+
+[Tyson Condie](https://samueli.ucla.edu/people/tyson-condie/): Assistant Professor, now at Microsoft 
+
+[Miryung Kim](http://web.cs.ucla.edu/~miryung/): Professor at UCLA, miryung@cs.ucla.edu;
+
+
+## How to cite 
+Please refer to our ICSE'16 paper, [BigDebug: debugging primitives for interactive big data processing in spark
+](http://web.cs.ucla.edu/~miryung/Publications/icse2016-gulzar-bigdebug.pdf) for more details. 
+### Bibtex  
+@inproceedings{10.1145/2884781.2884813,
+author = {Gulzar, Muhammad Ali and Interlandi, Matteo and Yoo, Seunghyun and Tetali, Sai Deep and Condie, Tyson and Millstein, Todd and Kim, Miryung},
+title = {BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
+year = {2016},
+isbn = {9781450339001},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2884781.2884813},
+doi = {10.1145/2884781.2884813},
+booktitle = {Proceedings of the 38th International Conference on Software Engineering},
+pages = {784–795},
+numpages = {12},
+keywords = {interactive tools, debugging, big data analytics, data-intensive scalable computing (DISC), fault localization and recovery},
+location = {Austin, Texas},
+series = {ICSE '16}
+}
+[DOI Link](https://doi.org/10.1145/2884781.2884813)
+
 This branch contains the source code for [BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark at ICSE 2016](http://web.cs.ucla.edu/~miryung/Publications/icse2016-gulzar-bigdebug.pdf)
 
 The demo papers of this work are available here [FSE 2016](http://web.cs.ucla.edu/~miryung/Publications/fse2016demo-bigdebug.pdf)
