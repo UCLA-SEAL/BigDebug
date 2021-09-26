@@ -7,13 +7,12 @@ First, BigDebug's simulated breakpoints and on-demand watchpoints allow users to
 
 ## Team 
 
-This project was done in collaboration with Professor Condie, Kim and Millstein's group at UCLA. If you encounter any problems, please open an issue or feel free to contact us:
 
-[Matteo Interlandi](https://interesaaat.github.io): was a postdoc at UCLA and now a Senior Scientist at Microsoft; 
+This project is developed by Professor [Miryung Kim](http://web.cs.ucla.edu/~miryung/)'s Software Engineering and Analysis Laboratory at UCLA. 
+
+If you encounter any problems, please open an issue or feel free to contact us:
 
 [Muhammad Ali Gulzar](https://people.cs.vt.edu/~gulzar/): was a PhD student at UCLA, now an Assistant Professor at Virginia Tech, gulzar@cs.vt.edu;
-
-[Tyson Condie](https://samueli.ucla.edu/people/tyson-condie/): was an Assistant Professor at UCLA, now at Microsoft 
 
 [Miryung Kim](http://web.cs.ucla.edu/~miryung/): Professor at UCLA, miryung@cs.ucla.edu;
 
